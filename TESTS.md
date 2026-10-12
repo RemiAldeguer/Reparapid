@@ -1,6 +1,6 @@
 # Validation de Reparapid
 
-Copie indépendante créée le 12 octobre 2026. Les recettes visuelles et les versions Cloudflare décrites plus bas constituent l’historique de La Clinique Rétro ; aucune publication de Reparapid n’a été effectuée.
+Copie indépendante créée le 12 octobre 2026. Les recettes visuelles et les versions Cloudflare décrites plus bas constituent l’historique de La Clinique Rétro ; Reparapid a été publié et vérifié le 12 octobre 2026.
 
 Validation locale de cette copie le **12 octobre 2026**, avec Node **24.19.0** : installation reproductible par `npm ci`, compilation TypeScript/Vite réussie et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare), zéro échec et zéro test ignoré. Les assets compilés sont identiques à ceux de la version locale d’origine à jour. Les tests API ont été exécutés avec l’accès aux sockets locaux requis par leurs serveurs temporaires.
 
@@ -58,6 +58,8 @@ Navigateur intégré et serveur Node avec SQLite en mémoire et données fictive
 L’action Imprimer / Enregistrer en PDF s’appuie sur le dialogue du navigateur. La validation de l’aperçu et de cette commande ne signifie pas qu’un PDF a été automatiquement enregistré sur disque.
 
 ## Déploiement
+
+Publication Reparapid du 12 octobre 2026 : https://reparapid.aldeguer-remi.workers.dev. Les quatre assets (HTML, JS, CSS, SVG) répondent HTTP 200 et leurs SHA-256 correspondent au build local. La version affichée par Cloudflare est active à 100 %, aucune migration D1 ne reste à appliquer. Les routes /api/store, /api/admin/invoice-source et /api/auth/session refusent les appels anonymes en HTTP 401. Accueil public observé dans le navigateur. La connexion authentifiée reste à vérifier après initialisation du premier compte administrateur ; aucun test de paiement ou d’envoi réel n’a été réalisé.
 
 Après publication, relever le Version ID Wrangler, vérifier la réponse de l’URL publique et comparer les références/hashes JS-CSS au build. Pour une modification API, vérifier les routes/protections concernées. GET /api/store et GET /api/admin/invoice-source doivent refuser une requête anonyme.
 

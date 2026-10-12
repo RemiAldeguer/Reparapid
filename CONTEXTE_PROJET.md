@@ -4,16 +4,25 @@ Dernière mise à jour : **12 octobre 2026**, fuseau de référence **Europe/Par
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
-> **Reparapid — copie indépendante du 12 octobre 2026.** Dépôt : https://github.com/RemiAldeguer/Reparapid ; dossier local : [copie locale Reparapid]. Les sources et les fonctionnalités proviennent de la version locale à jour de La Clinique Rétro. Les références à l’absence de .git, au dossier Desktop, aux ressources Cloudflare et aux publications ci-dessous constituent l’historique du projet d’origine. Reparapid possède son propre dépôt Git, aucune base client ni sauvegarde transférée et aucun déploiement effectué. La configuration active utilise le nom reparapid et un database_id nul, à remplacer par celui d’une D1 dédiée. Les identifiants, comptes, contacts et URL historiques ne doivent pas être réutilisés pour publier cette copie.
+> **Reparapid — copie indépendante du 12 octobre 2026.** Dépôt : https://github.com/RemiAldeguer/Reparapid ; dossier local : [copie locale Reparapid]. Les sources et les fonctionnalités proviennent de la version locale à jour de La Clinique Rétro. Les références à l’absence de .git, au dossier Desktop, aux ressources Cloudflare et aux publications ci-dessous constituent l’historique du projet d’origine. Reparapid possède son propre dépôt Git, aucune base client ni sauvegarde transférée. Le Worker reparapid et sa D1 dédiée ont été publiés le 12 octobre 2026. La configuration de cette production est .wrangler/reparapid.production.jsonc (privée et ignorée par Git) ; wrangler.jsonc reste un modèle avec identifiant nul pour une autre installation. Les identifiants, comptes, contacts et URL historiques ne doivent pas être réutilisés pour publier cette copie.
 
 Ce document décrit le projet réellement présent dans cette copie, ses choix métier et les changements effectués dans la session. Il sert de point d’entrée pour une nouvelle session de développement. Le code reste la référence en cas de divergence ; actualiser ce document quand le fonctionnement évolue.
 
 Validation de l’import Reparapid : `npm ci`, `npm run build` et `npm test` réussis le 12 octobre 2026 avec Node 24.19.0 ; 434 tests (393 + 41), aucun échec ni test ignoré. Les fichiers applicatifs, migrations, tests et assets sources sont identiques à l’original ; seuls la documentation, les noms de package, le workflow et la configuration de cette copie ont été adaptés.
 
+## Publication de Reparapid le 12 octobre 2026
+
+- URL : https://reparapid.aldeguer-remi.workers.dev.
+- Worker reparapid et D1 distincte des installations précédentes ; base créée en Europe de l’Ouest, quatre migrations appliquées et aucune migration restante.
+- Build TypeScript/Vite réussi ; HTML, JavaScript, CSS et SVG servis en HTTP 200, avec SHA-256 identiques au build local.
+- Routes /api/store, /api/admin/invoice-source et /api/auth/session : HTTP 401 sans authentification. Accueil public observé dans le navigateur.
+- Compte administrateur initial à créer ; aucun accès ou jeu de données d’une installation précédente n’a été importé. Aucun secret mail n’est configuré.
+- Utiliser --config .wrangler/reparapid.production.jsonc pour les migrations et publications sur cette machine. Les identifiants du compte/D1 et les détails de version sont conservés hors des fichiers publics.
+
 ## 1. Reprise rapide
 
 1. Lire ce fichier, puis [README.md](README.md) pour l’exploitation et [TESTS.md](TESTS.md) pour la validation.
-2. Vérifier les fichiers et modifications déjà présents. Cette copie locale ne possède actuellement **pas de dossier .git** : ne pas supposer qu’une branche, un remote ou une synchronisation GitHub existe.
+2. Vérifier les fichiers et modifications déjà présents. Cette copie locale possède un dépôt Git et utilise RemiAldeguer/Reparapid : vérifier la branche, le remote et les modifications avant une opération Git.
 3. Vérifier Node, npm et les dépendances. Le projet requiert Node **22.16 ou supérieur**, notamment pour node:sqlite ; la dernière exécution utilisait Node **24.19.0**.
 4. Identifier l’environnement concerné : SQLite local, D1 local de Wrangler ou **D1 de production**. Ces bases sont distinctes.
 5. Lire les fichiers métier et les deux implémentations serveur avant de modifier un contrat de données ou une API.

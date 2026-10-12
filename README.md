@@ -2,7 +2,16 @@
 
 Copie indépendante de La Clinique Rétro, créée le 12 octobre 2026. Les fonctionnalités et l’identité visuelle de l’application d’origine sont conservées pour servir de point de départ à la personnalisation. Le dépôt contient les sources, les migrations, les tests et la documentation ; chaque installation démarre avec sa propre base vide.
 
-La configuration Cloudflare prévoit le nom `reparapid` pour un nouveau Worker et une nouvelle base D1 à créer. Avant toute publication, créez une base D1 dédiée et remplacez l’identifiant nul dans `wrangler.jsonc` par celui de cette base. Configurez votre compte Cloudflare, l’origine du portail et les adresses d’e-mail pour cette installation. Aucun déploiement Cloudflare n’est effectué par la CI GitHub.
+**Site publié : [https://reparapid.aldeguer-remi.workers.dev](https://reparapid.aldeguer-remi.workers.dev).** Publication vérifiée le 12 octobre 2026 : Worker `reparapid`, base D1 dédiée en Europe de l’Ouest, quatre migrations appliquées et assets identiques au build. Le premier compte administrateur reste à initialiser ; les e-mails ne sont pas configurés.
+
+La configuration effective de cette machine est `.wrangler/reparapid.production.jsonc`, exclue de Git. Elle contient les identifiants du compte et de la D1 dédiée. Le fichier versionné `wrangler.jsonc` reste un modèle portable avec un identifiant nul : configurez une nouvelle base pour une autre installation. Aucun déploiement Cloudflare n’est effectué par la CI GitHub.
+
+Pour republier cette installation depuis cette machine :
+
+```sh
+npm run build
+npx wrangler deploy --config .wrangler/reparapid.production.jsonc
+```
 
 **Réparer. Préserver. Rejouer.**
 
@@ -153,7 +162,7 @@ Exportez régulièrement un JSON depuis l’application. Pour sauvegarder aussi 
 
 ## Hébergement Cloudflare
 
-Reparapid n’est pas encore publié. Son URL sera définie lors d’un déploiement sur une infrastructure dédiée.
+Reparapid est publié sur [https://reparapid.aldeguer-remi.workers.dev](https://reparapid.aldeguer-remi.workers.dev), avec une base D1 dédiée. Sur cette machine, utilisez la configuration privée `.wrangler/reparapid.production.jsonc` pour agir sur cette installation.
 
 Le dossier `cloudflare/` fournit une API Workers avec une base D1 persistante et les mêmes écrans d’administration. Les fichiers publics sont uniquement ceux de `dist/`. Le serveur Node local reste disponible avec `npm start` ; sa base SQLite et la base Cloudflare sont indépendantes après le transfert.
 
