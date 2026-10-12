@@ -153,7 +153,7 @@ export function createApplication({ databasePath, origin, distPath, production =
         if (!filename.startsWith(root + path.sep) || decoded.includes('\0')) throw new HttpError(404, 'Fichier introuvable.');
         try { filename = await realpath(filename); } catch { throw new HttpError(404, 'Fichier introuvable.'); }
         if (!filename.startsWith(root + path.sep) || !(await stat(filename)).isFile()) throw new HttpError(404, 'Fichier introuvable.');
-        const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+        const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
         const type = types[path.extname(filename)];
         if (!type) throw new HttpError(404, 'Fichier introuvable.');
         const body = await readFile(filename);

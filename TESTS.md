@@ -69,6 +69,8 @@ Le premier compte administrateur réel de production reste à créer par une per
 
 Les règles métier et les API n’ont pas changé. Aucun nouveau compte de production, changement DNS ou écriture D1 n’a été effectué pour cette recette. TypeScript et le build Vite ont réussi (**80 modules**) ; la version Cloudflare est active à 100 % et les hashes du HTML, des bundles, du logo et de la police servis correspondent au build validé. Le résultat précédent de **474 tests** reste daté et n’est pas présenté comme une nouvelle exécution.
 
+Favicon : PNG original 300 × 300 déclaré dans le HTML, compilation validée et HTML/PNG servis identiques au build. Recette Node temporaire en mémoire : PNG/WebP/TTF en GET et HEAD 200 avec MIME correct, octets GET identiques, HEAD sans corps, `nosniff` conservé et `/api/store` anonyme 401. Aucun test de production avec données clients ; aucune nouvelle exécution de la suite métier.
+
 ## Recettes historiques de La Clinique Rétro
 
 Navigateur intégré et serveur Node avec SQLite en mémoire et données fictives :

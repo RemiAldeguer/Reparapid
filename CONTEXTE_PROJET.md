@@ -36,6 +36,8 @@ La vitrine utilise maintenant un en-tête et un pied de page noirs, un hero roug
 
 Recette visuelle : accueil à **1280 px** et **320 px**, sans débordement horizontal, et formulaire de réparation accessible. Aucun métier ni contrat d’API n’a changé. La suite complète **474 tests** correspond à la validation précédente et n’a pas été relancée pour ces changements visuels. Le contrôle TypeScript et le build Vite sont validés (**80 modules**). La publication Cloudflare est active à 100 % et les hashes du HTML, des bundles, du logo et de la police servis correspondent au build validé ; aucune action DNS, D1 ou création de compte administrateur réel n’a été effectuée pour cette recette.
 
+Le favicon utilise désormais `public/favicon-reparapid.png`, le PNG original 300 × 300 récupéré directement sur reparapid.fr. Le nouveau chemin remplace la déclaration WebP pour que les navigateurs chargent une icône PNG standard et actualisent leur cache. Compilation validée et HTML/PNG publiés vérifiés par hash. Le serveur Node accepte aussi les formats de marque WebP et TTF ; recette temporaire réussie en mémoire (PNG/WebP/TTF GET et HEAD, MIME correct, API privée 401). La suite métier complète n’a pas été relancée.
+
 ## Publication de Reparapid le 12 octobre 2026
 
 - URL : https://reparapid.aldeguer-remi.workers.dev.

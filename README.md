@@ -23,7 +23,7 @@ La vitrine permet à un particulier de demander une réparation, de créer son c
 
 ## Identité visuelle RépaRapid
 
-Le logo original du [site RépaRapid](https://reparapid.fr/) est repris sans retouche dans `public/reparapid-logo-original.webp`. Il apparaît sur la vitrine, le portail client principal, la fiche récapitulative et le favicon. La direction visuelle reprend les en-têtes et pieds de page noirs, un accueil rouge `#a32720` avec motifs géométriques CSS et des accents `#b21414`.
+Le logo original du [site RépaRapid](https://reparapid.fr/) est repris sans retouche dans `public/reparapid-logo-original.webp`. Il apparaît sur la vitrine, le portail client principal, la fiche récapitulative et le favicon. Le favicon utilise le PNG original `public/favicon-reparapid.png`. La direction visuelle reprend les en-têtes et pieds de page noirs, un accueil rouge `#a32720` avec motifs géométriques CSS et des accents `#b21414`.
 
 Les titres et la navigation utilisent **Oxanium**, auto-hébergée dans `public/fonts/oxanium.ttf`, avec sa licence `public/fonts/oxanium-OFL.txt`. La source est le [répertoire officiel Google Fonts](https://github.com/google/fonts/tree/main/ofl/oxanium). Cette reprise concerne la présentation ; le parcours, les règles métier et les API restent identiques. TypeScript et le build Vite sont validés ; les assets HTML/JS/CSS, le logo et la police de la version publiée sont identiques au build validé.
 
