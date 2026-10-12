@@ -28,6 +28,14 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
+## Dernière reprise visuelle : logo original et direction RépaRapid
+
+La demande suivante reprend le **logo original du site RépaRapid**, sans redessin ni retouche, et une partie de sa direction visuelle. Source exacte : [asset original WordPress/CDN](https://i0.wp.com/reparapid.fr/wp-content/uploads/2023/03/Sans-titre-2.png?fit=300%2C300&ssl=1). La copie locale est `public/reparapid-logo-original.webp` ; son SHA-256 est identique à celui de la source : `5c592b863b669335922a51c76171eff93ed948747b0e93582b9aafc1785c8418`. Ce logo est utilisé dans la vitrine, le portail client principal, la fiche imprimable et le favicon.
+
+La vitrine utilise maintenant un en-tête et un pied de page noirs, un hero rouge **#a32720** avec motifs géométriques CSS et des accents **#b21414**. Les titres et la navigation sont en **Oxanium**, auto-hébergée dans `public/fonts/oxanium.ttf` ; conserver la licence `public/fonts/oxanium-OFL.txt`. Source de la police : [google/fonts/ofl/oxanium](https://github.com/google/fonts/tree/main/ofl/oxanium). Ces choix concernent la vitrine et les éléments publics partagés ; les anciens choix visuels d’administration décrits plus bas constituent leur historique.
+
+Recette visuelle : accueil à **1280 px** et **320 px**, sans débordement horizontal, et formulaire de réparation accessible. Aucun métier ni contrat d’API n’a changé. La suite complète **474 tests** correspond à la validation précédente et n’a pas été relancée pour ces changements visuels. Le contrôle TypeScript et le build Vite sont validés (**80 modules**). La publication Cloudflare est active à 100 % et les hashes du HTML, des bundles, du logo et de la police servis correspondent au build validé ; aucune action DNS, D1 ou création de compte administrateur réel n’a été effectuée pour cette recette.
+
 ## Publication de Reparapid le 12 octobre 2026
 
 - URL : https://reparapid.aldeguer-remi.workers.dev.
@@ -135,7 +143,9 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/registration-review.tsx, .css | Revue des inscriptions par le super administrateur |
 | src/seed.ts | Jeux de démonstration, à ne pas injecter dans la production pour une recette |
 | src/styles.css | Styles historiques et globaux, dont plusieurs lignes très longues |
-| public/logo-clinique-retro.svg | Logo actif ; conserver ses proportions |
+| public/reparapid-logo-original.webp | Copie exacte du logo RépaRapid, utilisée par les éléments publics, fiche et favicon |
+| public/fonts/oxanium.ttf, oxanium-OFL.txt | Police locale des titres/navigation publics et licence à conserver |
+| public/logo-clinique-retro.svg | Logo historique de l’administration ; conserver ses proportions |
 | server/application.mjs | Routes Node, authentification, gardes et transactions SQLite |
 | server/database.mjs, server/security.mjs | Schéma / ouverture SQLite, hachage et primitives de sécurité |
 | server/workshop-scope.mjs | Cloisonnement SQL des ateliers et provisionnement |
@@ -736,6 +746,8 @@ Saisir les valeurs dans les prompts sécurisés, jamais comme arguments visibles
 
 ## 21. Design et demandes visuelles retenues
 
+La vitrine RépaRapid suit désormais le logo original, les en-têtes/pieds de page noirs, le hero rouge à motifs CSS et Oxanium locale décrits dans **Dernière reprise visuelle** en tête du document. Conserver la source exacte du logo et les fichiers de licence de la police. Les choix ci-dessous décrivent l’administration et les évolutions historiques de La Clinique Rétro.
+
 - Identité rétro sobre : vert forêt, fonds crème et couleurs secondaires douces.
 - Logo SVG actif dans public/logo-clinique-retro.svg, redessiné le 12/10/2026 pour des proportions plus naturelles : console de 40 × 60 unités dans un cadran de 80 × 80, écran LCD encadré, croix et boutons calibrés, deux petites commandes en bas. Le dernier retour utilisateur rétablit une légère inclinaison de **−6°**, appliquée à toute la console, et une diagonale plus douce pour les deux boutons cuivre : leur milieu vertical est aligné sur celui de la croix ; les deux petites commandes sont centrées sur le boîtier. Conserver la palette vert forêt / ivoire / sauge / cuivre et le tracé de pulsation.
 - Miniatures reconnaissables par modèle et couleur, y compris pour les manettes Nintendo.
@@ -812,6 +824,7 @@ Le warning de bundle Vite au-dessus de 500 kB demeure. Une éventuelle séparati
 25. Retour visuel sur le logo : inclinaison légère rétablie à −6°, boutons cuivre alignés selon une diagonale moins raide et petites commandes centrées sur le boîtier.
 26. Pièces à fournir par les clients et Réparations clients côte à côte dans Ma synthèse, séparées verticalement sur ordinateur et empilées sur tablette / mobile, avec défilements indépendants.
 27. Vitrine RépaRapid pour Maxxi Games, déclaration publique d’une console avec suggestions de pannes, compte client et dossier En attente d’envoi, fiche imprimable, coordonnées publiques éditables, transitions réception cohérentes, API Node/Worker limitées au magasin principal et initialisation humaine du premier admin Cloudflare.
+28. Logo RépaRapid original repris sans retouche dans les éléments publics, portail principal, fiche et favicon ; direction noire/rouge, motifs CSS et police Oxanium auto-hébergée avec licence.
 
 ### Versions publiées récentes, à titre de traçabilité
 

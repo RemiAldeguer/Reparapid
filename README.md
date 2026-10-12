@@ -21,6 +21,12 @@ npx wrangler deploy --config .wrangler/reparapid.production.jsonc
 
 La vitrine permet à un particulier de demander une réparation, de créer son compte et de préparer l’envoi de sa console. L’accès **Magasin** ouvre l’application protégée : clients, consoles, dossiers, stock, paiements et exports. L’espace client présente uniquement les consoles et demandes de son propriétaire. Le socle de gestion d’ateliers indépendants reste disponible ; le compte du magasin initial possède le rôle effectif de super administrateur.
 
+## Identité visuelle RépaRapid
+
+Le logo original du [site RépaRapid](https://reparapid.fr/) est repris sans retouche dans `public/reparapid-logo-original.webp`. Il apparaît sur la vitrine, le portail client principal, la fiche récapitulative et le favicon. La direction visuelle reprend les en-têtes et pieds de page noirs, un accueil rouge `#a32720` avec motifs géométriques CSS et des accents `#b21414`.
+
+Les titres et la navigation utilisent **Oxanium**, auto-hébergée dans `public/fonts/oxanium.ttf`, avec sa licence `public/fonts/oxanium-OFL.txt`. La source est le [répertoire officiel Google Fonts](https://github.com/google/fonts/tree/main/ofl/oxanium). Cette reprise concerne la présentation ; le parcours, les règles métier et les API restent identiques. TypeScript et le build Vite sont validés ; les assets HTML/JS/CSS, le logo et la police de la version publiée sont identiques au build validé.
+
 ## Demander une réparation et préparer l’envoi
 
 Depuis **Demander une réparation** (`#/demande-reparation`), le client suit trois étapes :

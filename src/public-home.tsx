@@ -2,9 +2,10 @@ import {useEffect, useState, type MouseEvent, type ReactNode} from 'react';
 import {ConsoleArt, Icon} from './ui';
 import {clientApi, type IntakeShop} from './client-api';
 import './public-home.css';
+import './reparapid-brand.css';
 
 export function ReparapidBrand() {
-  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><span className="rp-brand-symbol"><Icon name="gamepad" size={29}/><i/></span><span>répa<span>rapid</span><small>PAR MAXXI GAMES · LE KREMLIN-BICÊTRE</small></span></a>;
+  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><img className="rp-brand-image" src="./reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small>PAR MAXXI GAMES · LE KREMLIN-BICÊTRE</small></span></a>;
 }
 export function ShopConsoleArt({item}: {item: {brand: string; model: string; variant?: string}}) {
   const text = item.model.toLowerCase();

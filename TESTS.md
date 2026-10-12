@@ -10,6 +10,8 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Le **12 octobre 2026**, `npm test` a passé **474 tests : 429 dans la première suite Node/domaine/API, puis 45 dans la suite Cloudflare**, sans échec ni test ignoré. Le contrôle TypeScript et le build Vite ont également réussi. La nouvelle vitrine a été publiée et vérifiée sur le Worker ; les derniers ajustements visuels doivent conserver ce contrôle des assets après chaque publication. Le projet exige Node 22.16 ou supérieur ; cette recette utilise Node 24.19.0.
 
+Ce résultat précède la reprise du logo original et de la direction visuelle RépaRapid. La suite n’a pas été relancée pour cette évolution limitée à la présentation et aux assets. Le contrôle TypeScript et le build Vite de cette reprise sont validés ; les hashes des nouveaux assets, du logo et de la police publiés correspondent au build validé.
+
 Ce résultat est daté. Les anciens chiffres de 52 tests décrivaient l’ajout initial de l’authentification et ne représentaient plus la suite actuelle.
 
 ~~~sh
@@ -57,6 +59,15 @@ Recette dans le navigateur intégré avec serveur temporaire et coordonnées ent
 Les tests automatisés vérifient les refus d’origine et de CSRF, les champs de prix/statut/propriétaire forgés, les limites de corps et tentatives, le refus d’une session d’un autre atelier et les collisions de compte. Ils prouvent aussi le retour au même dossier après un double enregistrement, les gardes de session/révision au commit et l’annulation atomique d’une création échouée. Une ancienne fiche client portant le même e-mail reste séparée : l’inscription crée une nouvelle identité et ne récupère jamais ses données.
 
 Le premier compte administrateur réel de production reste à créer par une personne avec `npm run cloudflare:admin:create`. Les tests de cette commande utilisent une base en mémoire et des valeurs synthétiques ; ils n’initialisent pas la production et ne réinitialisent aucun compte.
+
+## Recette visuelle : logo original et direction RépaRapid
+
+- Logo repris sans retouche depuis l’[asset WordPress/CDN RépaRapid](https://i0.wp.com/reparapid.fr/wp-content/uploads/2023/03/Sans-titre-2.png?fit=300%2C300&ssl=1) dans `public/reparapid-logo-original.webp`. SHA-256 source = copie : `5c592b863b669335922a51c76171eff93ed948747b0e93582b9aafc1785c8418`.
+- Logo présent sur la vitrine, le portail client principal, la fiche récapitulative et le favicon.
+- En-tête et pied de page noirs, hero rouge `#a32720`, accents `#b21414`, motifs géométriques CSS ; titres et navigation avec Oxanium auto-hébergée, licence conservée.
+- Accueil contrôlé à **1280 px** et **320 px**, sans débordement horizontal ; formulaire de réparation accessible.
+
+Les règles métier et les API n’ont pas changé. Aucun nouveau compte de production, changement DNS ou écriture D1 n’a été effectué pour cette recette. TypeScript et le build Vite ont réussi (**80 modules**) ; la version Cloudflare est active à 100 % et les hashes du HTML, des bundles, du logo et de la police servis correspondent au build validé. Le résultat précédent de **474 tests** reste daté et n’est pas présenté comme une nouvelle exécution.
 
 ## Recettes historiques de La Clinique Rétro
 
