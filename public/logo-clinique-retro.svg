@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" fill="none">
+  <title>La Clinique Rétro — une nouvelle vie pour vos consoles</title>
+  <rect x="1" y="1" width="78" height="78" rx="17" fill="#173C31" stroke="#AAC6AB" stroke-width="2"/>
+  <g transform="rotate(-6 40 40)">
+    <path d="M25 10h30a5 5 0 0 1 5 5v43a12 12 0 0 1-12 12H25a5 5 0 0 1-5-5V15a5 5 0 0 1 5-5Z" fill="#F9F3DF"/>
+    <rect x="25" y="17" width="30" height="25" rx="3" fill="#173C31"/>
+    <rect x="29" y="21" width="22" height="17" rx="1" fill="#B9D4B5"/>
+    <path d="M31.5 29.5h3l2-4 4 8 2-4h6" stroke="#173C31" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M29 48h4v4.5h4.5v4H33V61h-4v-4.5h-4.5v-4H29Z" fill="#173C31"/>
+    <circle cx="45.5" cy="56" r="3" fill="#CE7947"/>
+    <circle cx="53.5" cy="53" r="3" fill="#CE7947"/>
+    <path d="M34 64h4m4 0h4" stroke="#173C31" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

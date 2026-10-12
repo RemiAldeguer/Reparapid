@@ -1,0 +1,828 @@
+# La Clinique Rétro — contexte de reprise pour une session IA
+
+Dernière mise à jour : **12 octobre 2026**, fuseau de référence **Europe/Paris**.
+
+Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
+
+> **Reparapid — copie indépendante du 12 octobre 2026.** Dépôt : https://github.com/RemiAldeguer/Reparapid ; dossier local : [copie locale Reparapid]. Les sources et les fonctionnalités proviennent de la version locale à jour de La Clinique Rétro. Les références à l’absence de .git, au dossier Desktop, aux ressources Cloudflare et aux publications ci-dessous constituent l’historique du projet d’origine. Reparapid possède son propre dépôt Git, aucune base client ni sauvegarde transférée et aucun déploiement effectué. La configuration active utilise le nom reparapid et un database_id nul, à remplacer par celui d’une D1 dédiée. Les identifiants, comptes, contacts et URL historiques ne doivent pas être réutilisés pour publier cette copie.
+
+Ce document décrit le projet réellement présent dans cette copie, ses choix métier et les changements effectués dans la session. Il sert de point d’entrée pour une nouvelle session de développement. Le code reste la référence en cas de divergence ; actualiser ce document quand le fonctionnement évolue.
+
+Validation de l’import Reparapid : `npm ci`, `npm run build` et `npm test` réussis le 12 octobre 2026 avec Node 24.19.0 ; 434 tests (393 + 41), aucun échec ni test ignoré. Les fichiers applicatifs, migrations, tests et assets sources sont identiques à l’original ; seuls la documentation, les noms de package, le workflow et la configuration de cette copie ont été adaptés.
+
+## 1. Reprise rapide
+
+1. Lire ce fichier, puis [README.md](README.md) pour l’exploitation et [TESTS.md](TESTS.md) pour la validation.
+2. Vérifier les fichiers et modifications déjà présents. Cette copie locale ne possède actuellement **pas de dossier .git** : ne pas supposer qu’une branche, un remote ou une synchronisation GitHub existe.
+3. Vérifier Node, npm et les dépendances. Le projet requiert Node **22.16 ou supérieur**, notamment pour node:sqlite ; la dernière exécution utilisait Node **24.19.0**.
+4. Identifier l’environnement concerné : SQLite local, D1 local de Wrangler ou **D1 de production**. Ces bases sont distinctes.
+5. Lire les fichiers métier et les deux implémentations serveur avant de modifier un contrat de données ou une API.
+6. Pour les tests visuels, utiliser une base temporaire ou SQLite en mémoire et des données fictives. Ne pas réinitialiser l’atelier réel pour obtenir une démonstration.
+7. Adapter les vérifications à la modification. Un changement de CSS demande surtout une compilation et une recette visuelle ; une modification de permissions ou de persistance demande les tests Node et Worker concernés.
+8. Une compilation ne publie pas le site. Pour une publication autorisée, déployer puis vérifier que les assets servis correspondent au build.
+9. Ne pas déduire l’état courant de production des anciens nombres présents dans des captures de démonstration.
+10. Compléter le journal de reprise en fin de modification importante.
+
+## 2. Identité du projet et environnement
+
+| Élément | Contexte |
+| --- | --- |
+| Nom | La Clinique Rétro |
+| Usage | Gestion d’ateliers de réparation de consoles et manettes, collection, clients et suivi client |
+| Langue | Français |
+| Devise | EUR |
+| Source locale de cette session | [ancienne copie locale] |
+| URL publiée | https://votre-instance.example.invalid/ |
+| Hébergement courant | Cloudflare Workers + assets Vite + D1 |
+| Version de package | 2.0.0 ; elle n’est pas incrémentée automatiquement à chaque déploiement |
+| Licence | MIT ; voir LICENSE et THIRD_PARTY_NOTICES.md |
+| Dépôt mentionné dans le README | https://github.com/RemiAldeguer/la-clinique-retro ; l’état du dépôt distant n’a pas été vérifié dans ce travail |
+| Gestion Git locale | Pas de .git dans la copie vérifiée le 12/10/2026 |
+
+Le site publié et le dossier de sources local sont deux choses différentes. Pour reprendre depuis une autre machine, transférer les sources et les documents, installer les dépendances et configurer l’accès aux services dans l’environnement sécurisé de cette machine. Les journaux et scripts temporaires d’une ancienne session ne constituent pas des sources portables.
+
+Versions installées vérifiées dans package-lock.json : **React / React DOM 19.1.1**, **Vite 7.3.6**, **TypeScript 5.8.3**, **Wrangler 4.147.0**. La dernière exécution utilisait npm **10.8.2**. Certaines plages de package.json sont plus larges que ces versions : conserver le lockfile et examiner les changements lors d’une mise à jour.
+
+Il n’y a actuellement que React et React DOM comme dépendances applicatives. Les SVG, graphiques financiers, factures et composants sont construits dans le code ; ne pas ajouter une bibliothèque lourde pour un petit ajustement visuel.
+
+## 3. Architecture
+
+~~~mermaid
+flowchart LR
+  B["Navigateur : React, routes hash"] --> G["Authentification et API même origine"]
+  G --> N["Serveur Node local"]
+  G --> W["Cloudflare Worker en ligne"]
+  N --> S["SQLite : JSON de l'atelier + comptes"]
+  W --> D["D1 : fragments JSON + comptes"]
+  N --> Q["File de notifications par atelier"]
+  W --> Q
+  Q --> R["Resend si configuré"]
+~~~
+
+Les deux branches Node et Worker représentent **deux modes d’hébergement**, pas une réplication automatique entre deux bases.
+
+- **Frontend** : application React, navigation par hash, composants et règles métier TypeScript dans src/.
+- **Domaine** : règles indépendantes de React et du stockage dans src/domain.ts ; rapports spécialisés dans finance-domain.ts et invoice-domain.ts.
+- **Node** : server/application.mjs, serveur HTTP natif et SQLite natif ; pas Express.
+- **Worker** : cloudflare/worker.mjs et cloudflare/database.mjs, assets et D1.
+- **Partage** : modules de portail, notifications, inscriptions, sécurité des réponses et isolation d’atelier dans server/.
+- **Compilation métier Node** : scripts/compile-domain.cjs transpile domain, seed, finance-domain et invoice-domain en CommonJS dans tests/.compiled/. Le serveur Node utilise aussi ces sorties.
+- **Persistance admin** : un Store JSON par atelier, soumis intégralement avec contrôle de révision ; ce n’est pas une API CRUD indépendante pour chaque console.
+- **Portail client** : projection spécifique des données et une mutation limitée pour signaler la disponibilité d’une pièce.
+
+Le serveur ne sert pas les sources, bases ou exports privés. En production, les fichiers publics sont les fichiers de dist/. Les modules Markdown de contexte restent dans les sources.
+
+## 4. Carte des fichiers
+
+| Fichier / groupe | Responsabilité et intérêt pour une modification |
+| --- | --- |
+| src/main.tsx | Choix entre accueil public, portail client et application protégée |
+| src/App.tsx | Shell, sidebar, routes admin, recherche globale, modales, confirmations et erreurs |
+| src/pages.tsx | Dashboard, inventaire, atelier, stock, journal ; composant Metric partagé |
+| src/details.tsx | Fiches console et réparation, onglets et actions du dossier |
+| src/forms.tsx | Formulaires console / réparation / pièce et admission d’un équipement |
+| src/store.tsx | Provider, chargement, copie de travail, transact, sauvegarde révisée et exports |
+| src/domain.ts | Types, validation, transitions, coûts, paiements, stock, pièces clients, suppression |
+| src/auth.tsx, src/api.ts, src/session-privacy.ts | Session admin, CSRF, requêtes tardives, départ de page et déconnexion |
+| src/clients.tsx, src/clients.css | Liste et fiches clients, plusieurs consoles et dossiers par client |
+| src/client-access.tsx, src/client-access.css | Création / remplacement / désactivation des accès clients |
+| src/client-portal.tsx, src/client-portal.css | Portail client, mosaïque, détails, filtres et pièces à fournir |
+| src/client-part-requests.tsx, .css | Gestion admin des demandes de pièces sur un dossier |
+| src/repair-card-client-parts.tsx, .css | Pièces demandées sur les cartes Kanban |
+| src/repair-payment.tsx | Badges et boutons d’enregistrement du paiement |
+| src/repair-total-cost.tsx | Édition du total directement dans l’atelier |
+| src/dashboard-repairs.tsx | Toutes les réparations clients de la synthèse, filtres et actions rapides |
+| src/dashboard-client-parts.tsx, .css | Demandes de pièces clients encore en attente dans Ma synthèse |
+| src/dashboard-summary-lists.css | Disposition côte à côte des listes pièces / réparations de Ma synthèse, séparateur vertical et adaptation des lignes |
+| src/dashboard-metrics.css | Design des quatre cartes du dashboard, sans affecter les autres métriques |
+| src/finance.tsx, src/finance-domain.ts | Rapports hebdomadaires / mensuels, encaissements et gains estimés |
+| src/invoices.tsx, src/invoice-domain.ts, src/invoices.css | Formats simple / complet, préparation, aperçu et impression |
+| src/console-appearance.ts | Détection du modèle et de la couleur des miniatures |
+| src/console-handheld-art.tsx, src/ui.tsx | SVG des consoles, visuels, icônes et composants génériques |
+| src/nintendo-model-picker.tsx | Suggestions Nintendo ; les champs de modèle restent libres |
+| src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
+| src/email-notifications.tsx, .css | Configuration apparente et historique des notifications |
+| src/public-home.tsx, .css | Accueil présentant le service et demande d’inscription |
+| src/registration-review.tsx, .css | Revue des inscriptions par le super administrateur |
+| src/seed.ts | Jeux de démonstration, à ne pas injecter dans la production pour une recette |
+| src/styles.css | Styles historiques et globaux, dont plusieurs lignes très longues |
+| public/logo-clinique-retro.svg | Logo actif ; conserver ses proportions |
+| server/application.mjs | Routes Node, authentification, gardes et transactions SQLite |
+| server/database.mjs, server/security.mjs | Schéma / ouverture SQLite, hachage et primitives de sécurité |
+| server/workshop-scope.mjs | Cloisonnement SQL des ateliers et provisionnement |
+| server/client-portal.mjs | Liste explicite des champs autorisés dans le portail |
+| server/client-part-availability.mjs | Validation stricte du signalement client |
+| server/registration-requests.mjs | Inscription, revue et données publiques limitées |
+| server/repair-notifications.mjs | Détection des changements de statut et schema notifications |
+| server/notification-storage.mjs | File persistante, lots et dépôt atomique des notifications |
+| server/notification-delivery.mjs | Configuration Resend, envoi, claim, reprises et assainissement des erreurs |
+| server/notification-admin.mjs | Statut, activation / pause et relance depuis l’admin |
+| server/response-security.mjs | En-têtes communs à Node et Worker |
+| cloudflare/worker.mjs, database.mjs, security.mjs | Routes, stockage D1 et hachage adaptés à Workers |
+| cloudflare/migrations/ | Quatre migrations du stockage Cloudflare |
+| scripts/admin.mjs | Création / reset du compte admin SQLite local |
+| scripts/cloudflare-export.mjs | Transfert initial privé SQLite vers une nouvelle base D1 |
+| scripts/dev-server.mjs | API de développement avec origine attendue sur 5173 |
+| scripts/build-offline.mjs | Refuse volontairement un build admin sans serveur |
+| tests/ | Tests domaine, Node, session, isolation, portail, notifications et Worker |
+| .github/workflows/ci.yml | Tests et build sur push / pull request ; ne déploie pas le Worker |
+
+Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’entrée du package courant. Il n’a pas été audité dans cette reprise : ne pas modifier un autre projet en le confondant avec les fichiers listés ci-dessus.
+
+## 5. Routes de l’interface
+
+| Route | Écran / accès |
+| --- | --- |
+| / ou #/accueil | Accueil public du service, formulaire de demande d’accès |
+| #/connexion | Connexion atelier ; une connexion valide redirige vers le dashboard |
+| #/dashboard | Dashboard / Ma synthèse |
+| #/clients | Répertoire clients |
+| #/clients/ID | Fiche client, consoles, dossiers, accès et notifications |
+| #/inventory | Inventaire de consoles, cartes ou liste |
+| #/inventory/ID | Fiche console et réparations liées |
+| #/repairs | Atelier, Kanban / liste, filtres et dossiers clôturés |
+| #/repairs/ID | Fiche de réparation |
+| #/finance | Finance, période de référence et granularité |
+| #/invoices | Générateur de factures |
+| #/parts | Stock de pièces de l’atelier |
+| #/activity | Journal |
+| #/settings | Réglages et sauvegardes |
+| #/super-admin/registrations | Revue des inscriptions, super admin seulement |
+| #/espace-client | Portail client et sa connexion propre |
+
+Les paramètres des pages admin sont après le hash, par exemple #/repairs?payment=unpaid et #/invoices?repairId=ID. Les liens clients des ateliers inscrits utilisent **?atelier=UUID#/espace-client** : le paramètre atelier est avant le hash, car le portail en déduit le contexte de connexion.
+
+La sidebar comprend Tableau de bord, Clients, Consoles, L’atelier, Finance, Factures, Pièces détachées, Journal et Inscriptions pour le super admin, puis Réglages et l’identité de l’atelier.
+
+## 6. Modèle métier à préserver
+
+### Store et relations
+
+Le Store contient schemaVersion, revision, settings, clients, consoles, repairs, parts et events. Le schemaVersion reste actuellement **1** ; la compatibilité des ajouts a été gérée par normalisation et champs optionnels.
+
+- Un Client contient notamment id, code, nom, e-mail de contact, téléphone, adresse, notes et date de création.
+- Une ConsoleItem contient marque, modèle, couleur / variante, numéro de série, état, prix d’achat, estimation, emplacement, photos, archive et un clientId optionnel.
+- Une console sans clientId appartient à la collection de l’atelier.
+- Un Repair appartient à une console par consoleId. Son client se déduit de la console ; ne pas ajouter un deuxième rattachement divergent au dossier.
+- Un client peut posséder plusieurs consoles, chacune avec plusieurs réparations successives.
+- Une console ne peut avoir qu’**une seule réparation active**.
+- Part désigne une référence du stock ; PartUsage conserve quantité et prix unitaire au moment de l’utilisation.
+- clientParts désigne des fournitures demandées au client. Ce sont deux concepts distincts.
+- Activity est le journal avec liens optionnels au client, à la console et au dossier.
+
+Les champs nouveaux importants de Repair sont interventionCost, payment et clientParts. Leur absence dans un ancien fichier n’est pas toujours équivalente à une suppression intentionnelle. Le serveur protège les champs existants contre les vieux bundles qui les omettent.
+
+Références visibles : CLT-…, CRT-…, REP-…. Les identifiants techniques sont distincts des codes visibles ; utiliser les helpers de numérotation existants, y compris les traces de suppression, pour ne pas réutiliser les références.
+
+### Validation
+
+validateStore reconstruit des objets validés, contrôle types, tailles, références, unicité et invariants. Parmi les contrôles :
+
+- pas de réparation sans console, de console rattachée à un client absent ni de liens de journal incohérents ;
+- pas de réparation active sur console archivée ou dans un état autre que en-reparation ;
+- pas de dossier terminé avec test pending ou fail ;
+- dates de clôture cohérentes avec l’ouverture du dossier ;
+- **un seul chronomètre actif dans tout l’atelier** ;
+- références de pièces utilisées existantes ;
+- demandes de pièces clients : jusqu’à 100 par dossier, quantité de 1 à 1000, nom jusqu’à 200 caractères, note jusqu’à 1000 ;
+- identifiants de demandes de pièces uniques dans l’ensemble du Store.
+
+Les champs de panne peuvent atteindre 30 000 caractères. Le générateur de facture supporte cette limite : ne pas réintroduire une limite arbitraire de 6000 caractères.
+
+### États et transitions
+
+États d’une console : a-tester, en-panne, en-reparation, fonctionnelle, pour-pieces.
+
+Étapes de réparation : reception, diagnostic, attente-pieces, reparation, tests, terminee, irreparable, abandonnee. Les trois dernières sont fermées ; active() centralise cette règle.
+
+L’ancien état a-commander n’est plus proposé. normalizeRepairStages le convertit en attente-pieces à la lecture / à l’import sans réécrire l’historique ni envoyer une notification pour cette seule normalisation.
+
+Une clôture directe en terminee marque les tests OK, ajoute les contrôles standard si nécessaire, arrête le chronomètre, inscrit la clôture et rend la console fonctionnelle. Une réouverture remet les tests à faire. Modifier les étapes via les helpers du domaine, pas via une affectation isolée qui contourne ces règles.
+
+## 7. Coûts, paiements et chiffres du dashboard
+
+### Coût d’une réparation
+
+Le calcul de référence est **repairTotalCost(Store, Repair)**.
+
+1. Si interventionCost contient un nombre, utiliser ce montant d’intervention.
+2. Si interventionCost est absent ou null, utiliser les minutes des worklogs et le taux horaire de l’atelier.
+3. Ajouter partsCost, calculé à partir des PartUsage enregistrées.
+4. Arrondir en centimes avec les helpers existants.
+
+**Zéro est un montant manuel valide**, distinct d’un champ vide. Ne pas écrire une condition de vérité qui transforme 0 en calcul horaire.
+
+À la création du dossier, le montant saisi est celui de l’intervention **hors pièces**. Dans l’éditeur du Kanban, le montant saisi est le **total pièces incluses** ; setRepairTotalCost ajuste seulement l’intervention. Ce total ne peut pas être inférieur au coût des pièces déjà utilisées.
+
+Le prix unitaire d’une consommation est historisé dans PartUsage : modifier ensuite le prix du stock ne réécrit pas automatiquement ce prix utilisé.
+
+### Paiement
+
+payment vaut un reçu {amount, paidAt}, null pour une annulation explicite ou peut être absent dans un ancien dossier. setRepairPayment :
+
+- enregistre le total courant à la réception d’un règlement complet ;
+- conserve ce montant et cette date si le coût ou l’étape changent ensuite ;
+- est idempotent lors d’un signalement répété ;
+- journalise l’enregistrement ou l’annulation ;
+- concerne les dossiers rattachés à un client.
+
+Ce bouton n’effectue pas de transaction bancaire. Il ne gère ni acomptes ni paiements partiels. Modifier un coût ne corrige pas un reçu déjà enregistré.
+
+### Dashboard
+
+Les quatre cartes en haut suivent l’inventaire et les dossiers de tout l’atelier :
+
+- Consoles en collection : consoles non archivées, avec compte des fonctionnelles et des consoles à tester.
+- À l’atelier : toutes les réparations actives, avec nombre de dossiers au statut attente-pieces.
+- Réparations terminées : dossiers actuellement terminee.
+- Valeur de la collection : somme des estimatedValue des consoles non archivées.
+
+Elles peuvent inclure la collection personnelle, contrairement aux totaux financiers clients. Leur somme ou leur périmètre ne doit pas être confondu avec celui de Ma synthèse.
+
+Dans Ma synthèse :
+
+- **Total théorique des réparations** = somme des coûts courants de tous les dossiers clients, toutes étapes confondues (en cours, terminés, irréparables ou abandonnés), pièces incluses. Les consoles clientes archivées sont conservées et la collection personnelle est exclue. theoreticalRepairRevenue centralise ce calcul. Ce montant théorique ne modifie pas les reçus.
+
+- **Montant des réparations** = total courant des réparations clients actuellement terminées, pièces incluses.
+- **Total encaissé** = somme des reçus conservés, quel que soit le statut actuel du dossier.
+- Les consoles clientes archivées restent prises en compte ; la collection sans client est exclue.
+- Supprimer un dossier supprime aussi son reçu du suivi conservé ; ce n’est pas un registre comptable immuable.
+
+### Deux listings dans Ma synthèse
+
+Les deux listes occupent **la même rangée sur ordinateur**, avec les pièces à gauche, les réparations à droite et un séparateur vertical. Chaque liste conserve son défilement indépendant. À 1100 px de largeur d’écran et en dessous, elles s’empilent avec un séparateur horizontal. Les lignes et les en-têtes sont adaptés aux colonnes plus étroites ; les filtres et boutons de paiement restent présents.
+
+**Pièces à fournir par les clients**, à gauche :
+
+- toutes les demandes strictement au statut en-attente, pas les disponibles, livrées ou installées ;
+- quantité totale et nombre de demandes sont distincts ;
+- affichage de la quantité, du nom, de la note éventuelle, du client, de la référence, de la console et de sa couleur ;
+- demandes les plus anciennes en premier ;
+- une demande encore en attente reste présente même sur un dossier clôturé ou une console cliente archivée ;
+- liens vers le dossier et le client, sans modification automatique des statuts ;
+- liste défilable, plafonnée en hauteur, accessible au clavier ; plafond de 440 px / 65 vh dans la disposition côte à côte, 260 px / 55 vh dans la disposition empilée ;
+- état vide explicite lorsqu’aucune demande n’est en attente.
+
+**Réparations clients** :
+
+- toutes les réparations correspondantes, plus de limite à cinq ;
+- filtres Toutes / Non payées / Payées ;
+- non payées en premier, puis terminées, puis plus récemment mises à jour ;
+- bouton rapide Marquer payée, coût total et montant reçu ;
+- défilement interne, hauteur maximale de 440 px ou 65 vh ;
+- changement de filtre remet la liste en haut, sans remettre à zéro les totaux financiers.
+
+## 8. Stock et pièces demandées au client
+
+### Pièces de l’atelier
+
+Le stock a des références, quantités, seuils, prix unitaires, compatibilités, fournisseurs et emplacements. Utiliser une pièce la déduit du stock et l’inscrit dans le dossier avec son prix de consommation.
+
+### Pièces à fournir par le client
+
+Statuts exacts :
+
+| Identifiant | Sens |
+| --- | --- |
+| en-attente | En attente de la pièce |
+| disponible | Le client l’a obtenue et peut la remettre à l’atelier |
+| livree | Réception confirmée par l’atelier |
+| installee | Installation confirmée par l’atelier |
+
+Disponible ne signifie **pas** Livrée. Le client ne peut pas confirmer lui-même une réception ou une installation.
+
+- L’ajout / édition du contenu d’une demande nécessite un dossier ouvert et un client associé.
+- L’admin peut gérer les statuts et supprimer les demandes après clôture.
+- Le client peut signaler en-attente → disponible, même après clôture.
+- Une répétition de ce signalement est idempotente.
+- Une demande livrée / installée ne peut pas être remise disponible par le client.
+- Ces demandes ne modifient **ni le stock, ni les coûts, ni le reçu, ni les tests, ni le statut du dossier**.
+- Elles n’envoient pas d’e-mail automatique.
+- Leur note est destinée au client : ne pas y inscrire un diagnostic privé.
+
+Sur une fiche de réparation, le panneau reste directement visible et se place à côté de Paiement client sur grand écran, puis se superpose sur petit écran.
+
+Sur une carte Kanban, les trois premières demandes sont affichées, avec quantité et statut ; déplier les suivantes. Les disponibles passent en premier, puis les demandes en attente.
+
+## 9. Clients, consoles et suppression
+
+Les clients ont leurs fiches et peuvent déposer plusieurs équipements en une opération. Une réparation peut être créée pour une console existante ou pour une **nouvelle console / manette**, sans obligation d’être déjà dans l’inventaire.
+
+Le sélecteur Nintendo est une aide, pas une restriction : Game Boy / Advance, DS, 3DS / 2DS, NES / SNES / N64 / GameCube / Wii / Wii U, Switch / OLED / Lite / Switch 2 et les manettes associées, notamment Joy-Con gauche / droit / paires et Pro. Les marques et modèles libres permettent d’autres fabricants.
+
+Les miniatures utilisent la silhouette du modèle et la couleur de variant, avec synonymes et modèles connus. Ne pas confondre le champ historique illustration, plus générique, avec la détection affinée de consoleAppearance.
+
+Le client concerné est affiché sur la fiche de réparation. L’inventaire montre les réparations liées dans les vues cartes et liste, deux visibles puis historique dépliable.
+
+Suppression d’un dossier :
+
+- confirmation depuis le bouton rouge visible en haut de fiche ;
+- suppression du dossier, notes, photos, temps, tests et reçu ;
+- conservation de la console et du client ;
+- aucune remise automatique des pièces consommées dans le stock ;
+- traces de journal adaptées pour éviter des références orphelines et une réutilisation de numéro ;
+- annulation des notifications en attente liées au dossier.
+
+Suppression d’une console :
+
+- action depuis l’inventaire ou sa fiche, avec confirmation ;
+- supprime ses dossiers et leurs reçus / contenus ;
+- conserve le client, son compte et ses autres consoles ;
+- conserve le stock déjà déduit et les traces de suppression ;
+- neutralise les notifications devenues obsolètes.
+
+Ne pas utiliser ces actions sur des données réelles pour une recette. La restauration JSON remplace un atelier entier ; elle n’est pas un bouton Annuler pour une suppression ponctuelle.
+
+## 10. Portail client
+
+Connexion distincte de l’admin, à partir de l’accès créé dans la fiche client. L’adresse de connexion peut être différente de l’adresse de contact destinée aux notifications.
+
+Le portail propose :
+
+- synthèse du suivi et des quantités de pièces à fournir ;
+- mosaïque par défaut, vue détaillée, recherche et filtres ;
+- consoles avec silhouette / couleur et montants courants des dossiers ;
+- accès au détail et à l’historique des réparations ;
+- tableau des pièces demandées et filtre par statut ;
+- signalement Marquer disponible, avec confirmation de toute la quantité demandée ;
+- actualisation et contrôle de session.
+
+**Projection serveur explicite** dans server/client-portal.mjs :
+
+- nom de l’atelier et nom du client ;
+- consoles de ce client : id, code, marque, modèle, variante, série, état, accessoires ;
+- dossiers de ces consoles : identité, titre, panne, statut, échéance, dates, total calculé ;
+- demandes client : id, nom, quantité, note et statut.
+
+Les diagnostics internes, tests, worklogs, photos privées, notes d’atelier, autres clients, stock et données comptables admin ne sont pas envoyés au portail. Ajouter un champ au Store ne doit jamais le rendre automatiquement public.
+
+Le montant affiché est le coût courant, pas un extrait bancaire ni le reçu admin. Les tests internes ne sont pas affichés, conformément à la demande utilisateur.
+
+## 11. Finance
+
+La vue Finance est réservée à l’admin de son atelier. buildFinanceReport centralise :
+
+- calendrier **Europe/Paris**, semaines du lundi au dimanche ou mois ;
+- fenêtre de 12 semaines ou 6 mois se terminant à la période de référence ;
+- navigation dans les périodes et retour Aujourd’hui ;
+- encaissements selon paidAt, indépendamment du statut actuel ;
+- coût des pièces des dossiers payés ;
+- gain estimé = encaissement moins pièces, **hors temps de travail et autres charges** ;
+- montant à encaisser sur les dossiers clients terminés et non payés, affectés à leur clôture ;
+- détail des paiements ouvrant les dossiers.
+
+Le gain peut être négatif. Cette vue reflète les dossiers et reçus actuellement conservés : annulation, suppression, restauration ou modification des consommations peut changer l’historique présenté.
+
+Il n’y a actuellement ni comptabilité complète, ni rapprochement bancaire, ni gestion de trésorerie avec charges / TVA / acomptes.
+
+## 12. Générateur de factures
+
+Entrées : menu Factures, raccourci Finance et bouton de la fiche de réparation cliente. Les paramètres repairId et clientId permettent une présélection.
+
+Choisir un client puis **1 à 100 réparations de ce même client**. Les dossiers terminés, actifs, consoles archivées et réparations gratuites sont acceptés. Le montant est le coût courant canonique, pièces déjà incluses une fois.
+
+### Facture simple
+
+- sélection et date d’émission ; numéro / notes facultatifs ;
+- identité atelier et client reprise du Store ;
+- noms des consoles, variantes / séries, références, pannes et montants ;
+- total et notes libres ;
+- **aucune adresse, immatriculation, coordonnée de contact, TVA ou échéance** ;
+- un ancien brouillon complet n’injecte pas ses coordonnées dans le snapshot simple.
+
+### Facture complète
+
+- format par défaut ;
+- numéro manuel, dates d’émission et d’échéance, émetteur et destinataire ;
+- adresses et immatriculation requises ; coordonnées clients préremplies et modifiables ;
+- Sans TVA ou TVA comprise ; la taxe est extraite du total existant, jamais ajoutée automatiquement ;
+- taux borné, numéro de TVA requis si taxe positive, mention libre selon la situation de l’émetteur ;
+- panne = symptoms non vide, sinon titre ;
+- information de prestation terminée / en cours, sans diagnostic ni notes internes.
+
+### Limites et sécurité
+
+- Pas de registre ni historique persistant des factures, pas de réservation / numérotation automatique.
+- Pas de sauvegarde automatique du profil de facturation ; les champs restent dans l’état de la page.
+- Pas de génération serveur d’un PDF ni bibliothèque PDF : window.print ouvre le dialogue d’impression ; l’utilisateur choisit Enregistrer au format PDF.
+- Pas d’envoi de facture par e-mail et pas de modification du paiement lors de l’impression.
+- Snapshot profondément figé, calculs en centimes et validation des textes / dates.
+- Changer un champ, la sélection ou le format invalide l’aperçu.
+- Lecture fraîche avant génération **et avant impression** par GET /api/admin/invoice-source.
+- Ce GET exige aussi le **CSRF de la session admin courante**, afin de détecter un remplacement de session / atelier même si les IDs et révisions coïncident.
+- Une révision différente bloque l’impression et demande de régénérer.
+- Réponses tardives / page démontée : requêtes annulées ou ignorées.
+- Le rendu d’impression isole la facture, sans navigation, formulaires ni overlays ; en-tête de tableau répétable et textes longs préservés.
+- Les coordonnées et mentions du mode complet ne constituent pas une certification légale ; l’interface propose le lien de référence déjà présent dans le README.
+
+## 13. SaaS et rôles
+
+L’accueil public présente l’application comme un service pour plusieurs ateliers. L’inscription est une **demande d’accès soumise à revue**, pas une création immédiatement active.
+
+Rôles :
+
+- **super_admin** : compte initial, conserve l’atelier existant et gère les demandes ;
+- **admin** : compte d’un atelier approuvé, accès à son atelier seulement ;
+- **client** : compte rattaché à une fiche client dans un atelier.
+
+Le rôle public du compte initial est déterminé côté serveur par workshopId null. Les tables SQL historiques peuvent encore stocker role='admin' : ne pas tenter une simple mise à jour SQL vers super_admin, contraire à leur contrainte.
+
+Une approbation :
+
+- vérifie l’autorisation du super admin au moment du commit ;
+- crée un UUID et les tables de l’atelier isolé ;
+- crée un atelier vide et le compte avec la phrase de passe de la demande ;
+- retire le hash de la demande traitée ;
+- ne déplace pas les données de l’atelier initial.
+
+Un refus ne crée pas d’accès. Il n’y a pas d’e-mail automatique d’acceptation / refus, pas de système de plans payants ou de facturation SaaS des abonnements.
+
+### Isolation SQL
+
+server/workshop-scope.mjs construit les namespaces **tenant_<uuid sans tirets>_** pour les tables propres à l’atelier. L’UUID est validé côté serveur ; les valeurs SQL restent liées comme paramètres.
+
+saas_workshops et saas_session_index font partie du registre de plateforme. L’index retrouve l’atelier d’un cookie, puis la vraie session et ses permissions sont revérifiées dans son namespace. Un identifiant fourni par le navigateur n’est jamais à lui seul une autorisation d’atelier.
+
+Les liens clients incluent le contexte UUID et le portail transmet X-Workshop-ID. Une incohérence avec la session réelle doit être refusée.
+
+## 14. API : routes à connaître
+
+| Méthode | Route | Fonction |
+| --- | --- | --- |
+| POST | /api/public/registrations | Dépôt public d’une demande, validation et limitations |
+| POST | /api/auth/login | Connexion admin / super admin |
+| GET | /api/auth/me | Validation de session admin, sans prolonger seule l’inactivité |
+| POST | /api/auth/logout | Révocation et cookie vidé |
+| POST | /api/auth/password | Changement admin avec currentPassword et newPassword |
+| GET | /api/store | Store complet de l’atelier admin courant |
+| PUT | /api/store | Sauvegarde intégrale révisée, mode edit / restore / reset |
+| GET | /api/admin/invoice-source | Store courant pour factures, CSRF requis même en GET |
+| GET / POST / DELETE | /api/admin/client-access/CLIENT_ID | Consulter / créer ou remplacer / désactiver l’accès client |
+| GET | /api/admin/notifications | Configuration apparente et historique ; filtre clientId possible |
+| PUT | /api/admin/notifications | Activation ou pause |
+| POST | /api/admin/notifications/retry | Relance d’un échec récent |
+| GET | /api/super-admin/registrations | Liste de demandes, filtre status |
+| POST | /api/super-admin/registrations/ID/review | Approbation / refus |
+| POST | /api/client/auth/login | Connexion client |
+| GET | /api/client/auth/me | Validation de session client |
+| POST | /api/client/auth/logout | Déconnexion client |
+| GET | /api/client/portal | Projection limitée au client authentifié |
+| POST | /api/client/repairs/REPAIR_ID/parts/PART_ID/available | Signalement de disponibilité, corps JSON vide {} seulement |
+
+Consulter les handlers pour les champs complets et les contraintes. Une réponse 401 retire les vues privées. Le 403 du GET de source facture retire également la vue, car il signifie notamment qu’une session ne correspond plus au CSRF capturé.
+
+Les écritures demandent l’origine correcte et le CSRF. Un 409 de révision n’est pas une erreur à corriger en forçant l’écriture : récupérer le brouillon et relire l’état serveur.
+
+## 15. Persistance et concurrence
+
+### SQLite Node
+
+server/database.mjs ouvre la base avec WAL, clés étrangères, timeout et permissions restrictives. L’atelier est dans workshop, sous forme JSON et revision. Les comptes, sessions, limites, notifications et inscriptions sont dans des tables distinctes.
+
+### D1 Worker
+
+Le Store est fractionné dans workshop_chunks. workshop désigne la génération active et sa révision. Les fragments utilisent 250 000 unités UTF-16 et évitent de couper une paire de surrogates.
+
+- lecture de métadonnées et fragments dans une requête cohérente ;
+- publication atomique d’une génération via batch ;
+- contrôle de session et de révision dans la transaction ;
+- aucune publication partielle ni écrasement sur garde refusée ;
+- limite de sauvegarde : **20 Mio**.
+
+Ne pas transformer la sauvegarde D1 en succession non atomique de requêtes indépendantes.
+
+### Frontend
+
+transact clone le Store courant, applique les helpers, valide, incrémente revision et soumet :
+
+~~~json
+{"revision":42,"data":{"schemaVersion":1,"revision":43},"mode":"edit"}
+~~~
+
+Cet exemple montre seulement l’enveloppe : data doit contenir le Store complet validé. Le serveur recalcule la révision attendue.
+
+Une seule sauvegarde est autorisée à la fois. L’affichage présente le brouillon mais les actions sont bloquées jusqu’à la réponse. true renvoyé par transact signifie accepté pour soumission, **pas enregistré définitivement**.
+
+En cas de conflit / échec, préserver le brouillon exportable et proposer une relecture explicite. Ne pas rejouer automatiquement une écriture ambiguë.
+
+Un signalement client de pièce incrémente aussi la révision. Un admin utilisant un ancien Store peut donc recevoir un 409 ; c’est une protection à conserver.
+
+## 16. Sécurité et vie de session
+
+- Mots de passe de 15 à 128 caractères, sel unique et scrypt.
+- Node : N=131072, r=8, p=1 ; Worker : N=32768, r=8, p=3. Ces formats ne sont pas simplement interchangeables.
+- Limiteurs de hachage : deux calculs simultanés côté Node, un par instance Worker.
+- Tokens de session aléatoires ; seule leur empreinte SHA-256 est persistée.
+- Cookies HttpOnly, SameSite=Strict, Secure / préfixe __Host- en HTTPS.
+- Durée absolue 8 heures, inactivité 30 minutes ; les sondes /me n’entretiennent pas artificiellement la session.
+- Limitations de tentatives par adresse / réseau / global et erreurs de connexion génériques.
+- Authentification et autorisation serveur à chaque requête, puis nouvelles gardes après réception / hachage asynchrone avant commit.
+- Changement / remplacement d’un mot de passe révoque les sessions correspondantes.
+- Réponses no-store, Vary Cookie / Origin, CSP et autres en-têtes communs.
+- CSP : scripts même origine, pas de script inline, pas de frames ni workers ; attributs style React permis pour graphiques ; images same-origin / data / blob.
+- API et frontend de même origine, pas de CORS permissif pour contourner un problème d’origine.
+- Aucun secret dans VITE_*, dist/, exports, journaux ou ces documents.
+
+AuthGate retire réellement le sous-arbre privé après expiration / déconnexion / départ de page. Le retour depuis l’historique revalide la session. BroadcastChannel propage les déconnexions entre onglets.
+
+Une simple bascule d’onglet vérifie la session sans abandonner un brouillon admin encore autorisé. Les requêtes d’un ancien epoch ne doivent pas remplir ou déconnecter une nouvelle session.
+
+Le Provider d’authentification est keyed par atelier, e-mail et CSRF : un remplacement d’identité remonte l’application au lieu de conserver une facture ou un Store d’une autre session.
+
+Une donnée légitimement affichée à un utilisateur reste observable dans son DOM. L’objectif est de contrôler **qui la reçoit**, de minimiser la projection client et d’effacer les vues après session ; pas de prétendre rendre une information affichée invisible aux outils du navigateur.
+
+Limites : pas de MFA, pas d’équipe de plusieurs admins par atelier, pas de connexion sociale ni récupération automatique par e-mail. Le stockage n’est pas chiffré par l’application. Ces contrôles ne valent pas audit externe.
+
+## 17. Notifications par e-mail
+
+Transport HTTP Resend, sans SDK applicatif supplémentaire. Variables côté serveur :
+
+- RESEND_API_KEY : secret du service ;
+- MAIL_FROM : expéditeur sur domaine vérifié ;
+- MAIL_REPLY_TO : adresse de réponse ;
+- MAIL_PORTAL_ORIGIN : origine du lien vers l’espace client.
+
+Déclencheur : changement de statut d’un dossier rattaché à un client avec adresse de contact exploitable. La destination est l’adresse de la fiche client, pas nécessairement l’e-mail de son compte de connexion.
+
+La file est déposée dans la même transaction que la sauvegarde du dossier. Une sauvegarde refusée ne doit jamais générer un e-mail.
+
+Envoi après commit, puis reprise Node chaque minute / Worker toutes les cinq minutes. Revérifier propriétaire et destinataire avant l’envoi. Reprises espacées, maximum six tentatives et fenêtre de 23 heures, même clé d’idempotence.
+
+Pause, restauration et suppressions neutralisent les messages obsolètes. Les coûts, paiements, notes et modifications de demandes de pièces ne constituent pas des changements de statut à notifier.
+
+Envoyé signifie accepté par Resend, pas lu ni nécessairement reçu. Les erreurs du fournisseur sont assainies ; aucun retour de clé API dans l’interface.
+
+**État constaté le 12/10/2026 : Wrangler secret list retourne une liste vide pour le Worker.** Ne pas supposer que les e-mails fonctionnent. Les variables publiques de contact sont présentes dans wrangler.jsonc, mais les secrets d’expédition doivent être configurés puis le statut vérifié dans Réglages. Aucun envoi réel n’a été exécuté pour cette documentation ou la recette.
+
+## 18. Sauvegardes et récupération
+
+- Export JSON depuis l’admin : Store de l’atelier, pas les comptes / hashes / sessions / notifications.
+- Export CSV : inventaire, valeurs EUR et protection des cellules contre l’interprétation comme formule.
+- Restauration JSON : remplacement explicite du Store du bon atelier, confirmation RESTAURER.
+- Compte admin conservé lors d’une restauration ; accès clients devenus orphelins / sessions et messages devenus invalides sont traités par les gardes serveur.
+- Les anciennes sauvegardes sans clients et avec a-commander sont normalisées.
+- L’ancienne clé localStorage la-clinique-retro:v1 sert à la migration explicite, pas au stockage courant.
+- La base et ses sauvegardes contiennent des données privées. Ne pas les exposer en assets publics.
+- SQLite WAL : une copie du fichier principal seul à chaud n’est pas une sauvegarde fiable ; utiliser une sauvegarde cohérente ou arrêter le serveur puis copier les données protégées.
+- D1 et SQLite ne se synchronisent pas automatiquement.
+
+cloudflare:export prépare un transfert initial privé dans .backups/ après vérification du compte local. **Ce n’est pas une commande de mise à jour quotidienne** : importer ce SQL vise une nouvelle D1 et refuse un admin déjà présent.
+
+npm run admin:reset agit sur la base SQLite choisie par DATABASE_PATH. Il ne réinitialise pas magiquement le compte de la D1 publiée. Pour un compte connecté, privilégier le formulaire sécurisé de changement de mot de passe.
+
+## 19. Développement et commandes
+
+### Installation / vérifications
+
+~~~sh
+npm install
+npm test
+npm run typecheck
+npm run build
+~~~
+
+build compile les modules métier, vérifie TypeScript puis produit dist/ avec Vite. Les sorties tests/.compiled/, dist/ et node_modules/ sont générées ; ne pas en faire les sources d’une correction.
+
+Le build complet a pris environ 80–90 secondes dans cette session. L’avertissement Vite sur un chunk supérieur à 500 kB est présent ; c’est un avertissement de taille, pas un échec.
+
+### Serveur local avec build
+
+~~~sh
+npm run admin:create
+npm run build
+npm start
+~~~
+
+Créer l’admin seulement dans une base nouvelle destinée à cet usage. La commande refuse d’écraser un compte existant.
+
+Origine par défaut : **http://127.0.0.1:3040**. Variables de .env.example : NODE_ENV, HOST, PORT, APP_ORIGIN, DATABASE_PATH et options mail. Ne pas recopier des valeurs secrètes dans ce document.
+
+### Développement Vite
+
+Deux terminaux :
+
+~~~sh
+# API 3040, configurée pour l'origine Vite
+npm run dev:server
+~~~
+
+~~~sh
+# Interface 5173, proxy /api vers 3040
+npm run dev
+~~~
+
+Ouvrir **http://127.0.0.1:5173**, pas une origine arbitraire. Le port 3040 est celui de l’API ; les écritures attendent l’origine Vite en mode dev.
+
+### Runtime de vérification
+
+Cette copie a été vérifiée avec Node 24.19.0. Utiliser une installation locale de Node 22.16 ou supérieur ; aucun chemin absolu de la machine d’origine n’est requis.
+
+## 20. Cloudflare : configuration et publication
+
+> Configuration historique du projet d’origine, inactive dans Reparapid. Pour cette copie, utiliser le fichier wrangler.jsonc actuel et créer une D1 dédiée.
+
+Configuration de référence : [wrangler.jsonc](wrangler.jsonc).
+
+| Élément | Valeur dans cette copie |
+| --- | --- |
+| Worker | la-clinique-retro |
+| Account ID | [identifiant de compte retiré] |
+| Main | cloudflare/worker.mjs |
+| Compatibilité | 2026-10-05, nodejs_compat |
+| Assets | dist/, binding ASSETS, run_worker_first=true |
+| D1 / binding | la-clinique-retro / DB |
+| D1 ID | [identifiant historique retiré] |
+| Migrations | cloudflare/migrations |
+| Cron | Toutes les cinq minutes |
+| MAIL_PORTAL_ORIGIN | https://votre-instance.example.invalid/ |
+| MAIL_REPLY_TO | contact@example.invalid |
+| Observabilité Wrangler | enabled=false |
+
+Ces identifiants de ressources et l’adresse de contact ne sont pas des jetons d’accès. Aucun token Cloudflare, clé Resend, cookie ni mot de passe n’est enregistré ici.
+
+L’authentification Wrangler a fonctionné sur cette machine pendant la session ; la disponibilité des credentials doit être revérifiée dans une nouvelle session. Un environnement automatisé peut utiliser CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID, stockés dans ses paramètres sécurisés. Des permissions de lecture seules ne suffisent pas à publier.
+
+### Migrations
+
+| Migration | Contenu |
+| --- | --- |
+| 0001_initial.sql | Admin, sessions, limites, workshop et fragments D1 |
+| 0002_client_accounts.sql | Comptes et sessions clients |
+| 0003_email_notifications.sql | Réglages et file de notifications |
+| 0004_saas_registrations.sql | Inscriptions, registre ateliers et index de sessions |
+
+Vérification en lecture seule du 12/10/2026 : **aucune migration à appliquer** sur la D1 distante configurée.
+
+~~~sh
+npx wrangler d1 migrations list la-clinique-retro --remote
+~~~
+
+Lors d’une modification de schéma, modifier aussi l’initialisation Node et le provisionnement des ateliers si nécessaire. Le mécanisme multi-atelier crée certaines tables au moment de l’approbation : une migration de tables de l’atelier initial seule ne suffit pas forcément pour tous les tenants existants.
+
+### Publier une modification autorisée
+
+~~~sh
+npm run build
+npx wrangler deploy
+~~~
+
+Ou npm run cloudflare:deploy, qui effectue les deux étapes. Avec un build déjà validé et inchangé, appeler directement Wrangler évite une deuxième compilation.
+
+Après succès :
+
+1. relever le Version ID de Wrangler ;
+2. vérifier que l’URL publiée répond ;
+3. comparer les références et, si nécessaire, les SHA-256 des JS / CSS dist/ avec ceux servis ;
+4. tenir compte d’un court délai de propagation : examiner le résultat avant de redéployer ;
+5. pour une modification API, vérifier aussi les gardes et routes concernées, sans exposer des données privées.
+
+La session a publié directement sur le Worker existant à la demande de l’utilisateur. Pour une future action destructive, un nouveau service payant ou une modification de permissions, obtenir une instruction adaptée ; l’historique n’est pas une autorisation illimitée sur l’infrastructure.
+
+### Tester D1 localement
+
+~~~sh
+npm run cloudflare:test
+npm run cloudflare:migrate:local
+npm run cloudflare:dev
+~~~
+
+Le test Wrangler écoute sur 127.0.0.1:8787 avec LOCAL_DEV:true et utilise .wrangler/. Cette base est différente de la SQLite de npm start.
+
+### E-mails
+
+~~~sh
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put MAIL_FROM
+~~~
+
+Saisir les valeurs dans les prompts sécurisés, jamais comme arguments visibles ni dans une conversation. Le domaine d’expédition doit être vérifié chez le fournisseur ; MAIL_REPLY_TO seul n’est pas un expéditeur.
+
+## 21. Design et demandes visuelles retenues
+
+- Identité rétro sobre : vert forêt, fonds crème et couleurs secondaires douces.
+- Logo SVG actif dans public/logo-clinique-retro.svg, redessiné le 12/10/2026 pour des proportions plus naturelles : console de 40 × 60 unités dans un cadran de 80 × 80, écran LCD encadré, croix et boutons calibrés, deux petites commandes en bas. Le dernier retour utilisateur rétablit une légère inclinaison de **−6°**, appliquée à toute la console, et une diagonale plus douce pour les deux boutons cuivre : leur milieu vertical est aligné sur celui de la croix ; les deux petites commandes sont centrées sur le boîtier. Conserver la palette vert forêt / ivoire / sauge / cuivre et le tracé de pulsation.
+- Miniatures reconnaissables par modèle et couleur, y compris pour les manettes Nintendo.
+- Les quatre cartes du dashboard sont colorées : collection verte sombre, atelier bleu, terminées lilas, estimation dorée.
+- Grands chiffres, icônes et filigranes, mais cartes **compactes** après demande de réduction.
+- À 1280 px de largeur, les cartes observées sont passées d’environ 231 à **178 px de haut**. La hauteur réelle dépend du contenu et de la largeur ; les minima CSS sont autour de 170–175 px.
+- Quatre colonnes sur grand écran, deux à 1100 px et en dessous ; libellés vérifiés jusqu’à 320 px.
+- Styles spéciaux limités à dashboard-metrics, car Metric est aussi utilisé sur d’autres pages.
+- Icône € redessinée dans les paths de src/ui.tsx : courbe équilibrée et deux barres distinctes. Le filigrane euro reste **droit**, avec retrait suffisant pour éviter son découpage.
+- Sidebar : bloc décoratif « Réparer. Préserver. Rejouer. / Les belles histoires… » et ses « + » retirés ; bouton « + Ajouter une console » retiré de la sidebar.
+- Les actions d’ajout restent sur le dashboard, dans Consoles et dans les dépôts clients.
+- Le grand bloc promotionnel « La passion, ça se répare / De retour dans la partie » n’est plus rendu sur la synthèse.
+- Les boutons de suppression de réparation doivent rester visibles, pas cachés dans un menu difficile à trouver.
+- Ma synthèse : pièces clients à gauche, réparations à droite dans une seule rangée, séparateur vertical et défilements indépendants ; retour à une pile sur tablette / mobile. Conserver les en-têtes alignés et les actions de paiement lisibles.
+
+Ne pas refaire ces choix visuels en oubliant les retours utilisateur. Les SVG existants et les styles sont la bonne source pour des corrections ; il n’est pas nécessaire de remplacer un pictogramme vectoriel par une image générée.
+
+## 22. Validation et état de référence
+
+Le **12/10/2026**, npm test a réussi :
+
+- **393 tests** dans la première suite Node / domaine / API ;
+- **41 tests** dans la suite Cloudflare ;
+- **434 au total**, zéro échec et zéro test ignoré.
+
+Ce nombre est daté : le recontrôler après une modification et ne pas le présenter comme un état perpétuellement garanti.
+
+Le dernier build, après le logo incliné et les listes de synthèse côte à côte, a passé la compilation métier, tsc et Vite. La version publiée et vérifiée est **[identifiant historique retiré]** : JS **index-DXltHcOK.js** et CSS **index-DIQcifBn.css**. Les SHA-256 des fichiers JS, CSS et logo SVG servis correspondent au build local, et la page publique répond HTTP 200. La suite de 434 tests ci-dessus précédait ces changements visuels SVG / structure / CSS ; elle n’a pas été relancée pour ces ajustements.
+
+Recette visuelle réalisée dans cette session sur un navigateur intégré, avec serveur local SQLite en mémoire et données fictives : factures simple / complète, changement de format, numéros facultatifs, TVA, coûts périmés, aperçu long, retrait à la déconnexion, listings clients, filtres, défilement clavier, cartes desktop et écrans 320 / 390 px, icône euro.
+
+Recette de la synthèse enrichie : 3 demandes strictement en-attente, quantité totale 4, sur 2 clients ; les demandes disponible/livree/installee sont absentes, mais une demande du dossier terminé reste affichée. Les trois montants fictifs sont 205,68 € terminés, 25,50 € encaissés et 250,18 € théoriques. Une réparation personnelle à 999 € est bien exclue du total théorique. Les liens ouvrent le bon dossier ; à 320 px, les trois totaux se superposent sans défilement horizontal.
+
+Recette du logo : rasterisation de contrôle à 24 / 39 / 47 / 64 / 80 px, affichage carré sans distorsion, vérification dans la sidebar à 39 px et sur l’accueil à 47 px, puis observation du logo sur l’accueil public après publication. L’ajustement incliné à −6° a aussi été contrôlé aux cinq tailles. Les composants de logo et leurs tailles existantes restent partagés ; leur dessin est modifié uniquement dans le SVG public.
+
+Recette de la disposition côte à côte : contrôles à 1280 et 1101 px, sections sur la même rangée, séparateur vertical et en-têtes de 122 px avec listes démarrant à la même hauteur. Les 22 dossiers fictifs restent dans la liste, avec 20 boutons Marquer payée. La touche Fin fait défiler uniquement les réparations ; le filtre Payées affiche 2 dossiers, le retour à Toutes réaffiche 22 dossiers et remet la liste en haut. À 320 px, les sections s’empilent et le document reste exactement à 320 px de large ; l’en-tête des pièces conserve 206 px pour son texte. Ces essais n’ont enregistré aucun nouveau paiement.
+
+Les snapshots / captures de ces essais utilisent des clients et consoles de démonstration. Aucun e-mail réel ni paiement bancaire n’a été envoyé. Ils ne prouvent pas une réception Resend ou une certification des factures.
+
+Des scripts de recette et captures ont été créés dans /private/tmp/ pendant la session. Les processus temporaires ont été arrêtés après leurs essais. Ces fichiers peuvent disparaître et ne sont **pas** un prérequis de build / déploiement ; recréer un harnais de test autonome si nécessaire.
+
+Le warning de bundle Vite au-dessus de 500 kB demeure. Une éventuelle séparation des routes en chunks doit être étudiée si demandée, sans mélanger cette optimisation avec une correction visuelle ponctuelle.
+
+## 23. Journal des évolutions fonctionnelles de cette conversation
+
+Évolutions déjà intégrées avant cette reprise documentaire :
+
+1. Mise en route locale, création d’administration et déploiement Workers / D1.
+2. Gestion des clients et de plusieurs consoles / réparations.
+3. Suggestions Nintendo, puis équipements libres et manettes.
+4. Clôture directe avec tests OK et comptes de connexion clients.
+5. Identité visuelle, logo et miniatures par modèle / couleur.
+6. Suivi client en mosaïque et coût visible.
+7. Montant manuel d’intervention, édition du total Kanban et suppressions visibles.
+8. Client sur la fiche de réparation et historique lié dans l’inventaire.
+9. Paiements enregistrés, total encaissé distinct et boutons rapides.
+10. Nettoyage de la synthèse et suppression de l’étape À commander.
+11. Finance hebdomadaire / mensuelle.
+12. Renforcement de la session, des projections et des protections serveur.
+13. Demandes de pièces clients, panneau direct et présentation à côté du paiement.
+14. Accueil SaaS, super admin et revue des demandes d’inscription.
+15. Portail client enrichi et action Marquer disponible.
+16. Pièces demandées sur les cartes Kanban.
+17. Générateur de facture regroupant plusieurs dossiers d’un même client.
+18. Format Facture simple ajouté au format complet.
+19. Listing de synthèse complet et défilable, au lieu de cinq dossiers.
+20. Retrait des éléments décoratifs et du bouton d’ajout de la sidebar.
+21. Cartes de dashboard redesignées puis réduites.
+22. Symbole euro corrigé.
+23. Documentation de reprise, pièces clients en attente et Total théorique des réparations dans Ma synthèse.
+24. Logo vectoriel repris avec une silhouette droite, des proportions de console portable régulières et un écran LCD encadré ; le fichier partagé est utilisé par l’accueil, la connexion, la sidebar, le portail et les factures.
+25. Retour visuel sur le logo : inclinaison légère rétablie à −6°, boutons cuivre alignés selon une diagonale moins raide et petites commandes centrées sur le boîtier.
+26. Pièces à fournir par les clients et Réparations clients côte à côte dans Ma synthèse, séparées verticalement sur ordinateur et empilées sur tablette / mobile, avec défilements indépendants.
+
+### Versions publiées récentes, à titre de traçabilité
+
+| Version ID | Changement |
+| --- | --- |
+| [identifiant historique retiré] | Générateur de factures initial |
+| [identifiant historique retiré] | Facture simple / complète et retrait du motto sidebar |
+| [identifiant historique retiré] | Tous les dossiers clients dans le listing défilable |
+| [identifiant historique retiré] | Retrait du bouton d’ajout dans la sidebar |
+| [identifiant historique retiré] | Nouveau design des métriques |
+| [identifiant historique retiré] | Cartes compactées |
+| [identifiant historique retiré] | Icône euro équilibrée, filigrane droit |
+| [identifiant historique retiré] | Pièces clients en attente et total théorique dans Ma synthèse |
+| [identifiant historique retiré] | Logo droit, écran LCD et proportions de console portable équilibrées |
+| [identifiant historique retiré] | Logo incliné à −6°, boutons alignés et listes de synthèse côte à côte |
+
+Incident de publication du 12/10/2026 : une première tentative Wrangler 4.147.0 a refusé une réponse JSON malformée de GET deployments, HTTP 200, avant tout upload. Une lecture des versions a confirmé que rien de nouveau n’avait été créé ; la seconde tentative avec la même version de Wrangler a réussi. Examiner l’état distant avant de réessayer un résultat ambigu ; aucune modification du SDK ou des données n’a été nécessaire.
+
+Ces identifiants sont des publications de cette session, pas des commits Git. Ne pas confondre restauration d’une version de Worker et restauration des données D1.
+
+## 24. Limites et questions ouvertes
+
+- Factures : pas d’archivage, registre, numérotation automatique, profil émetteur persistant ou envoi PDF.
+- Paiements : un reçu complet par dossier, pas d’acompte, passerelle de paiement ni rapprochement bancaire.
+- Finance : gain estimé hors charges / travail et basé sur les dossiers conservés.
+- Notifications : configuration d’expédition absente au moment de la vérification ; activation et délivrabilité à confirmer après configuration.
+- SaaS : validation manuelle, un admin par atelier, pas d’abonnements payants ni gestion d’équipe.
+- Connexion : pas de MFA, récupération e-mail ou social login.
+- Sync : pas de mises à jour temps réel poussées pour l’admin ; relire / recharger ou traiter un conflit quand un client signale une disponibilité.
+- Sauvegarde : les comptes et la file de notifications ne sont pas contenus dans le JSON d’atelier.
+- Stockage : Store complet et photos dans JSON ; limites de 20 Mio et coûts de sauvegarde globale à considérer avant un changement d’échelle.
+- Deployment : plan Cloudflare, quotas et délivrabilité du fournisseur sont des paramètres externes à revérifier, pas des garanties de cette documentation.
+- Git / CI : YAML présent, mais copie locale sans .git et aucun résultat de CI distante consulté ici.
+
+Il n’y a pas de nouvelle demande de développement à inventer à partir de cette liste. Elle explique le périmètre actuel et les points à préciser si une future demande les concerne.
+
+## 25. Conseils pour continuer sans régression
+
+1. Commencer par lire le code du parcours concerné et les tests existants, puis changer le minimum cohérent.
+2. Garder les règles financières, de clôture et de validation dans le domaine partagé.
+3. Faire évoluer **Node et Worker** ensemble pour un nouveau contrat ou une nouvelle permission.
+4. Conserver les gardes de revision, origine, CSRF et session jusqu’au commit, y compris après un hachage / upload asynchrone.
+5. Ne jamais remplacer la projection du portail par l’envoi du Store admin.
+6. Ajouter une propriété client par liste explicite et une écriture client par action ciblée, pas par sauvegarde globale.
+7. Préserver les différences entre zéro / null / absent, stock / pièce fournie, coût courant / reçu et disponible / livré.
+8. Garder les brouillons récupérables en cas de conflit et éviter un retry qui pourrait écraser un autre acteur.
+9. Pour les graphiques / factures, calculer dans le fuseau explicite utilisé par le module ; ne pas changer silencieusement les dates métier.
+10. Préserver les imports anciens et les protections contre les anciens bundles.
+11. Ne pas publier de données de démonstration ou de secrets pour une recette.
+12. Vérifier la version réellement servie avant de conclure qu’un changement est en ligne.
+
+### Prompt court de reprise à copier
+
+> Je reprends La Clinique Rétro. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel avant de modifier. Le site est hébergé sur Cloudflare Workers et D1 ; une API Node/SQLite distincte sert au local. Préserve l’isolation des ateliers, les sessions, les révisions, les distinctions coûts/paiements et stock/pièces clients. Les factures ont deux formats, le portail est filtré côté serveur et la synthèse liste toutes les réparations ainsi que les pièces clients en attente. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].

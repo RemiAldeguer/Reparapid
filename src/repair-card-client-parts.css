@@ -1,0 +1,15 @@
+.repair-card-client-parts{min-width:0;margin-top:13px;padding:12px 10px;background:#fafbf6;border:1px solid #e2eadb;border-radius:7px}
+.repair-card-client-parts>h3{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;line-height:1.6;color:#405b3e}
+.repair-card-client-parts>h3>svg{flex-shrink:0;color:#597c50}
+.repair-card-client-parts>ul{list-style:none;padding:0;margin:8px 0 0}
+.repair-card-client-parts li{display:flex;align-items:flex-start;flex-direction:column;gap:6px;min-width:0;padding:9px 0;border-top:1px solid #e6edde}
+.repair-card-client-parts li:first-child{border-top:0;padding-top:0}
+.repair-card-part-name{display:flex;align-items:flex-start;gap:6px;min-width:0;max-width:100%;font-size:12px;line-height:1.6;color:#40563b}
+.repair-card-part-name>span{flex-shrink:0;font-variant-numeric:tabular-nums;color:#607154}
+.repair-card-part-name>strong{min-width:0;font-weight:500;overflow-wrap:anywhere}
+.repair-card-client-parts li>.badge{max-width:100%;font-size:12px;line-height:1.5;padding:4px 7px;white-space:normal;overflow-wrap:anywhere}
+.repair-card-parts-more{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;min-height:34px;padding:6px 0 0;border-top:1px solid #e2eadb;font-size:12px;line-height:1.6;text-align:left;color:#35644d}
+.repair-card-parts-more>svg{flex-shrink:0}
+.repair-card-parts-more[aria-expanded=true]>svg{transform:rotate(180deg)}
+.repair-card-parts-more:hover{color:#1f7059;text-decoration:underline}
+.repair-card-parts-more:focus-visible{outline:2px solid #207c62;outline-offset:3px;border-radius:3px}

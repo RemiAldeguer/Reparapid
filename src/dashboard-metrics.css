@@ -1,0 +1,372 @@
+.metrics.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard-metrics .metric-featured {
+  --metric-ink: #29472d;
+  --metric-detail: #586e51;
+  --metric-accent: #527348;
+  --metric-icon-background: #e3ecd9;
+  --metric-rule: #d0dfc4;
+  --metric-outline: #659350;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 170px;
+  padding: 18px 19px 17px;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid #dbe5d3;
+  border-radius: 15px;
+  background: #f1f5eb;
+  color: var(--metric-ink);
+  box-shadow: 0 3px 8px #1e382504;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.dashboard-metrics .metric-featured::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 19px;
+  width: 34px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--metric-accent);
+  opacity: .65;
+}
+
+.dashboard-metrics .metric-featured.metric-teal {
+  --metric-ink: #f4f6e9;
+  --metric-detail: #d0dec3;
+  --metric-accent: #c5ddae;
+  --metric-icon-background: #d6e8bc18;
+  --metric-rule: #d6e8bc30;
+  --metric-outline: #a4c587;
+  border-color: #2a5037;
+  background: linear-gradient(135deg, #183e2e, #2d593c);
+  box-shadow: 0 5px 16px #1d3b2310;
+}
+
+.dashboard-metrics .metric-featured.metric-blue {
+  --metric-ink: #284860;
+  --metric-detail: #4f6681;
+  --metric-accent: #467295;
+  --metric-icon-background: #d5e4f0;
+  --metric-rule: #b3c9da;
+  --metric-outline: #6685a2;
+  border-color: #d6e2ec;
+  background: linear-gradient(135deg, #edf3fa, #e4edf5);
+}
+
+.dashboard-metrics .metric-featured.metric-purple {
+  --metric-ink: #57446c;
+  --metric-detail: #6c5b7a;
+  --metric-accent: #85669a;
+  --metric-icon-background: #e6dbee;
+  --metric-rule: #d7cbdc;
+  --metric-outline: #9379a6;
+  border-color: #e0d7e6;
+  background: linear-gradient(135deg, #f5f0f7, #efebf4);
+}
+
+.dashboard-metrics .metric-featured.metric-amber {
+  --metric-ink: #5d4c25;
+  --metric-detail: #75633d;
+  --metric-accent: #9c7935;
+  --metric-icon-background: #eadfc1;
+  --metric-rule: #d7cba9;
+  --metric-outline: #a18a50;
+  border-color: #e7ddc3;
+  background: linear-gradient(135deg, #f7f4e9, #f1ead5);
+}
+
+.dashboard-metrics .metric-featured:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 22px #203b2410;
+}
+
+.dashboard-metrics .metric-featured:active {
+  transform: translateY(-1px);
+}
+
+.dashboard-metrics .metric-featured:focus-visible {
+  outline: 3px solid var(--metric-outline);
+  outline-offset: 4px;
+  box-shadow: 0 7px 19px #203b2410;
+}
+
+.dashboard-metrics .metric-featured .metric-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.55;
+  color: var(--metric-detail);
+}
+
+.dashboard-metrics .metric-featured .metric-top > span:first-child {
+  min-width: 0;
+  padding-top: 3px;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-metrics .metric-featured .metric-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--metric-icon-background);
+  color: var(--metric-accent);
+  box-shadow: inset 0 0 0 1px #ffffff28;
+}
+
+.dashboard-metrics .metric-featured .metric-icon > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dashboard-metrics .metric-featured > strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 100%;
+  margin: 10px 0 12px;
+  font-size: clamp(30px, 2.6vw, 38px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  letter-spacing: -1.2px;
+  color: var(--metric-ink);
+  overflow-wrap: anywhere;
+}
+
+.dashboard-metrics .metric-featured > small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: auto;
+  padding: 9px 25px 0 0;
+  border-top: 1px solid var(--metric-rule);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--metric-detail);
+  overflow-wrap: anywhere;
+}
+
+.dashboard-metrics .metric-featured .metric-watermark {
+  position: absolute;
+  z-index: 0;
+  right: -19px;
+  bottom: 20px;
+  width: 105px;
+  height: 105px;
+  transform: rotate(-12deg);
+  color: var(--metric-accent);
+  opacity: .105;
+  pointer-events: none;
+}
+
+.dashboard-metrics .metric-featured.metric-teal .metric-watermark {
+  opacity: .13;
+}
+
+.dashboard-metrics .metric-featured.metric-amber .metric-watermark {
+  right: -6px;
+  transform: none;
+}
+
+.dashboard-metrics .metric-featured .metric-watermark > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.3;
+}
+
+.dashboard-metrics .metric-featured .metric-arrow {
+  position: absolute;
+  z-index: 1;
+  right: 16px;
+  bottom: 15px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--metric-accent);
+  pointer-events: none;
+  transition: transform .18s ease;
+}
+
+.dashboard-metrics .metric-featured:hover .metric-arrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 1100px) {
+  .metrics.dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+  }
+
+  .dashboard-metrics .metric-featured {
+    min-height: 170px;
+    padding: 17px 20px 16px;
+  }
+
+  .dashboard-metrics .metric-featured > strong {
+    font-size: 34px;
+    margin-top: 10px;
+    margin-bottom: 12px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-arrow {
+    right: 17px;
+    bottom: 15px;
+  }
+}
+
+@media (max-width: 700px) {
+  .metrics.dashboard-metrics {
+    gap: 13px;
+    margin-bottom: 23px;
+  }
+
+  .dashboard-metrics .metric-featured {
+    min-height: 170px;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-top {
+    font-size: 12px;
+    gap: 10px;
+  }
+
+  .dashboard-metrics .metric-featured > strong {
+    font-size: 32px;
+    letter-spacing: -1.1px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-arrow {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics.dashboard-metrics {
+    gap: 11px;
+    align-items: stretch;
+  }
+
+  .dashboard-metrics .metric-featured {
+    min-height: 175px;
+    padding: 14px;
+    border-radius: 13px;
+  }
+
+  .dashboard-metrics .metric-featured::before {
+    left: 16px;
+    width: 27px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-top {
+    gap: 7px;
+    min-height: 38px;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .dashboard-metrics .metric-featured .metric-top > span:first-child {
+    padding-top: 0;
+  }
+
+  .dashboard-metrics .metric-featured .metric-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-icon > svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .dashboard-metrics .metric-featured > strong {
+    font-size: clamp(27px, 7.1vw, 32px);
+    line-height: 1.2;
+    letter-spacing: -1.1px;
+    margin-top: 9px;
+    margin-bottom: 11px;
+  }
+
+  .dashboard-metrics .metric-featured > small {
+    padding-top: 8px;
+    padding-right: 22px;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .dashboard-metrics .metric-featured .metric-watermark {
+    width: 84px;
+    height: 84px;
+    right: -19px;
+    bottom: 27px;
+    opacity: .08;
+  }
+
+  .dashboard-metrics .metric-featured.metric-teal .metric-watermark {
+    opacity: .11;
+  }
+
+  .dashboard-metrics .metric-featured .metric-arrow {
+    right: 12px;
+    bottom: 13px;
+    width: 21px;
+    height: 21px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dashboard-metrics .metric-featured .metric-top {
+    gap: 6px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+
+  .dashboard-metrics .metric-featured .metric-icon > svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-metrics .metric-featured,
+  .dashboard-metrics .metric-featured .metric-arrow {
+    transition: none;
+  }
+
+  .dashboard-metrics .metric-featured:hover,
+  .dashboard-metrics .metric-featured:active,
+  .dashboard-metrics .metric-featured:hover .metric-arrow {
+    transform: none;
+  }
+}

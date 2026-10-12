@@ -153,7 +153,7 @@ Exportez régulièrement un JSON depuis l’application. Pour sauvegarder aussi 
 
 ## Hébergement Cloudflare
 
-Reparapid n’est pas encore publié. Le site historique https://la-clinique-retro.aldeguer-remi.workers.dev appartient à l’installation d’origine, indépendante de ce dépôt.
+Reparapid n’est pas encore publié. Son URL sera définie lors d’un déploiement sur une infrastructure dédiée.
 
 Le dossier `cloudflare/` fournit une API Workers avec une base D1 persistante et les mêmes écrans d’administration. Les fichiers publics sont uniquement ceux de `dist/`. Le serveur Node local reste disponible avec `npm start` ; sa base SQLite et la base Cloudflare sont indépendantes après le transfert.
 
@@ -195,7 +195,7 @@ npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put MAIL_FROM
 ```
 
-Saisissez la clé au premier prompt. Au second, saisissez par exemple `La Clinique Rétro <reparations@votre-domaine.fr>`. Ces valeurs restent côté serveur. `MAIL_REPLY_TO` indique l’adresse de réponse de l’atelier et `MAIL_PORTAL_ORIGIN` l’origine HTTPS du site ; renseignez leurs valeurs pour Reparapid dans les variables du Worker ou dans `wrangler.jsonc`. Avant un déploiement initial, appliquez les migrations D1 avec `npm run cloudflare:migrate`.
+Saisissez la clé au premier prompt. Au second, saisissez par exemple `La Clinique Rétro <contact@example.invalid>`. Ces valeurs restent côté serveur. `MAIL_REPLY_TO` indique l’adresse de réponse de l’atelier et `MAIL_PORTAL_ORIGIN` l’origine HTTPS du site ; renseignez leurs valeurs pour Reparapid dans les variables du Worker ou dans `wrangler.jsonc`. Avant un déploiement initial, appliquez les migrations D1 avec `npm run cloudflare:migrate`.
 
 En local, renseignez les mêmes paramètres dans `.env`, puis redémarrez `npm start`. Sans configuration complète, l’interface affiche **À configurer** et aucun e-mail n’est envoyé. Une fois configuré, ouvrez **Réglages → Notifications par e-mail** pour vérifier l’expéditeur et l’activation. L’adresse du destinataire est celle de la fiche client, indépendamment de son identifiant de connexion.
 

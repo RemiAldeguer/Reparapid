@@ -1,0 +1,47 @@
+{
+  "name": "reparapid",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Atelier de réparation avec administration authentifiée et stockage serveur.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "predev:server": "node scripts/compile-domain.cjs",
+    "dev:server": "node --env-file-if-exists=.env scripts/dev-server.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/compile-domain.cjs && npm run typecheck && vite build",
+    "preview": "npm start",
+    "prestart": "node scripts/compile-domain.cjs",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "build:offline": "node scripts/build-offline.mjs",
+    "pretest": "node scripts/compile-domain.cjs",
+    "test": "node --experimental-strip-types --test tests/domain.test.cjs tests/client-part-requests.test.cjs tests/finance-domain.test.mjs tests/invoice-domain.test.mjs tests/auth.test.mjs tests/client-access.test.mjs tests/repair-notifications.test.mjs tests/notification-delivery.test.mjs tests/notifications-api.test.mjs tests/console-appearance.test.mjs tests/response-security.test.mjs tests/api-session.test.mjs tests/registration-requests.test.mjs tests/workshop-scope.test.mjs tests/saas-api.test.mjs && npm run cloudflare:test",
+    "preadmin:create": "node scripts/compile-domain.cjs",
+    "admin:create": "node --env-file-if-exists=.env scripts/admin.mjs create",
+    "preadmin:reset": "node scripts/compile-domain.cjs",
+    "admin:reset": "node --env-file-if-exists=.env scripts/admin.mjs reset",
+    "cloudflare:build": "npm run build && wrangler deploy --dry-run --outdir .cloudflare-build",
+    "cloudflare:dev": "wrangler dev --ip 127.0.0.1 --port 8787 --var LOCAL_DEV:true",
+    "cloudflare:migrate:local": "wrangler d1 migrations apply reparapid --local",
+    "cloudflare:migrate": "wrangler d1 migrations apply reparapid --remote",
+    "cloudflare:deploy": "npm run build && wrangler deploy",
+    "cloudflare:test": "node --experimental-strip-types --test tests/cloudflare-*.test.mjs",
+    "precloudflare:export": "node scripts/compile-domain.cjs",
+    "cloudflare:export": "node --env-file-if-exists=.env scripts/cloudflare-export.mjs"
+  },
+  "dependencies": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "5.8.3",
+    "vite": "^7.1.0",
+    "wrangler": "^4.147.0"
+  }
+}
