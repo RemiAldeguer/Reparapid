@@ -7,6 +7,7 @@ export const STATES = {
 } as const;
 export type ConsoleState = keyof typeof STATES;
 export const STAGES = [
+  { id: 'attente-envoi', label: 'En attente d’envoi', short: 'Attente envoi', color: 'slate', icon: 'package' },
   { id: 'reception', label: 'Réception', short: 'Réception', color: 'slate', icon: 'inbox' },
   { id: 'diagnostic', label: 'Diagnostic', short: 'Diagnostic', color: 'purple', icon: 'stethoscope' },
   { id: 'attente-pieces', label: 'En attente de pièces', short: 'Attente pièces', color: 'amber', icon: 'package' },
@@ -52,14 +53,19 @@ export interface Repair {
   interventionCost?: number | null;
   payment?: RepairPayment | null;
   clientParts?: ClientPartRequest[];
+  publicRequestId?: string;
 }
 export interface Activity {
   id: string; kind: 'created' | 'stage' | 'note' | 'part' | 'time' | 'test' | 'edit' | 'system' | 'photo';
   text: string; createdAt: string; consoleId?: string; repairId?: string; clientId?: string;
 }
+export interface PublicIntakeSettings {
+  shopName: string; address: string; postalCode: string; city: string; phone: string; email: string;
+  addressConfirmed: boolean;
+}
 export interface Store {
   schemaVersion: number; revision: number;
-  settings: { workshop: string; owner: string; hourlyRate: number; demo: boolean; lastExportAt: string; };
+  settings: { workshop: string; owner: string; hourlyRate: number; demo: boolean; lastExportAt: string; publicIntake?: PublicIntakeSettings; };
   clients: Client[]; consoles: ConsoleItem[]; repairs: Repair[]; parts: Part[]; events: Activity[];
 }
 export const uid = () => globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -219,6 +225,7 @@ export function moveRepair(s: Store,id: string,stage: Stage) {
     if(s.repairs.some(x=>x.id!==id&&x.consoleId===c.id&&active(x))) throw Error('Cette console possède déjà une réparation ouverte.');
   }
   const previous=stageInfo(r.stage).label;
+  if(r.stage==='attente-envoi'&&stage==='reception'&&c.location==='En attente d’envoi')c.location='À l’atelier';
   const targetOpen=!['terminee','irreparable','abandonnee'].includes(stage);
   const mustRetest=targetOpen&&(!active(r)||(r.stage==='tests'&&stage!=='tests'));
   if(mustRetest)r.tests.forEach(t=>t.result='pending');
@@ -229,8 +236,8 @@ export function moveRepair(s: Store,id: string,stage: Stage) {
   }
   r.stage=stage; r.updatedAt=now(); r.completedAt=active(r)?'':now();
   if(!active(r)) stopTimer(s,r);
-  const anotherOpen=s.repairs.some(x=>x.id!==r.id&&x.consoleId===c.id&&active(x));
-  c.state=anotherOpen?'en-reparation':stage==='terminee'?'fonctionnelle':stage==='irreparable'?'pour-pieces':stage==='abandonnee'?'en-panne':'en-reparation';
+  const anotherOpen=s.repairs.find(x=>x.id!==r.id&&x.consoleId===c.id&&active(x));
+  c.state=anotherOpen?(anotherOpen.stage==='attente-envoi'?'en-panne':'en-reparation'):stage==='terminee'?'fonctionnelle':stage==='irreparable'?'pour-pieces':stage==='abandonnee'||stage==='attente-envoi'?'en-panne':'en-reparation';
   addEvent(s,`${previous} → ${stageInfo(stage).label}`, 'stage',{consoleId:c.id,repairId:r.id});
 }
 function repairDeletionText(r: Repair): string {
@@ -450,6 +457,23 @@ export function createClientRepairs(s: Store,clientId: string,inputs: ClientRepa
 export function emptyStore(): Store {
   return {schemaVersion:SCHEMA,revision:0,settings:{workshop:'La Clinique Rétro',owner:'Rémi',hourlyRate:35,demo:false,lastExportAt:''},clients:[],consoles:[],repairs:[],parts:[],events:[]};
 }
+/** Public shipping details must be supplied explicitly before a customer can send equipment. */
+export function validatePublicIntakeSettings(raw: unknown): PublicIntakeSettings {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Coordonnées d’envoi invalides.');
+  const value=raw as Record<string,unknown>;
+  const text=(name: string,max: number):string=>{
+    const field=value[name];
+    if(typeof field!=='string'||field.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(field))throw Error('Coordonnées d’envoi : texte manquant ou trop long.');
+    return field.trim();
+  };
+  if(typeof value.addressConfirmed!=='boolean')throw Error('Confirmation de l’adresse d’envoi invalide.');
+  const settings:PublicIntakeSettings={shopName:text('shopName',120),address:text('address',1000),postalCode:text('postalCode',5),city:text('city',120),phone:text('phone',80),email:text('email',254),addressConfirmed:value.addressConfirmed};
+  if(!settings.shopName)throw Error('Le nom de l’atelier d’envoi est obligatoire.');
+  if(settings.postalCode&&!/^\d{5}$/.test(settings.postalCode))throw Error('Le code postal d’envoi doit comporter cinq chiffres.');
+  if(settings.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.email))throw Error('L’adresse e-mail de l’atelier est invalide.');
+  if(settings.addressConfirmed&&(!settings.address||!settings.postalCode||!settings.city))throw Error('Renseignez l’adresse complète de l’atelier avant de confirmer l’envoi.');
+  return settings;
+}
 /** Strict import validation: known fields only, bounds, foreign keys and lifecycle invariants. */
 export function validateStore(raw: unknown): Store {
   const fail=(label:string):never=>{throw Error(`Sauvegarde invalide : ${label}.`)};
@@ -464,6 +488,7 @@ export function validateStore(raw: unknown): Store {
   const day=(x:unknown):string=>{const v=str(x,10);if(!v)return '';if(!/^\d{4}-\d\d-\d\d$/.test(v)||!Number.isFinite(Date.parse(v))||new Date(v+'T12:00:00Z').toISOString().slice(0,10)!==v)return fail('date invalide');return v;};
   const id=(x:unknown)=>{const v=str(x,120);return /^[A-Za-z0-9_-]+$/.test(v)?v:fail('identifiant invalide')};
   const optionalId=(x:unknown)=>x===undefined?'':x===''?'':id(x);
+  const publicRequestId=(x:unknown)=>{const value=str(x,36);return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value.toLowerCase():fail('identifiant de demande publique invalide');};
   const email=(x:unknown)=>{const v=str(x,254);return !v||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)?v:fail('adresse e-mail invalide');};
   const photos=(x:unknown):Photo[]=>arr(x,8).map(y=>{const p=rec(y);const data=str(p.data,650000);if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(data))fail('image invalide');return{id:id(p.id),data,caption:str(p.caption,300),createdAt:timestamp(p.createdAt)};});
   const interventionCost=(x:unknown):number|null=>validInterventionCost(x)?x:fail('coût de l’intervention hors limites ou supérieur à deux décimales');
@@ -483,21 +508,24 @@ export function validateStore(raw: unknown): Store {
   const v=rec(normalizeRepairStages(raw)); if(v.schemaVersion!==SCHEMA)fail('version non prise en charge');
   const settings=rec(v.settings);
   const s:Store={schemaVersion:SCHEMA,revision:num(v.revision,true),settings:{workshop:required(settings.workshop,120),owner:str(settings.owner,80),hourlyRate:num(settings.hourlyRate),demo:flag(settings.demo),lastExportAt:timestamp(settings.lastExportAt,true)},clients:[],consoles:[],repairs:[],parts:[],events:[]};
+  if(settings.publicIntake!==undefined){try{s.settings.publicIntake=validatePublicIntakeSettings(settings.publicIntake);}catch(error){fail(error instanceof Error?error.message:'coordonnées d’envoi invalides');}}
   s.clients=(v.clients===undefined?[]:arr(v.clients)).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),name:required(c.name,200),email:email(c.email),phone:str(c.phone,80),address:str(c.address,1000),notes:str(c.notes),createdAt:timestamp(c.createdAt)};});
   s.consoles=arr(v.consoles).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),clientId:optionalId(c.clientId),brand:required(c.brand,80),model:required(c.model,120),variant:str(c.variant,150),serial:str(c.serial,100),state:one(c.state,Object.keys(STATES) as ConsoleState[]),condition:str(c.condition,80),acquiredAt:day(c.acquiredAt),purchasePrice:num(c.purchasePrice),estimatedValue:num(c.estimatedValue),source:str(c.source,200),location:str(c.location,200),accessories:str(c.accessories),notes:str(c.notes),illustration:one(c.illustration,['gameboy','snes','playstation','megadrive','dreamcast','switch','gamegear'] as const),photos:photos(c.photos),archived:flag(c.archived),createdAt:timestamp(c.createdAt)};});
   s.parts=arr(v.parts).map(y=>{const p=rec(y);return{id:id(p.id),reference:required(p.reference,80),name:required(p.name,200),category:str(p.category,80),compatibility:str(p.compatibility,500),quantity:num(p.quantity,true),threshold:num(p.threshold,true),unitCost:num(p.unitCost),location:str(p.location,200),supplier:str(p.supplier,200)};});
-  s.repairs=arr(v.repairs).map(y=>{const r=rec(y);return{id:id(r.id),code:required(r.code,40),consoleId:id(r.consoleId),title:required(r.title,200),symptoms:str(r.symptoms),diagnosis:str(r.diagnosis),stage:one(r.stage,STAGES.map(x=>x.id)),priority:one(r.priority,Object.keys(PRIORITIES) as Priority[]),dueDate:day(r.dueDate),createdAt:timestamp(r.createdAt),updatedAt:timestamp(r.updatedAt),completedAt:timestamp(r.completedAt,true),timerStartedAt:timestamp(r.timerStartedAt,true),...(r.interventionCost===undefined?{}:{interventionCost:interventionCost(r.interventionCost)}),...(r.payment===undefined?{}:{payment:payment(r.payment)}),...(r.clientParts===undefined?{}:{clientParts:clientParts(r.clientParts)}),photos:photos(r.photos),parts:arr(r.parts).map(y=>{const p=rec(y);const q=num(p.quantity,true);if(q<1)fail('quantité utilisée nulle');return{id:id(p.id),partId:id(p.partId),name:required(p.name,200),quantity:q,unitCost:num(p.unitCost),usedAt:timestamp(p.usedAt)};}),worklogs:arr(r.worklogs).map(y=>{const w=rec(y);return{id:id(w.id),minutes:num(w.minutes,true),note:str(w.note,1000),createdAt:timestamp(w.createdAt)};}),tests:arr(r.tests,100).map(y=>{const t=rec(y);return{id:id(t.id),label:required(t.label,300),result:one(t.result,['pending','pass','fail','na'] as const)};})};});
+  s.repairs=arr(v.repairs).map(y=>{const r=rec(y);return{id:id(r.id),code:required(r.code,40),consoleId:id(r.consoleId),title:required(r.title,200),symptoms:str(r.symptoms),diagnosis:str(r.diagnosis),stage:one(r.stage,STAGES.map(x=>x.id)),priority:one(r.priority,Object.keys(PRIORITIES) as Priority[]),dueDate:day(r.dueDate),createdAt:timestamp(r.createdAt),updatedAt:timestamp(r.updatedAt),completedAt:timestamp(r.completedAt,true),timerStartedAt:timestamp(r.timerStartedAt,true),...(r.interventionCost===undefined?{}:{interventionCost:interventionCost(r.interventionCost)}),...(r.payment===undefined?{}:{payment:payment(r.payment)}),...(r.clientParts===undefined?{}:{clientParts:clientParts(r.clientParts)}),...(r.publicRequestId===undefined?{}:{publicRequestId:publicRequestId(r.publicRequestId)}),photos:photos(r.photos),parts:arr(r.parts).map(y=>{const p=rec(y);const q=num(p.quantity,true);if(q<1)fail('quantité utilisée nulle');return{id:id(p.id),partId:id(p.partId),name:required(p.name,200),quantity:q,unitCost:num(p.unitCost),usedAt:timestamp(p.usedAt)};}),worklogs:arr(r.worklogs).map(y=>{const w=rec(y);return{id:id(w.id),minutes:num(w.minutes,true),note:str(w.note,1000),createdAt:timestamp(w.createdAt)};}),tests:arr(r.tests,100).map(y=>{const t=rec(y);return{id:id(t.id),label:required(t.label,300),result:one(t.result,['pending','pass','fail','na'] as const)};})};});
   s.events=arr(v.events,100000).map(y=>{const e=rec(y);return{id:id(e.id),kind:one(e.kind,['created','stage','note','part','time','test','edit','system','photo'] as const),text:str(e.text),createdAt:timestamp(e.createdAt),...(e.consoleId?{consoleId:id(e.consoleId)}:{}),...(e.repairId?{repairId:id(e.repairId)}:{}),...(e.clientId===undefined||e.clientId===''?{}:{clientId:id(e.clientId)})};});
   function unique(items:{id:string}[]) {const ids=new Set(items.map(x=>x.id));if(ids.size!==items.length)fail('identifiants dupliqués');return ids;}
   const clients=unique(s.clients),consoles=unique(s.consoles),parts=unique(s.parts),repairs=unique(s.repairs);unique(s.events);
   const clientPartIds=new Set<string>();
   for(const repair of s.repairs)for(const request of repair.clientParts??[]){if(clientPartIds.has(request.id))fail('identifiants de pièces client dupliqués');clientPartIds.add(request.id);}
+  const publicRequests=new Set<string>();
+  for(const repair of s.repairs)if(repair.publicRequestId){const owner=s.consoles.find(console=>console.id===repair.consoleId)?.clientId;if(!owner)fail('demande publique sans client');const key=owner+':'+repair.publicRequestId;if(publicRequests.has(key))fail('identifiants de demandes publiques dupliqués pour un client');publicRequests.add(key);}
   if(new Set(s.clients.map(c=>c.code)).size!==s.clients.length||new Set(s.consoles.map(c=>c.code)).size!==s.consoles.length||new Set(s.repairs.map(r=>r.code)).size!==s.repairs.length)fail('numéros de dossier dupliqués');
   if(new Set(s.parts.map(p=>p.reference.toLowerCase())).size!==s.parts.length)fail('références de pièces dupliquées');
-  const open=new Set<string>();let timers=0;
-  for(const r of s.repairs){if(active(r)&&r.completedAt)fail('date de clôture sur un dossier ouvert');if(!active(r)&&!r.completedAt)fail('date de clôture manquante');if(!consoles.has(r.consoleId))fail('console de réparation introuvable');unique(r.parts);unique(r.tests);unique(r.worklogs);unique(r.photos);for(const p of r.parts){if(!parts.has(p.partId))fail('référence de pièce introuvable');}if(active(r)){if(open.has(r.consoleId))fail('plusieurs réparations ouvertes pour une même console');open.add(r.consoleId);}if(r.timerStartedAt){timers++;if(!active(r))fail('chronomètre sur un dossier fermé');}if(r.stage==='terminee'&&(!r.tests.some(t=>t.result==='pass')||r.tests.some(t=>t.result==='fail'||t.result==='pending')))fail('dossier terminé sans tests validés');}
+  const open=new Set<string>(),waitingShipment=new Set<string>();let timers=0;
+  for(const r of s.repairs){if(active(r)&&r.completedAt)fail('date de clôture sur un dossier ouvert');if(!active(r)&&!r.completedAt)fail('date de clôture manquante');if(!consoles.has(r.consoleId))fail('console de réparation introuvable');unique(r.parts);unique(r.tests);unique(r.worklogs);unique(r.photos);for(const p of r.parts){if(!parts.has(p.partId))fail('référence de pièce introuvable');}if(active(r)){if(open.has(r.consoleId))fail('plusieurs réparations ouvertes pour une même console');open.add(r.consoleId);if(r.stage==='attente-envoi')waitingShipment.add(r.consoleId);}if(r.timerStartedAt){timers++;if(!active(r))fail('chronomètre sur un dossier fermé');}if(r.stage==='terminee'&&(!r.tests.some(t=>t.result==='pass')||r.tests.some(t=>t.result==='fail'||t.result==='pending')))fail('dossier terminé sans tests validés');}
   if(timers>1)fail('plusieurs chronomètres actifs');
-  for(const c of s.consoles){unique(c.photos);if(c.clientId&&!clients.has(c.clientId))fail('client de console introuvable');if(open.has(c.id)&&(c.archived||c.state!=='en-reparation'))fail('état de console incohérent avec une réparation ouverte');}
+  for(const c of s.consoles){unique(c.photos);if(c.clientId&&!clients.has(c.clientId))fail('client de console introuvable');if(open.has(c.id)&&(c.archived||c.state!==(waitingShipment.has(c.id)?'en-panne':'en-reparation')))fail('état de console incohérent avec une réparation ouverte');}
   for(const e of s.events){if(e.consoleId&&!consoles.has(e.consoleId))fail('console de journal introuvable');if(e.repairId&&!repairs.has(e.repairId))fail('réparation de journal introuvable');if(e.clientId&&!clients.has(e.clientId))fail('client de journal introuvable');if(e.repairId&&e.consoleId&&s.repairs.find(r=>r.id===e.repairId)?.consoleId!==e.consoleId)fail('journal lié à une autre console');if(e.clientId&&(e.consoleId||e.repairId)&&s.consoles.find(c=>c.id===(e.consoleId??s.repairs.find(r=>r.id===e.repairId)?.consoleId))?.clientId!==e.clientId)fail('journal lié à un autre client');}
   return s;
 }

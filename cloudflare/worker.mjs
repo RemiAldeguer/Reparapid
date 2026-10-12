@@ -1,6 +1,8 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
-import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, StoreSizeError } from './database.mjs';
-import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable } from '../src/domain.ts';
+import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
+import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient } from '../src/domain.ts';
+import {validateIntakeInput, createPublicRepair, publicIntakeSettings} from '../src/repair-intake-domain.ts';
+import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from '../server/client-part-availability.mjs';
 import { repairNotifications } from '../server/repair-notifications.mjs';
@@ -162,7 +164,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
       try {workshopId = validateWorkshopId(parsedBody.workshopId);} catch {throw new HttpError(401, 'Identifiants incorrects.');}
       if (!await platformDB.prepare('SELECT 1 FROM saas_workshops WHERE id=?').bind(workshopId).first()) throw new HttpError(401, 'Identifiants incorrects.');
     }
-  } else {
+  } else if (!pathname.startsWith('/api/public/repair-intake')) {
     const kind = pathname.startsWith('/api/client/') ? 'client' : 'admin', name = kind === 'client' ? portalCookieName : adminCookieName;
     const candidates = (request.headers.get('Cookie') || '').split(';').map(x => x.trim()).filter(x => x.startsWith(name + '='));
     if (candidates.length === 1 && /^[A-Za-z0-9_-]{43}$/.test(candidates[0].slice(name.length + 1))) {
@@ -256,6 +258,40 @@ async function handle(request, env, headers, url, secure, configured, context) {
     return { row, client, store };
   }
 
+  if (pathname.startsWith('/api/public/repair-intake')) {
+    if (request.headers.get('X-Workshop-ID')) throw new HttpError(403, 'Origine de la demande invalide.');
+    if (pathname === '/api/public/repair-intake' && request.method === 'GET') {
+      return json(headers, 200, {shop: publicIntakeSettings(await readWorkshop(db))});
+    }
+    if (pathname === '/api/public/repair-intake/register' && request.method === 'POST') {
+      const ip = env.LOCAL_DEV !== 'true' && request.cf && typeof request.cf === 'object' ? request.headers.get('CF-Connecting-IP') || 'unknown' : 'unknown';
+      await globalThrottle('repair-signup-ip:' + await digest(ip), 5, HOUR);
+      await globalThrottle('repair-signup-global', 30, HOUR);
+      const input = registrationIntakeRequest(await readJSON(request, REPAIR_INTAKE_BODY_LIMIT), {validateIntakeInput, email, checkPassword});
+      await globalThrottle('repair-signup-email:' + await digest(input.customer.email), 3, HOUR);
+      const encoded = await withHash(() => hashPassword(input.password));
+      const current = await readWorkshop(db), previousRevision = current.revision;
+      const reserved = await db.prepare('SELECT 1 FROM client_accounts WHERE email=? UNION ALL SELECT 1 FROM admin WHERE email=? UNION ALL SELECT 1 FROM saas_workshops WHERE email=?')
+        .bind(input.customer.email, input.customer.email, input.customer.email).first();
+      if (reserved) throw new HttpError(409, 'Cette adresse possède déjà un accès. Connectez-vous avec votre compte existant.');
+      const client = createClient(current, input.customer);
+      const {repair} = createPublicRepair(current, client.id, input.intake);
+      validateStore(current);
+      const value = token(), csrf = token(), key = await digest(value), at = Date.now(), expires = at + SESSION_MS;
+      const changed = await saveRegistrationWorkshop(db, {expectedRevision: previousRevision, data: current, tokenHash: key, now: at,
+        registration: {clientId: client.id, email: input.customer.email, passwordHash: encoded, csrf, expiresAt: expires}});
+      if (!changed) {
+        const duplicate = await db.prepare('SELECT 1 FROM client_accounts WHERE email=? UNION ALL SELECT 1 FROM admin WHERE email=? UNION ALL SELECT 1 FROM saas_workshops WHERE email=?')
+          .bind(input.customer.email, input.customer.email, input.customer.email).first();
+        if (duplicate) throw new HttpError(409, 'Cette adresse possède déjà un accès. Connectez-vous avec votre compte existant.');
+        throw new HttpError(409, 'L’atelier a changé. Réessayez votre demande.');
+      }
+      headers.set('Set-Cookie', clientCookie(value, Math.floor(SESSION_MS / 1000)));
+      return json(headers, 201, {session: clientUser({email: input.customer.email, client_id: client.id, csrf, expires_at: expires}, client.name), repairId: repair.id, repairCode: repair.code});
+    }
+    throw new HttpError(404, 'Route introuvable.');
+  }
+
   if (pathname === '/api/auth/login' && request.method === 'POST') {
     // CF-Connecting-IP is trusted only when the request has Cloudflare platform metadata.
     const ip = env.LOCAL_DEV !== 'true' && request.cf && typeof request.cf === 'object'
@@ -326,11 +362,15 @@ async function handle(request, env, headers, url, secure, configured, context) {
     return json(headers, 200, clientUser({ ...account, csrf, expires_at: expires }, client.name));
   }
   if (pathname.startsWith('/api/client/')) {
-    const clientAuth = await clientSession(pathname !== '/api/client/auth/me');
+    const clientAuth = await clientSession(!['/api/client/auth/me', '/api/client/repair-intake/session'].includes(pathname));
     if (mutation && !equal(request.headers.get('X-CSRF-Token'), clientAuth.row.csrf)) {
       throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
     }
     if (pathname === '/api/client/auth/me' && request.method === 'GET') {
+      return json(headers, 200, clientUser(clientAuth.row, clientAuth.client.name));
+    }
+    if (pathname === '/api/client/repair-intake/session' && request.method === 'GET') {
+      if (workshopId) throw new HttpError(401, 'Connexion au compte client RépaRapid requise.');
       return json(headers, 200, clientUser(clientAuth.row, clientAuth.client.name));
     }
     if (pathname === '/api/client/auth/logout' && request.method === 'POST') {
@@ -340,6 +380,31 @@ async function handle(request, env, headers, url, secure, configured, context) {
     }
     if (pathname === '/api/client/portal' && request.method === 'GET') {
       return json(headers, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
+    }
+    if (pathname === '/api/client/repair-intake' && request.method === 'POST') {
+      if (workshopId) throw new HttpError(404, 'Route introuvable.');
+      await throttle('repair-intake-client:' + await digest(clientAuth.row.client_id), 10, HOUR);
+      const input = intakeRequest(await readJSON(request, REPAIR_INTAKE_BODY_LIMIT), validateIntakeInput);
+      const fresh = await clientSession(false);
+      if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+      const current = fresh.store, previousCount = current.repairs.length;
+      const {repair} = createPublicRepair(current, fresh.row.client_id, input);
+      if (current.repairs.length !== previousCount) {
+        validateStore(current);
+        const changed = await saveClientWorkshop(db, {expectedRevision: current.revision, data: current,
+          tokenHash: fresh.row.token_hash, clientId: fresh.row.client_id, csrf: fresh.row.csrf, now: Date.now(), idleMs: IDLE_MS});
+        if (!changed) {
+          const checked = await clientSession(false);
+          if (!equal(request.headers.get('X-CSRF-Token'), checked.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+          throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
+        }
+      }
+      return json(headers, 200, {repairId: repair.id, repairCode: repair.code});
+    }
+    const sheet = pathname.match(/^\/api\/client\/repair-intake\/([^/]+)\/sheet$/);
+    if (sheet && request.method === 'GET') {
+      if (workshopId) throw new HttpError(404, 'Route introuvable.');
+      return json(headers, 200, repairIntakeSheet(clientAuth.store, clientAuth.row.client_id, repairIntakeId(sheet[1]), publicIntakeSettings));
     }
     const availability = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/parts\/([^/]+)\/available$/);
     if (availability) {
@@ -514,6 +579,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
     const at = Date.now();
     const before = await readWorkshop(db);
     if (before.revision !== body.revision) throw new HttpError(409, 'L’atelier a changé dans une autre session. Rechargez les données.');
+    assertIntakeMetadataPreserved(before, data, mode);
     // A legacy editor must not silently erase an existing manual intervention price.
     const missingInterventionCosts = new Set(data.repairs.filter(repair => repair.interventionCost === undefined).map(repair => repair.id));
     if (mode === 'edit' && before.repairs.some(repair => repair.interventionCost != null
@@ -558,7 +624,7 @@ export default {
       const { secure, configured } = validateOrigin(url, env);
       return await handle(request, env, headers, url, secure, configured, context);
     } catch (error) {
-      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError ? error.status : error instanceof StoreSizeError ? 413 : 500;
+      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError || error instanceof RepairIntakeError ? error.status : error instanceof StoreSizeError ? 413 : 500;
       return json(headers, status, { error: status === 500 ? 'Erreur interne du serveur.' : error.message });
     }
   },

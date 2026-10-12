@@ -262,7 +262,7 @@ test('Deleting paid dossiers or their consoles preserves other receipts and expo
   assert.deepEqual(restored.repairs[0].payment,third.payment);d.validateStore(s);
 });
 test('Canonical repair stages omit the retired ordering step and never accept it as a new target',()=>{
-  assert.deepEqual(d.STAGES.map(stage=>stage.id),['reception','diagnostic','attente-pieces','reparation','tests','terminee','irreparable','abandonnee']);
+  assert.deepEqual(d.STAGES.map(stage=>stage.id),['attente-envoi','reception','diagnostic','attente-pieces','reparation','tests','terminee','irreparable','abandonnee']);
   for(const stage of d.STAGES)assert.equal(d.stageInfo(stage.id),stage);
   for(const previous of ['diagnostic','a-commander']){
     const s=seed(),r=job(s);r.stage=previous;const before=JSON.stringify(s);
@@ -384,8 +384,8 @@ test('Theoretical revenue includes all customer stages and archived consoles, wh
   const closed=repairs.find(r=>r.stage==='terminee');s.consoles.find(c=>c.id===closed.consoleId).archived=true;
   const personal=d.createRepairAdmission(s,{...requestInput(),clientId:''});d.setRepairInterventionCost(s,personal.id,999);
   const before=JSON.stringify(s);
-  assert.deepEqual(d.theoreticalRepairRevenue(s),{total:108.08,count:8});
-  assert.deepEqual(d.completedRepairRevenue(s),{total:15.01,count:1});
+  assert.deepEqual(d.theoreticalRepairRevenue(s),{total:126.09,count:9});
+  assert.deepEqual(d.completedRepairRevenue(s),{total:16.01,count:1});
   assert.equal(JSON.stringify(s),before);d.validateStore(s);
   const orphan=structuredClone(s);orphan.consoles.filter(c=>c.clientId).forEach(c=>{c.clientId='missing-client';});
   assert.deepEqual(d.theoreticalRepairRevenue(orphan),{total:0,count:0});

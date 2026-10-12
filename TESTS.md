@@ -1,14 +1,14 @@
 # Validation de Reparapid
 
-Copie indépendante créée le 12 octobre 2026. Les recettes visuelles et les versions Cloudflare décrites plus bas constituent l’historique de La Clinique Rétro ; Reparapid a été publié et vérifié le 12 octobre 2026.
+Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine RépaRapid et du parcours d’envoi ci-dessous décrivent la personnalisation de cette copie. Les recettes de La Clinique Rétro sont conservées dans une section historique distincte.
 
-Validation locale de cette copie le **12 octobre 2026**, avec Node **24.19.0** : installation reproductible par `npm ci`, compilation TypeScript/Vite réussie et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare), zéro échec et zéro test ignoré. Les assets compilés sont identiques à ceux de la version locale d’origine à jour. Les tests API ont été exécutés avec l’accès aux sockets locaux requis par leurs serveurs temporaires.
+Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
 État vérifié le **12 octobre 2026**. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
 ## Résultat automatisé courant
 
-La commande npm test a passé **434 tests : 393 dans la première suite Node/domaine/API, puis 41 dans la suite Cloudflare**, sans échec ni test ignoré. Exécution avec Node 24.19.0 ; le projet exige Node 22.16 ou supérieur.
+Le **12 octobre 2026**, `npm test` a passé **474 tests : 429 dans la première suite Node/domaine/API, puis 45 dans la suite Cloudflare**, sans échec ni test ignoré. Le contrôle TypeScript et le build Vite ont également réussi. La nouvelle vitrine a été publiée et vérifiée sur le Worker ; les derniers ajustements visuels doivent conserver ce contrôle des assets après chaque publication. Le projet exige Node 22.16 ou supérieur ; cette recette utilise Node 24.19.0.
 
 Ce résultat est daté. Les anciens chiffres de 52 tests décrivaient l’ajout initial de l’authentification et ne représentaient plus la suite actuelle.
 
@@ -30,6 +30,9 @@ npm test compile les modules métier puis exécute les tests listés dans packag
 | Factures simple/complète, propriété, coûts, TVA, dates et projection | tests/invoice-domain.test.mjs |
 | Authentification, cookies, CSRF, limites, transactions et sessions | tests/auth.test.mjs |
 | Accès clients, projections et révocation sur les deux hôtes | tests/client-access.test.mjs |
+| Catalogue de consoles, suggestions de panne, admission en attente d’envoi et transitions | tests/repair-intake-domain.test.cjs |
+| Compte et demande atomiques, fiche filtrée, CSRF, isolation, idempotence, révocation et conflits sur les deux hôtes | tests/repair-intake-api.test.mjs |
+| Premier administrateur Cloudflare : cible dédiée, refus hors terminal, INSERT sans remplacement et aide sûre | tests/cloudflare-admin-create.test.mjs |
 | Notifications, dépôt, destinataires, idempotence et reprises | tests/repair-notifications.test.mjs, tests/notification-delivery.test.mjs, tests/notifications-api.test.mjs |
 | Vie des sessions navigateur et réponses tardives | tests/api-session.test.mjs |
 | Inscriptions et ateliers isolés | tests/registration-requests.test.mjs, tests/workshop-scope.test.mjs, tests/saas-api.test.mjs |
@@ -39,7 +42,23 @@ npm test compile les modules métier puis exécute les tests listés dans packag
 
 Les identifiants fixes sont exclusivement des fixtures. Les tests utilisent des bases isolées et des transports e-mail simulés ; ils ne créent pas de comptes dans l’atelier réel et n’envoient pas de message client réel.
 
-## Recette visuelle de cette session
+## Recette RépaRapid : vitrine, demande et fiche d’envoi
+
+Recette dans le navigateur intégré avec serveur temporaire et coordonnées entièrement fictives :
+
+- Accueil et formulaire de réparation contrôlés sur ordinateur et aux largeurs mobiles **390 px** et **320 px**, avec navigation, choix de console et suggestions de panne lisibles.
+- Création d’un compte client fictif et de sa première demande ; redirection vers l’espace client, statut **En attente d’envoi** et accès à la fiche récapitulative.
+- Deuxième demande enregistrée depuis le même compte ; les deux consoles et dossiers apparaissent dans le suivi du propriétaire.
+- Passage d’un dossier à **Réception** dans la gestion du magasin ; emplacement corrigé à **À l’atelier**, suivi client actualisé et fiche d’envoi toujours disponible.
+- Fiche contrôlée avec référence, console, symptômes, accessoires, coordonnées client et adresse du magasin. Aucune note interne, photo privée ou donnée d’un autre client dans le document.
+- Commande d’impression déclenchée et ouverture du dialogue du navigateur constatée. Aucun PDF n’a été enregistré et aucune impression physique n’a été effectuée pendant cette recette.
+- Déconnexion retirant les données privées ; panneau admin **Vitrine Reparapid et adresse d’envoi** présent avec les coordonnées publiques préremplies.
+
+Les tests automatisés vérifient les refus d’origine et de CSRF, les champs de prix/statut/propriétaire forgés, les limites de corps et tentatives, le refus d’une session d’un autre atelier et les collisions de compte. Ils prouvent aussi le retour au même dossier après un double enregistrement, les gardes de session/révision au commit et l’annulation atomique d’une création échouée. Une ancienne fiche client portant le même e-mail reste séparée : l’inscription crée une nouvelle identité et ne récupère jamais ses données.
+
+Le premier compte administrateur réel de production reste à créer par une personne avec `npm run cloudflare:admin:create`. Les tests de cette commande utilisent une base en mémoire et des valeurs synthétiques ; ils n’initialisent pas la production et ne réinitialisent aucun compte.
+
+## Recettes historiques de La Clinique Rétro
 
 Navigateur intégré et serveur Node avec SQLite en mémoire et données fictives :
 
@@ -59,7 +78,9 @@ L’action Imprimer / Enregistrer en PDF s’appuie sur le dialogue du navigateu
 
 ## Déploiement
 
-Publication Reparapid du 12 octobre 2026 : https://reparapid.aldeguer-remi.workers.dev. Les quatre assets (HTML, JS, CSS, SVG) répondent HTTP 200 et leurs SHA-256 correspondent au build local. La version affichée par Cloudflare est active à 100 %, aucune migration D1 ne reste à appliquer. Les routes /api/store, /api/admin/invoice-source et /api/auth/session refusent les appels anonymes en HTTP 401. Accueil public observé dans le navigateur. La connexion authentifiée reste à vérifier après initialisation du premier compte administrateur ; aucun test de paiement ou d’envoi réel n’a été réalisé.
+La nouvelle vitrine RépaRapid est publiée sur https://reparapid.aldeguer-remi.workers.dev et contrôlée le 12 octobre 2026 : le Worker sert le nouveau déploiement à 100 %, les SHA-256 du HTML, du JavaScript et du CSS correspondent au build, l’API publique renvoie les coordonnées du magasin et les routes privées renvoient 401 sans session. Le déploiement ne modifie aucun schéma ni aucune donnée de la D1 ; les quatre migrations de l’installation initiale restent suffisantes pour ce parcours.
+
+Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune modification DNS n’a été effectuée. Les coordonnées publiques du magasin proviennent de ce site ; aucune donnée client réelle n’a été utilisée pendant la recette. La connexion admin en production reste à vérifier après initialisation humaine du premier compte ; aucun paiement ni envoi de colis réel n’a été réalisé.
 
 Après publication, relever le Version ID Wrangler, vérifier la réponse de l’URL publique et comparer les références/hashes JS-CSS au build. Pour une modification API, vérifier les routes/protections concernées. GET /api/store et GET /api/admin/invoice-source doivent refuser une requête anonyme.
 

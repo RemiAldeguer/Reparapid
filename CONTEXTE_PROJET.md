@@ -1,4 +1,4 @@
-# La Clinique Rétro — contexte de reprise pour une session IA
+# Reparapid — contexte de reprise pour une session IA
 
 Dernière mise à jour : **12 octobre 2026**, fuseau de référence **Europe/Paris**.
 
@@ -9,6 +9,24 @@ Les contacts personnels, identifiants de ressources, adresses de production et i
 Ce document décrit le projet réellement présent dans cette copie, ses choix métier et les changements effectués dans la session. Il sert de point d’entrée pour une nouvelle session de développement. Le code reste la référence en cas de divergence ; actualiser ce document quand le fonctionnement évolue.
 
 Validation de l’import Reparapid : `npm ci`, `npm run build` et `npm test` réussis le 12 octobre 2026 avec Node 24.19.0 ; 434 tests (393 + 41), aucun échec ni test ignoré. Les fichiers applicatifs, migrations, tests et assets sources sont identiques à l’original ; seuls la documentation, les noms de package, le workflow et la configuration de cette copie ont été adaptés.
+
+## Reprise prioritaire : vitrine RépaRapid et demande de réparation
+
+**Nouvelle demande du 12 octobre 2026 :** le client Maxxi Games souhaite une vitrine RépaRapid inspirée du parcours de réparation de Gamefix, avec sélection du modèle, suggestions de pannes courantes, création ou connexion au compte client, dossier **En attente d’envoi**, fiche à imprimer et accès du magasin à la gestion des réparations. Cette personnalisation remplace l’ancien accueil SaaS comme point d’entrée public de cette copie ; les fonctions de gestion et l’isolation des ateliers sont conservées.
+
+Le parcours actif est `#/demande-reparation` : console → panne → compte. Le compte et sa première console/réparation sont créés atomiquement dans l’atelier principal. Un client déjà connecté peut ajouter une autre demande. La nouvelle console reste **en-panne**, son emplacement est **En attente d’envoi** et son dossier commence à l’étape `attente-envoi`. Le passage à **Réception** met la console **en-reparation** et son emplacement **À l’atelier**. Utiliser les transitions du domaine pour préserver cette cohérence.
+
+Le portail `#/espace-client` affiche la demande et propose sa fiche d’envoi imprimable. La fiche reste accessible après réception ; elle contient uniquement référence, console, symptômes, accessoires, coordonnées du propriétaire et destination. Les diagnostics, notes, photos, tests et comptes internes ne sont jamais envoyés. Un dossier public sans chiffrage affiche **À confirmer après diagnostic** ; le zéro explicite garde son sens de gratuité. La fiche n’achète aucun transport et le formulaire n’encaisse aucun paiement.
+
+Coordonnées professionnelles publiques relevées sur [reparapid.fr](https://reparapid.fr/) : **RépaRapid · Maxxi Games**, **30 bis, avenue de Fontainebleau, 94270 Le Kremlin-Bicêtre**, **01 58 46 82 51**, **contact@reparapid.fr**. Elles servent de valeurs initiales de `settings.publicIntake`. Le panneau **Réglages → Vitrine Reparapid et adresse d’envoi**, réservé au compte du magasin principal, permet de modifier ces informations et la confirmation de réception des colis. Si l’adresse n’est plus confirmée, la fiche demande de contacter le magasin avant d’envoyer la console.
+
+Le domaine **reparapid.fr conserve son site WordPress** ; aucune bascule DNS ni modification de ce site n’a été effectuée. La nouvelle vitrine est publiée sur **https://reparapid.aldeguer-remi.workers.dev** : HTML, JavaScript et CSS servis identiques au build, API publique des coordonnées contrôlée et routes privées refusant les accès anonymes. Le déploiement n’a modifié ni schéma ni données D1. Toute publication d’un dernier ajustement doit refaire ce contrôle des assets.
+
+**Accès administrateur de production : à initialiser par une personne**, avec `npm run cloudflare:admin:create`. Le script masque l’e-mail, la phrase de passe et la confirmation dans un terminal, vérifie la cible dans `.wrangler/reparapid.production.jsonc` et crée seulement `admin(id=1)`. Un compte existant provoque un refus : aucune réinitialisation, aucun transfert de clients ou atelier. Les tests et la recette n’ont pas créé de compte réel de production. `npm run admin:create` cible SQLite local et ne remplace pas cette initialisation D1.
+
+Les API d’inscription et de nouvelle demande sont limitées au **magasin principal** dans Node et Worker, indépendamment d’un cookie d’un autre atelier. Une session dédiée vérifie ce contexte pour le formulaire. Les inscriptions ne rattachent jamais une fiche existante par simple correspondance d’e-mail et ne remplacent jamais un compte ; un compte déjà présent doit se connecter. Les requêtes sont bornées et limitées, les écritures authentifiées exigent le CSRF, et les gardes de session/révision sont revérifiées au commit. `Repair.publicRequestId` assure l’idempotence par client ; les anciens éditeurs ne peuvent pas effacer ce marqueur ni les coordonnées d’envoi lors d’une sauvegarde ordinaire. Une restauration ou réinitialisation explicite garde ses règles existantes.
+
+Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
 ## Publication de Reparapid le 12 octobre 2026
 
@@ -36,17 +54,17 @@ Validation de l’import Reparapid : `npm ci`, `npm run build` et `npm test` ré
 
 | Élément | Contexte |
 | --- | --- |
-| Nom | La Clinique Rétro |
-| Usage | Gestion d’ateliers de réparation de consoles et manettes, collection, clients et suivi client |
+| Nom | Reparapid / RépaRapid · Maxxi Games |
+| Usage | Vitrine de réparation de consoles, demandes et expédition ; gestion du magasin, collection, clients et suivi |
 | Langue | Français |
 | Devise | EUR |
-| Source locale de cette session | [ancienne copie locale] |
-| URL publiée | https://votre-instance.example.invalid/ |
+| Source locale de cette session | [copie locale Reparapid] |
+| URL publiée | https://reparapid.aldeguer-remi.workers.dev |
 | Hébergement courant | Cloudflare Workers + assets Vite + D1 |
 | Version de package | 2.0.0 ; elle n’est pas incrémentée automatiquement à chaque déploiement |
 | Licence | MIT ; voir LICENSE et THIRD_PARTY_NOTICES.md |
-| Dépôt mentionné dans le README | https://github.com/RemiAldeguer/la-clinique-retro ; l’état du dépôt distant n’a pas été vérifié dans ce travail |
-| Gestion Git locale | Pas de .git dans la copie vérifiée le 12/10/2026 |
+| Dépôt | https://github.com/RemiAldeguer/Reparapid ; vérifier la synchronisation du commit courant |
+| Gestion Git locale | Dépôt Git indépendant RemiAldeguer/Reparapid ; vérifier l’état avant toute opération |
 
 Le site publié et le dossier de sources local sont deux choses différentes. Pour reprendre depuis une autre machine, transférer les sources et les documents, installer les dépendances et configurer l’accès aux services dans l’environnement sécurisé de cette machine. Les journaux et scripts temporaires d’une ancienne session ne constituent pas des sources portables.
 
@@ -75,9 +93,9 @@ Les deux branches Node et Worker représentent **deux modes d’hébergement**, 
 - **Node** : server/application.mjs, serveur HTTP natif et SQLite natif ; pas Express.
 - **Worker** : cloudflare/worker.mjs et cloudflare/database.mjs, assets et D1.
 - **Partage** : modules de portail, notifications, inscriptions, sécurité des réponses et isolation d’atelier dans server/.
-- **Compilation métier Node** : scripts/compile-domain.cjs transpile domain, seed, finance-domain et invoice-domain en CommonJS dans tests/.compiled/. Le serveur Node utilise aussi ces sorties.
+- **Compilation métier Node** : scripts/compile-domain.cjs transpile domain, seed, finance-domain, invoice-domain et repair-intake-domain en CommonJS dans tests/.compiled/. Le serveur Node utilise aussi ces sorties.
 - **Persistance admin** : un Store JSON par atelier, soumis intégralement avec contrôle de révision ; ce n’est pas une API CRUD indépendante pour chaque console.
-- **Portail client** : projection spécifique des données et une mutation limitée pour signaler la disponibilité d’une pièce.
+- **Portail client** : projection spécifique des données, nouvelles demandes de réparation du magasin principal, fiche d’envoi filtrée et signalement limité de disponibilité d’une pièce.
 
 Le serveur ne sert pas les sources, bases ou exports privés. En production, les fichiers publics sont les fichiers de dist/. Les modules Markdown de contexte restent dans les sources.
 
@@ -111,7 +129,9 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/nintendo-model-picker.tsx | Suggestions Nintendo ; les champs de modèle restent libres |
 | src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
 | src/email-notifications.tsx, .css | Configuration apparente et historique des notifications |
-| src/public-home.tsx, .css | Accueil présentant le service et demande d’inscription |
+| src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, illustrations et coordonnées du magasin |
+| src/repair-intake.tsx, .css, src/repair-intake-domain.ts | Parcours console/panne/compte, catalogue partagé, suggestions, admission et idempotence |
+| src/public-intake-settings.tsx | Réglages admin des coordonnées publiques et destination d’envoi |
 | src/registration-review.tsx, .css | Revue des inscriptions par le super administrateur |
 | src/seed.ts | Jeux de démonstration, à ne pas injecter dans la production pour une recette |
 | src/styles.css | Styles historiques et globaux, dont plusieurs lignes très longues |
@@ -121,6 +141,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | server/workshop-scope.mjs | Cloisonnement SQL des ateliers et provisionnement |
 | server/client-portal.mjs | Liste explicite des champs autorisés dans le portail |
 | server/client-part-availability.mjs | Validation stricte du signalement client |
+| server/repair-intake.mjs | Validation des coordonnées d’inscription, fiche publique filtrée et protection des métadonnées d’envoi |
 | server/registration-requests.mjs | Inscription, revue et données publiques limitées |
 | server/repair-notifications.mjs | Détection des changements de statut et schema notifications |
 | server/notification-storage.mjs | File persistante, lots et dépôt atomique des notifications |
@@ -130,6 +151,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | cloudflare/worker.mjs, database.mjs, security.mjs | Routes, stockage D1 et hachage adaptés à Workers |
 | cloudflare/migrations/ | Quatre migrations du stockage Cloudflare |
 | scripts/admin.mjs | Création / reset du compte admin SQLite local |
+| scripts/cloudflare-admin-create.mjs | Initialisation humaine du premier admin D1 Reparapid, sans remplacement ni transfert de données |
 | scripts/cloudflare-export.mjs | Transfert initial privé SQLite vers une nouvelle base D1 |
 | scripts/dev-server.mjs | API de développement avec origine attendue sur 5173 |
 | scripts/build-offline.mjs | Refuse volontairement un build admin sans serveur |
@@ -142,7 +164,8 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 
 | Route | Écran / accès |
 | --- | --- |
-| / ou #/accueil | Accueil public du service, formulaire de demande d’accès |
+| / ou #/accueil | Vitrine publique RépaRapid et accès magasin / client |
+| #/demande-reparation | Modèle, pannes et compte ; création du dossier En attente d’envoi |
 | #/connexion | Connexion atelier ; une connexion valide redirige vers le dashboard |
 | #/dashboard | Dashboard / Ma synthèse |
 | #/clients | Répertoire clients |
@@ -179,7 +202,7 @@ Le Store contient schemaVersion, revision, settings, clients, consoles, repairs,
 - clientParts désigne des fournitures demandées au client. Ce sont deux concepts distincts.
 - Activity est le journal avec liens optionnels au client, à la console et au dossier.
 
-Les champs nouveaux importants de Repair sont interventionCost, payment et clientParts. Leur absence dans un ancien fichier n’est pas toujours équivalente à une suppression intentionnelle. Le serveur protège les champs existants contre les vieux bundles qui les omettent.
+Les champs nouveaux importants de Repair sont interventionCost, payment, clientParts et publicRequestId. Ce dernier conserve l’identifiant de déclaration en ligne pour les doubles enregistrements et l’accès à la fiche du client. Les coordonnées publiques sont dans settings.publicIntake. L’absence de ces champs dans un ancien fichier n’est pas toujours équivalente à une suppression intentionnelle ; le serveur protège les champs existants contre les vieux bundles qui les omettent.
 
 Références visibles : CLT-…, CRT-…, REP-…. Les identifiants techniques sont distincts des codes visibles ; utiliser les helpers de numérotation existants, y compris les traces de suppression, pour ne pas réutiliser les références.
 
@@ -188,7 +211,7 @@ Références visibles : CLT-…, CRT-…, REP-…. Les identifiants techniques s
 validateStore reconstruit des objets validés, contrôle types, tailles, références, unicité et invariants. Parmi les contrôles :
 
 - pas de réparation sans console, de console rattachée à un client absent ni de liens de journal incohérents ;
-- pas de réparation active sur console archivée ou dans un état autre que en-reparation ;
+- pas de réparation active sur console archivée ; console en-panne pour un dossier en attente d’envoi, puis en-reparation pour les autres étapes actives ;
 - pas de dossier terminé avec test pending ou fail ;
 - dates de clôture cohérentes avec l’ouverture du dossier ;
 - **un seul chronomètre actif dans tout l’atelier** ;
@@ -202,7 +225,7 @@ Les champs de panne peuvent atteindre 30 000 caractères. Le générateur de fac
 
 États d’une console : a-tester, en-panne, en-reparation, fonctionnelle, pour-pieces.
 
-Étapes de réparation : reception, diagnostic, attente-pieces, reparation, tests, terminee, irreparable, abandonnee. Les trois dernières sont fermées ; active() centralise cette règle.
+Étapes de réparation : attente-envoi, reception, diagnostic, attente-pieces, reparation, tests, terminee, irreparable, abandonnee. Les trois dernières sont fermées ; active() centralise cette règle. Le passage de l’attente d’envoi à la réception actualise aussi l’état et l’emplacement de la console.
 
 L’ancien état a-commander n’est plus proposé. normalizeRepairStages le convertit en attente-pieces à la lecture / à l’import sans réécrire l’historique ni envoyer une notification pour cette seule normalisation.
 
@@ -344,7 +367,7 @@ Ne pas utiliser ces actions sur des données réelles pour une recette. La resta
 
 ## 10. Portail client
 
-Connexion distincte de l’admin, à partir de l’accès créé dans la fiche client. L’adresse de connexion peut être différente de l’adresse de contact destinée aux notifications.
+Connexion distincte de l’admin, à partir de l’accès créé dans la fiche client ou de l’inscription publique avec première demande de réparation du magasin principal. L’adresse de connexion peut être différente de l’adresse de contact destinée aux notifications pour les accès gérés par l’admin.
 
 Le portail propose :
 
@@ -352,6 +375,7 @@ Le portail propose :
 - mosaïque par défaut, vue détaillée, recherche et filtres ;
 - consoles avec silhouette / couleur et montants courants des dossiers ;
 - accès au détail et à l’historique des réparations ;
+- nouvelle demande de réparation et fiche d’envoi imprimable pour les dossiers déclarés en ligne au magasin principal ;
 - tableau des pièces demandées et filtre par statut ;
 - signalement Marquer disponible, avec confirmation de toute la quantité demandée ;
 - actualisation et contrôle de session.
@@ -360,7 +384,7 @@ Le portail propose :
 
 - nom de l’atelier et nom du client ;
 - consoles de ce client : id, code, marque, modèle, variante, série, état, accessoires ;
-- dossiers de ces consoles : identité, titre, panne, statut, échéance, dates, total calculé ;
+- dossiers de ces consoles : identité, titre, panne, statut, échéance, dates, total calculé ou null pour une déclaration publique encore non chiffrée, marqueur intakeSubmitted pour l’accès à la fiche ;
 - demandes client : id, nom, quantité, note et statut.
 
 Les diagnostics internes, tests, worklogs, photos privées, notes d’atelier, autres clients, stock et données comptables admin ne sont pas envoyés au portail. Ajouter un champ au Store ne doit jamais le rendre automatiquement public.
@@ -426,7 +450,7 @@ Choisir un client puis **1 à 100 réparations de ce même client**. Les dossier
 
 ## 13. SaaS et rôles
 
-L’accueil public présente l’application comme un service pour plusieurs ateliers. L’inscription est une **demande d’accès soumise à revue**, pas une création immédiatement active.
+La vitrine publique actuelle s’adresse aux clients RépaRapid. Le mécanisme historique d’inscription d’un autre atelier reste disponible dans l’API ; cette inscription est une **demande d’accès soumise à revue**. Elle est distincte de la création du compte client avec sa première demande de réparation, qui prend effet immédiatement dans le magasin principal.
 
 Rôles :
 
@@ -458,6 +482,8 @@ Les liens clients incluent le contexte UUID et le portail transmet X-Workshop-ID
 
 | Méthode | Route | Fonction |
 | --- | --- | --- |
+| GET | /api/public/repair-intake | Coordonnées publiques du magasin principal, par liste explicite |
+| POST | /api/public/repair-intake/register | Nouveau compte client, session et dossier En attente d’envoi atomiques ; magasin principal seulement |
 | POST | /api/public/registrations | Dépôt public d’une demande, validation et limitations |
 | POST | /api/auth/login | Connexion admin / super admin |
 | GET | /api/auth/me | Validation de session admin, sans prolonger seule l’inactivité |
@@ -474,13 +500,16 @@ Les liens clients incluent le contexte UUID et le portail transmet X-Workshop-ID
 | POST | /api/super-admin/registrations/ID/review | Approbation / refus |
 | POST | /api/client/auth/login | Connexion client |
 | GET | /api/client/auth/me | Validation de session client |
+| GET | /api/client/repair-intake/session | Session client du magasin principal uniquement, sans prolonger seule l’inactivité |
+| POST | /api/client/repair-intake | Nouvelle console et demande du client connecté au magasin principal ; CSRF et idempotence |
+| GET | /api/client/repair-intake/REPAIR_ID/sheet | Fiche d’envoi filtrée du propriétaire, magasin principal uniquement |
 | POST | /api/client/auth/logout | Déconnexion client |
 | GET | /api/client/portal | Projection limitée au client authentifié |
 | POST | /api/client/repairs/REPAIR_ID/parts/PART_ID/available | Signalement de disponibilité, corps JSON vide {} seulement |
 
 Consulter les handlers pour les champs complets et les contraintes. Une réponse 401 retire les vues privées. Le 403 du GET de source facture retire également la vue, car il signifie notamment qu’une session ne correspond plus au CSRF capturé.
 
-Les écritures demandent l’origine correcte et le CSRF. Un 409 de révision n’est pas une erreur à corriger en forçant l’écriture : récupérer le brouillon et relire l’état serveur.
+Les écritures demandent l’origine correcte ; les mutations authentifiées exigent aussi le CSRF. L’inscription publique initiale possède ses propres limites de corps et tentatives. Un 409 de révision n’est pas une erreur à corriger en forçant l’écriture : récupérer le brouillon et relire l’état serveur.
 
 ## 15. Persistance et concurrence
 
@@ -628,23 +657,22 @@ Cette copie a été vérifiée avec Node 24.19.0. Utiliser une installation loca
 
 ## 20. Cloudflare : configuration et publication
 
-> Configuration historique du projet d’origine, inactive dans Reparapid. Pour cette copie, utiliser le fichier wrangler.jsonc actuel et créer une D1 dédiée.
+> Pour cette installation, utiliser **--config .wrangler/reparapid.production.jsonc**. La D1 Reparapid est déjà dédiée et publiée ; ne pas en recréer une ou importer l’ancien atelier pour une modification de vitrine. Le fichier versionné wrangler.jsonc reste un modèle à identifiant nul pour d’autres installations.
 
-Configuration de référence : [wrangler.jsonc](wrangler.jsonc).
+Configuration portable de référence : [wrangler.jsonc](wrangler.jsonc). La configuration active reste privée et exclue de Git.
 
 | Élément | Valeur dans cette copie |
 | --- | --- |
-| Worker | la-clinique-retro |
-| Account ID | [identifiant de compte retiré] |
+| Worker | reparapid |
+| Account ID | Conservé dans la configuration privée |
 | Main | cloudflare/worker.mjs |
 | Compatibilité | 2026-10-05, nodejs_compat |
 | Assets | dist/, binding ASSETS, run_worker_first=true |
-| D1 / binding | la-clinique-retro / DB |
-| D1 ID | [identifiant historique retiré] |
+| D1 / binding | reparapid / DB |
+| D1 ID | Conservé dans la configuration privée |
 | Migrations | cloudflare/migrations |
 | Cron | Toutes les cinq minutes |
-| MAIL_PORTAL_ORIGIN | https://votre-instance.example.invalid/ |
-| MAIL_REPLY_TO | contact@example.invalid |
+| Envoi des e-mails | Non configuré ; la coordonnée publique de contact n’active pas l’expédition |
 | Observabilité Wrangler | enabled=false |
 
 Ces identifiants de ressources et l’adresse de contact ne sont pas des jetons d’accès. Aucun token Cloudflare, clé Resend, cookie ni mot de passe n’est enregistré ici.
@@ -663,7 +691,7 @@ L’authentification Wrangler a fonctionné sur cette machine pendant la session
 Vérification en lecture seule du 12/10/2026 : **aucune migration à appliquer** sur la D1 distante configurée.
 
 ~~~sh
-npx wrangler d1 migrations list la-clinique-retro --remote
+npx wrangler d1 migrations list reparapid --remote --config .wrangler/reparapid.production.jsonc
 ~~~
 
 Lors d’une modification de schéma, modifier aussi l’initialisation Node et le provisionnement des ateliers si nécessaire. Le mécanisme multi-atelier crée certaines tables au moment de l’approbation : une migration de tables de l’atelier initial seule ne suffit pas forcément pour tous les tenants existants.
@@ -672,10 +700,10 @@ Lors d’une modification de schéma, modifier aussi l’initialisation Node et 
 
 ~~~sh
 npm run build
-npx wrangler deploy
+npx wrangler deploy --config .wrangler/reparapid.production.jsonc
 ~~~
 
-Ou npm run cloudflare:deploy, qui effectue les deux étapes. Avec un build déjà validé et inchangé, appeler directement Wrangler évite une deuxième compilation.
+Les scripts Cloudflare portables utilisent le modèle wrangler.jsonc. Pour cette production, passer explicitement la configuration privée ci-dessus. Avec un build déjà validé et inchangé, appeler directement Wrangler évite une deuxième compilation.
 
 Après succès :
 
@@ -727,7 +755,9 @@ Ne pas refaire ces choix visuels en oubliant les retours utilisateur. Les SVG ex
 
 ## 22. Validation et état de référence
 
-Le **12/10/2026**, npm test a réussi :
+La personnalisation RépaRapid du **12/10/2026** a passé **474 tests (429 + 45)**, le contrôle TypeScript et le build. La recette du formulaire, des deux demandes fictives, de la réception et de la fiche imprimable est décrite en tête de ce guide et dans [TESTS.md](TESTS.md). La vitrine a été publiée sur le Worker et contrôlée contre le build ; cette vérification doit être répétée après tout dernier ajustement visuel.
+
+L’import initial et les validations historiques de La Clinique Rétro ci-dessous avaient réussi :
 
 - **393 tests** dans la première suite Node / domaine / API ;
 - **41 tests** dans la suite Cloudflare ;
@@ -781,6 +811,7 @@ Le warning de bundle Vite au-dessus de 500 kB demeure. Une éventuelle séparati
 24. Logo vectoriel repris avec une silhouette droite, des proportions de console portable régulières et un écran LCD encadré ; le fichier partagé est utilisé par l’accueil, la connexion, la sidebar, le portail et les factures.
 25. Retour visuel sur le logo : inclinaison légère rétablie à −6°, boutons cuivre alignés selon une diagonale moins raide et petites commandes centrées sur le boîtier.
 26. Pièces à fournir par les clients et Réparations clients côte à côte dans Ma synthèse, séparées verticalement sur ordinateur et empilées sur tablette / mobile, avec défilements indépendants.
+27. Vitrine RépaRapid pour Maxxi Games, déclaration publique d’une console avec suggestions de pannes, compte client et dossier En attente d’envoi, fiche imprimable, coordonnées publiques éditables, transitions réception cohérentes, API Node/Worker limitées au magasin principal et initialisation humaine du premier admin Cloudflare.
 
 ### Versions publiées récentes, à titre de traçabilité
 
@@ -813,7 +844,7 @@ Ces identifiants sont des publications de cette session, pas des commits Git. Ne
 - Sauvegarde : les comptes et la file de notifications ne sont pas contenus dans le JSON d’atelier.
 - Stockage : Store complet et photos dans JSON ; limites de 20 Mio et coûts de sauvegarde globale à considérer avant un changement d’échelle.
 - Deployment : plan Cloudflare, quotas et délivrabilité du fournisseur sont des paramètres externes à revérifier, pas des garanties de cette documentation.
-- Git / CI : YAML présent, mais copie locale sans .git et aucun résultat de CI distante consulté ici.
+- Git / CI : dépôt indépendant Reparapid et workflow de tests/build ; aucun résultat de CI distante ne doit être déduit des résultats locaux.
 
 Il n’y a pas de nouvelle demande de développement à inventer à partir de cette liste. Elle explique le périmètre actuel et les points à préciser si une future demande les concerne.
 
@@ -834,4 +865,4 @@ Il n’y a pas de nouvelle demande de développement à inventer à partir de ce
 
 ### Prompt court de reprise à copier
 
-> Je reprends La Clinique Rétro. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel avant de modifier. Le site est hébergé sur Cloudflare Workers et D1 ; une API Node/SQLite distincte sert au local. Préserve l’isolation des ateliers, les sessions, les révisions, les distinctions coûts/paiements et stock/pièces clients. Les factures ont deux formats, le portail est filtré côté serveur et la synthèse liste toutes les réparations ainsi que les pièces clients en attente. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].
+> Je reprends Reparapid pour RépaRapid · Maxxi Games. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel. La vitrine Cloudflare propose console/pannes/compte → En attente d’envoi → fiche imprimable ; reparapid.fr conserve son site WordPress sans bascule DNS. L’API Node/SQLite locale et la D1 publiée sont distinctes. Préserve l’isolation, les sessions, le CSRF, les révisions et l’idempotence, ainsi que les distinctions coûts/paiements et stock/pièces clients. Utilise --config .wrangler/reparapid.production.jsonc pour cette production. Le premier compte admin réel doit être initialisé par une personne via cloudflare:admin:create. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].

@@ -33,6 +33,7 @@ INSERT OR IGNORE INTO notification_settings(id, enabled) VALUES(1, 1);
 `;
 
 export const REPAIR_STAGE_LABELS = Object.freeze({
+  'attente-envoi': 'En attente d’envoi',
   reception: 'Réception',
   diagnostic: 'Diagnostic',
   'attente-pieces': 'En attente de pièces',

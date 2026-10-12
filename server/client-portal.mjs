@@ -12,8 +12,10 @@ export function clientPortal(store, clientId, calculateTotalCost) {
   const repairs = store.repairs.filter(item => owned.has(item.consoleId)).map(item => ({
     id: item.id, code: item.code, consoleId: item.consoleId, title: item.title,
     symptoms: item.symptoms, stage: item.stage === 'a-commander' ? 'attente-pieces' : item.stage,
-    dueDate: item.dueDate, totalCost: calculateTotalCost(store, item),
+    dueDate: item.dueDate, totalCost: item.publicRequestId && item.interventionCost == null
+      && !item.parts.length && !item.worklogs.length && !item.timerStartedAt ? null : calculateTotalCost(store, item),
     createdAt: item.createdAt, updatedAt: item.updatedAt, completedAt: item.completedAt,
+    ...(item.publicRequestId ? {intakeSubmitted: true} : {}),
     ...(item.clientParts === undefined ? {} : {clientParts: item.clientParts.map(part => ({
       id: part.id, name: part.name, quantity: part.quantity, note: part.note, status: part.status,
     }))}),

@@ -182,3 +182,15 @@ test('The additive local schema and D1 migration have identical defaults and con
     assert.throws(() => db.prepare('UPDATE notification_settings SET id=2').run(), /CHECK/);
   } finally { db.close(); }
 });
+
+test('A console received after awaiting shipment produces the correct client status notification', () => {
+  const before = fixture();
+  before.repairs[0].stage = 'attente-envoi';
+  const after = structuredClone(before);
+  after.revision++;
+  after.repairs[0].stage = 'reception';
+  const rows = repairNotifications(before, after, options);
+  assert.equal(rows.length, 1);
+  assert.equal(JSON.parse(rows[0].payload).oldStage, 'En attente d’envoi');
+  assert.equal(JSON.parse(rows[0].payload).newStage, 'Réception');
+});

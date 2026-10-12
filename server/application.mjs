@@ -3,7 +3,9 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
-import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable } from '../tests/.compiled/domain.cjs';
+import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient } from '../tests/.compiled/domain.cjs';
+import {validateIntakeInput, createPublicRepair, publicIntakeSettings} from '../tests/.compiled/repair-intake-domain.cjs';
+import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from './client-part-availability.mjs';
 import { repairNotifications } from './repair-notifications.mjs';
@@ -161,6 +163,49 @@ export function createApplication({ databasePath, origin, distPath, production =
       if (req.headers['sec-fetch-site'] === 'cross-site') throw new HttpError(403, 'Requête intersite refusée.');
       const mutation = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
       if (mutation && req.headers.origin !== origin) throw new HttpError(403, 'Origine non autorisée.');
+      // Public intake always belongs to the root shop. An unrelated admin or
+      // tenant cookie must not select a different workshop for these routes.
+      if (pathname.startsWith('/api/public/repair-intake')) {
+        if (workshopId) throw new HttpError(404, 'Route introuvable.');
+        if (req.headers['x-workshop-id']) throw new HttpError(403, 'Origine de la demande invalide.');
+        if (pathname === '/api/public/repair-intake' && req.method === 'GET') {
+          return json(res, 200, {shop: publicIntakeSettings(workshop())});
+        }
+        if (pathname === '/api/public/repair-intake/register' && req.method === 'POST') {
+          throttle('repair-signup-ip:' + digest(req.socket.remoteAddress || 'unknown'), 5, HOUR, res);
+          throttle('repair-signup-global', 30, HOUR, res);
+          const input = registrationIntakeRequest(await readJSON(req, REPAIR_INTAKE_BODY_LIMIT), {validateIntakeInput, email, checkPassword});
+          throttle('repair-signup-email:' + digest(input.customer.email), 3, HOUR, res);
+          const encoded = await withHash(() => hashPassword(input.password));
+          let client, repair, value, csrf, expires;
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            const reserved = db.prepare('SELECT 1 FROM client_accounts WHERE email=? UNION ALL SELECT 1 FROM admin WHERE email=? UNION ALL SELECT 1 FROM saas_workshops WHERE email=?')
+              .get(input.customer.email, input.customer.email, input.customer.email);
+            if (reserved) throw new HttpError(409, 'Cette adresse possède déjà un accès. Connectez-vous avec votre compte existant.');
+            const current = workshop(), previousRevision = current.revision;
+            if (!Number.isSafeInteger(previousRevision) || previousRevision < 0 || previousRevision >= 1e9) throw new HttpError(409, 'L’atelier ne peut pas être modifié.');
+            // Never claim an existing workshop customer by matching an email.
+            client = createClient(current, input.customer);
+            ({repair} = createPublicRepair(current, client.id, input.intake));
+            validateStore(current);
+            current.revision++;
+            const serialized = JSON.stringify(current);
+            if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
+            const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, previousRevision);
+            if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Réessayez votre demande.');
+            value = token(); csrf = token(); expires = now() + sessionMs;
+            db.prepare('INSERT INTO client_accounts(client_id,email,password_hash,enabled,created_at,updated_at) VALUES(?,?,?,1,?,?)')
+              .run(client.id, input.customer.email, encoded, now(), now());
+            db.prepare('INSERT INTO client_sessions(token_hash,client_id,csrf,expires_at,seen_at) VALUES(?,?,?,?,?)')
+              .run(digest(value), client.id, csrf, expires, now());
+            db.exec('COMMIT');
+          } catch (error) {db.exec('ROLLBACK'); throw error;}
+          res.setHeader('Set-Cookie', clientCookie(value, Math.floor(sessionMs / 1000)));
+          return json(res, 201, {session: clientUser({email: input.customer.email, client_id: client.id, csrf, expires_at: expires}, client.name), repairId: repair.id, repairCode: repair.code});
+        }
+        throw new HttpError(404, 'Route introuvable.');
+      }
       if (!workshopId && pathname === '/api/public/registrations' && req.method === 'POST') {
         throttle('signup-ip:' + digest(req.socket.remoteAddress || 'unknown'), 5, HOUR, res);
         throttle('signup-global', 30, HOUR, res);
@@ -260,11 +305,15 @@ export function createApplication({ databasePath, origin, distPath, production =
         return json(res, 200, clientUser({ ...account, csrf, expires_at: expires }, client.name));
       }
       if (pathname.startsWith('/api/client/')) {
-        const clientAuth = clientSession(req, pathname !== '/api/client/auth/me');
+        const clientAuth = clientSession(req, !['/api/client/auth/me', '/api/client/repair-intake/session'].includes(pathname));
         if (mutation && !equal(req.headers['x-csrf-token'], clientAuth.row.csrf)) {
           throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
         }
         if (pathname === '/api/client/auth/me' && req.method === 'GET') {
+          return json(res, 200, clientUser(clientAuth.row, clientAuth.client.name));
+        }
+        if (pathname === '/api/client/repair-intake/session' && req.method === 'GET') {
+          if (workshopId) throw new HttpError(401, 'Connexion au compte client RépaRapid requise.');
           return json(res, 200, clientUser(clientAuth.row, clientAuth.client.name));
         }
         if (pathname === '/api/client/auth/logout' && req.method === 'POST') {
@@ -275,6 +324,36 @@ export function createApplication({ databasePath, origin, distPath, production =
         }
         if (pathname === '/api/client/portal' && req.method === 'GET') {
           return json(res, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
+        }
+        if (pathname === '/api/client/repair-intake' && req.method === 'POST') {
+          if (workshopId) throw new HttpError(404, 'Route introuvable.');
+          throttle('repair-intake-client:' + digest(clientAuth.row.client_id), 10, HOUR, res);
+          const input = intakeRequest(await readJSON(req, REPAIR_INTAKE_BODY_LIMIT), validateIntakeInput);
+          let repair;
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            const fresh = clientSession(req, false);
+            if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+            const current = fresh.store, previousRevision = current.revision;
+            const previousCount = current.repairs.length;
+            ({repair} = createPublicRepair(current, fresh.row.client_id, input));
+            if (current.repairs.length !== previousCount) {
+              validateStore(current);
+              if (!Number.isSafeInteger(previousRevision) || previousRevision < 0 || previousRevision >= 1e9) throw new HttpError(409, 'L’atelier ne peut pas être modifié.');
+              current.revision++;
+              const serialized = JSON.stringify(current);
+              if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
+              const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, previousRevision);
+              if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
+            }
+            db.exec('COMMIT');
+          } catch (error) {db.exec('ROLLBACK'); throw error;}
+          return json(res, 200, {repairId: repair.id, repairCode: repair.code});
+        }
+        const sheet = pathname.match(/^\/api\/client\/repair-intake\/([^/]+)\/sheet$/);
+        if (sheet && req.method === 'GET') {
+          if (workshopId) throw new HttpError(404, 'Route introuvable.');
+          return json(res, 200, repairIntakeSheet(clientAuth.store, clientAuth.row.client_id, repairIntakeId(sheet[1]), publicIntakeSettings));
         }
         const availability = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/parts\/([^/]+)\/available$/);
         if (availability) {
@@ -425,6 +504,7 @@ export function createApplication({ databasePath, origin, distPath, production =
         try {
           session(req, false);
           const before = workshop();
+          assertIntakeMetadataPreserved(before, data, mode);
           // Legacy bundles strip the new price field; a deliberate reset uses null.
           const missingInterventionCosts = new Set(data.repairs.filter(repair => repair.interventionCost === undefined).map(repair => repair.id));
           if (mode === 'edit' && before.repairs.some(repair => repair.interventionCost != null
@@ -461,7 +541,7 @@ export function createApplication({ databasePath, origin, distPath, production =
       }
       throw new HttpError(404, 'Route introuvable.');
     } catch (error) {
-      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError ? error.status : 500;
+      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError || error instanceof RepairIntakeError ? error.status : 500;
       if (status === 500) console.error('Erreur interne de l’API', error.code || error.name); // Never log request bodies, passwords or cookies.
       if (!res.headersSent && !res.destroyed) json(res, status, { error: status === 500 ? 'Erreur interne du serveur.' : error.message });
     }

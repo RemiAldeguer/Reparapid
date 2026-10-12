@@ -1,8 +1,10 @@
 # Reparapid
 
-Copie indépendante de La Clinique Rétro, créée le 12 octobre 2026. Les fonctionnalités et l’identité visuelle de l’application d’origine sont conservées pour servir de point de départ à la personnalisation. Le dépôt contient les sources, les migrations, les tests et la documentation ; chaque installation démarre avec sa propre base vide.
+Site de réparation de consoles pour **RépaRapid · Maxxi Games**, au Kremlin-Bicêtre, et application de gestion des dossiers du magasin. Cette copie indépendante de La Clinique Rétro a été créée le 12 octobre 2026 ; elle conserve le métier et l’administration de l’application d’origine. Le dépôt contient les sources, les migrations, les tests et la documentation ; chaque installation démarre avec sa propre base vide.
 
-**Site publié : [https://reparapid.aldeguer-remi.workers.dev](https://reparapid.aldeguer-remi.workers.dev).** Publication vérifiée le 12 octobre 2026 : Worker `reparapid`, base D1 dédiée en Europe de l’Ouest, quatre migrations appliquées et assets identiques au build. Le premier compte administrateur reste à initialiser ; les e-mails ne sont pas configurés.
+**Vitrine publiée : [https://reparapid.aldeguer-remi.workers.dev](https://reparapid.aldeguer-remi.workers.dev).** Nouveau parcours de réparation publié et vérifié le 12 octobre 2026 : HTML, JavaScript et CSS identiques au build, coordonnées publiques accessibles et routes privées refusant les accès anonymes. La D1 dédiée et ses quatre migrations sont conservées ; la publication n’a modifié aucune donnée de l’atelier. Le premier compte administrateur reste à initialiser ; les e-mails ne sont pas configurés.
+
+Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune bascule DNS ni modification de ce site n’a été effectuée ; l’application Cloudflare utilise actuellement l’adresse `workers.dev` ci-dessus.
 
 La configuration effective de cette machine est `.wrangler/reparapid.production.jsonc`, exclue de Git. Elle contient les identifiants du compte et de la D1 dédiée. Le fichier versionné `wrangler.jsonc` reste un modèle portable avec un identifiant nul : configurez une nouvelle base pour une autre installation. Aucun déploiement Cloudflare n’est effectué par la CI GitHub.
 
@@ -17,7 +19,35 @@ npx wrangler deploy --config .wrangler/reparapid.production.jsonc
 
 **Reprise dans une nouvelle session IA :** commencer par [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md), le guide de l’architecture, du métier, de la sécurité, du déploiement et des évolutions de cette conversation. [AGENTS.md](AGENTS.md) sert de point d’entrée aux agents ; [TESTS.md](TESTS.md) consigne la validation actuelle.
 
-Service de gestion pour les ateliers de réparation de consoles : accueil public, inscriptions sur validation et ateliers indépendants. Chaque administrateur gère ses clients, consoles, dossiers, stock, paiements et exports. Un espace client distinct permet à chaque client de consulter uniquement ses consoles et ses demandes, et de signaler la disponibilité des pièces qu’il doit fournir. Le compte initial devient super administrateur et conserve son atelier.
+La vitrine permet à un particulier de demander une réparation, de créer son compte et de préparer l’envoi de sa console. L’accès **Magasin** ouvre l’application protégée : clients, consoles, dossiers, stock, paiements et exports. L’espace client présente uniquement les consoles et demandes de son propriétaire. Le socle de gestion d’ateliers indépendants reste disponible ; le compte du magasin initial possède le rôle effectif de super administrateur.
+
+## Demander une réparation et préparer l’envoi
+
+Depuis **Demander une réparation** (`#/demande-reparation`), le client suit trois étapes :
+
+1. Choisir la marque et le modèle de console, ou préciser un modèle via **Autre console**.
+2. Sélectionner une ou plusieurs pannes courantes proposées pour ce modèle, ajouter une description et renseigner, si utile, le numéro de série et les accessoires.
+3. Créer un compte client avec ses coordonnées et une phrase de passe, ou se connecter à son compte existant pour enregistrer la demande.
+
+Le compte et la demande sont créés ensemble. Le dossier apparaît **En attente d’envoi** dans l’espace client et dans l’atelier du magasin. Un nouvel envoi peut être enregistré depuis le même compte ; un double enregistrement de la même demande ne crée pas un deuxième dossier. Une adresse déjà utilisée par un compte ne permet jamais de remplacer son mot de passe ni de récupérer une fiche client préexistante.
+
+Dans l’espace client, **Voir ma fiche d’envoi** ou **Voir la fiche** ouvre le récapitulatif imprimable : référence du dossier, console, panne signalée, accessoires, coordonnées de l’expéditeur et destinataire. Le client le glisse dans le colis avant l’envoi. Cette fiche identifie le dossier ; le transporteur et l’affranchissement restent à organiser. **Imprimer / Enregistrer en PDF** ouvre le dialogue d’impression du navigateur. Le montant reste **À confirmer après diagnostic** tant que le magasin n’a pas chiffré l’intervention ; un montant explicitement fixé à zéro reste une intervention gratuite. Le formulaire n’encaisse aucun paiement.
+
+Les coordonnées publiques initiales reprennent le [site RépaRapid](https://reparapid.fr/) : **RépaRapid · Maxxi Games, 30 bis, avenue de Fontainebleau, 94270 Le Kremlin-Bicêtre**, téléphone **01 58 46 82 51**, e-mail **contact@reparapid.fr**. Dans **Réglages → Vitrine Reparapid et adresse d’envoi**, l’administrateur du magasin peut corriger ces informations et confirmer que l’adresse reçoit les consoles. Si cette confirmation est désactivée, le client peut enregistrer sa demande, mais la fiche lui indique de contacter le magasin avant toute expédition.
+
+À l’arrivée de la console, le magasin passe le dossier à **Réception**, puis utilise le diagnostic et le suivi de réparation existants. La fiche du client reste disponible après ce changement d’étape. Les notes, diagnostics, photos, tests et données internes du magasin restent exclus de cette fiche et du portail.
+
+Les routes de ce parcours sont implémentées dans les deux hôtes Node/SQLite et Worker/D1. Les inscriptions publiques et les nouvelles demandes concernent exclusivement le magasin principal Reparapid ; une session d’un autre atelier ne peut y créer un dossier. Les écritures vérifient l’origine, la session et le CSRF lorsqu’elles sont authentifiées, avec contrôle atomique de révision et limitation des tentatives.
+
+## Initialiser le premier administrateur Cloudflare
+
+Le compte du magasin en production reste à créer par une personne dans un terminal interactif :
+
+```sh
+npm run cloudflare:admin:create
+```
+
+La commande utilise par défaut `.wrangler/reparapid.production.jsonc`, vérifie qu’il cible le Worker et la D1 Reparapid, puis masque l’adresse e-mail, la phrase de passe et sa confirmation. Elle crée uniquement le premier compte administrateur. Un administrateur existant provoque un refus ; la commande ne propose aucune réinitialisation. Aucun identifiant de connexion par défaut n’est fourni. L’aide est accessible avec `npm run cloudflare:admin:create -- --help`.
 
 ## Génération de factures
 
@@ -29,9 +59,9 @@ Pour le format complet, renseignez le numéro selon votre séquence comptable : 
 
 **Générer l’aperçu**, puis **Imprimer / Enregistrer en PDF** permet de produire le document depuis le dialogue d’impression du navigateur. L’aperçu est figé ; une modification du formulaire ou de la sélection oblige à le régénérer. Les données serveur sont relues avant sa préparation et son impression. Une révision devenue différente bloque l’impression pour éviter de reprendre un montant périmé. Cette action ne modifie ni les paiements ni les étapes et n’envoie pas d’e-mail. Les coordonnées et mentions à utiliser dépendent de votre activité ; les [mentions de facturation de Service Public](https://entreprendre.service-public.gouv.fr/vosdroits/F31808) sont accessibles depuis le formulaire.
 
-## Accueil public et inscriptions
+## Inscriptions d’ateliers indépendants
 
-L’accueil public présente le service et propose **Demander un accès**, **Se connecter** et **Espace client**. Le formulaire recueille le nom, l’e-mail, le nom de l’atelier, une présentation facultative et une phrase de passe. Il enregistre une demande en attente, sans ouvrir de session. La réponse publique reste identique pour une adresse déjà enregistrée ; un doublon ne remplace ni les informations ni le mot de passe du compte existant.
+Le mécanisme historique d’inscription d’un autre atelier reste disponible dans l’API `/api/public/registrations`, indépendamment du formulaire de réparation de la vitrine. Une demande recueille le nom, l’e-mail, le nom de l’atelier, une présentation facultative et une phrase de passe. Elle attend la validation de la super administration et n’ouvre pas de session. La réponse publique reste identique pour une adresse déjà enregistrée ; un doublon ne remplace ni les informations ni le mot de passe du compte existant.
 
 Le compte administrateur initial conserve ses identifiants et toutes ses données, et reçoit le rôle effectif **Super administrateur**. Son menu **Inscriptions** présente les demandes, leurs coordonnées et leur activité ; les filtres distinguent les demandes en attente, acceptées et refusées. Une confirmation permet d’accepter ou de refuser une demande avec une note interne. Aucun e-mail d’inscription n’est envoyé automatiquement : communiquez votre décision au candidat.
 
@@ -56,7 +86,7 @@ npm start
 
 Pour une copie déjà clonée, remplacez les deux premières commandes par `git pull` dans le projet.
 
-Ouvrez **http://127.0.0.1:3040**, choisissez **Se connecter**, puis connectez-vous avec l’adresse et la phrase de passe choisies dans `admin:create`. La saisie du mot de passe n’est pas affichée. Aucun compte ni mot de passe par défaut n’est fourni ; les demandes publiques sont soumises à validation par le super administrateur. La commande refuse d’écraser un administrateur existant.
+Ouvrez **http://127.0.0.1:3040**, choisissez **Accès magasin**, puis connectez-vous avec l’adresse et la phrase de passe choisies dans `admin:create`. La saisie du mot de passe n’est pas affichée. Aucun compte ni mot de passe par défaut n’est fourni. La commande refuse d’écraser un administrateur existant. Cette commande locale agit sur SQLite ; utilisez `cloudflare:admin:create` pour initialiser la production D1.
 
 L’atelier serveur commence vide. Les données de démonstration sont accessibles, après connexion, dans **Réglages & sauvegardes**. Le premier compte doit être créé sur le serveur qui héberge réellement l’application, avec le même `DATABASE_PATH` que l’API.
 
@@ -64,7 +94,7 @@ L’atelier serveur commence vide. Les données de démonstration sont accessibl
 
 Tableau de bord, fiches consoles, photos, emplacement, coûts, stock et pièces, dossier patient, journal d’intervention, Kanban, chronomètre, tests de validation, impressions, exports JSON/CSV et restauration. Une seule réparation active est autorisée par console. Passer directement une réparation en **Terminée** marque tous ses tests **OK**, ajoute les contrôles standard si nécessaire, arrête le chronomètre et rend la console fonctionnelle. Le journal indique cette validation lors de la clôture directe. Rouvrir le dossier remet les tests à faire.
 
-**Étapes de réparation :** Réception, Diagnostic, En attente de pièces, Réparation en cours, Tests de validation, Terminée, Irréparable et Abandonnée. L’ancien statut « À commander » est automatiquement converti en « En attente de pièces » à la lecture et lors de l’import de sauvegardes, sans modifier le journal historique, les paiements ou les interventions. La conversion seule ne déclenche aucun e-mail client.
+**Étapes de réparation :** En attente d’envoi, Réception, Diagnostic, En attente de pièces, Réparation en cours, Tests de validation, Terminée, Irréparable et Abandonnée. Une console déclarée en ligne reste en panne jusqu’au passage du dossier à Réception. L’ancien statut « À commander » est automatiquement converti en « En attente de pièces » à la lecture et lors de l’import de sauvegardes, sans modifier le journal historique, les paiements ou les interventions. La conversion seule ne déclenche aucun e-mail client.
 
 **Pièces à demander au client :** le panneau apparaît dès l’ouverture d’une fiche de réparation, juste après le client concerné, et reste visible dans tous les onglets. Sur ordinateur, il est placé à côté du paiement client ; sur les écrans plus étroits, les deux panneaux sont empilés. Ajoutez plusieurs demandes avec un nom, une quantité et des précisions destinées au client. Chaque pièce commence **En attente de la pièce** ; le client peut la **Marquer disponible** lorsqu’il l’a obtenue et peut la remettre à l’atelier. Ce signalement apparaît dans le suivi et le journal de l’atelier. L’atelier gère ensuite les statuts **Livrée** et **Installée**, et peut corriger les statuts indépendamment de l’étape du dossier. Les demandes apparaissent dans l’espace de leur client, dans l’impression du dossier et dans les sauvegardes JSON. L’ajout et la modification du contenu nécessitent un dossier ouvert rattaché à un client ; le signalement de disponibilité, les statuts et la suppression restent accessibles après clôture. Les pièces fournies par le client ne modifient ni le stock, ni le montant de la réparation, ni les paiements ou les tests. Leur mise à jour ne déclenche pas d’e-mail. Un ancien onglet doit être rechargé avant d’enregistrer un dossier contenant ces nouvelles demandes.
 
@@ -230,12 +260,12 @@ npm run typecheck
 npm run build
 ```
 
-Les tests couvrent les inscriptions, la revue et le provisionnement atomiques, l’isolation de plusieurs ateliers et de leurs accès clients, le métier, l’API d’authentification, les accès clients et les notifications sur Node et Cloudflare : isolation des comptes, filtrage des données, protections des écritures, révocation, sauvegarde atomique des notifications, destinataires, déduplication et nouvelles tentatives. Les transports d’e-mails de test sont simulés ; la suite n’envoie aucun message réel. La CI GitHub exécute les tests, le contrôle TypeScript et la compilation Vite. Les fichiers générés et les dépendances ne sont pas versionnés.
+Les tests couvrent le parcours public de réparation, ses suggestions, la création atomique du compte et du dossier, la fiche filtrée, les conflits, les doubles enregistrements et l’isolation du magasin principal. Ils couvrent aussi les inscriptions d’ateliers, le métier, l’authentification, les accès clients et les notifications sur Node et Cloudflare. Les transports d’e-mails de test sont simulés ; la suite n’envoie aucun message réel. La CI GitHub exécute les tests, le contrôle TypeScript et la compilation Vite. Les fichiers générés et les dépendances ne sont pas versionnés.
 
 `build:offline` échoue volontairement avec une explication : une administration authentifiée n’a pas de mode HTML autonome sans serveur. L’ancienne édition séparée reste un produit local sans cette protection, pas une porte d’accès à la nouvelle base.
 
 ## Organisation
 
-`src/` contient l’interface, le contrôle de session, les formulaires et les règles métier. `server/` contient l’API, SQLite et la gestion des mots de passe et sessions. `scripts/admin.mjs` gère la création et la récupération du compte. `tests/auth.test.mjs` teste les protections de l’API ; `tests/domain.test.cjs` conserve les tests métier.
+`src/` contient l’interface, le contrôle de session, les formulaires et les règles métier ; `repair-intake-domain.ts` partage le catalogue et les règles de déclaration publique. `server/` contient l’API, SQLite et les frontières de données publiques. `scripts/admin.mjs` gère le compte SQLite ; `scripts/cloudflare-admin-create.mjs` initialise uniquement le premier compte D1. Les tests du nouveau parcours sont dans `tests/repair-intake-domain.test.cjs` et `tests/repair-intake-api.test.mjs`.
 
 MIT. Voir `LICENSE` et `THIRD_PARTY_NOTICES.md`. Les noms des consoles servent à l’identification ; l’application n’est pas affiliée aux fabricants.

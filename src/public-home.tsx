@@ -1,147 +1,34 @@
-import {useEffect, useRef, useState, type FormEvent, type MouseEvent} from 'react';
-import {ConsoleArt, Icon, Logo} from './ui';
+import {useEffect, useState, type MouseEvent, type ReactNode} from 'react';
+import {ConsoleArt, Icon} from './ui';
+import {clientApi, type IntakeShop} from './client-api';
 import './public-home.css';
 
-const features = [
-  {icon: 'users', title: 'Chaque client, chaque console.', description: 'Rassemblez les coordonnées, les consoles et les demandes de réparation dans un même dossier.'},
-  {icon: 'grid', title: 'Un atelier qui reste lisible.', description: 'Suivez les réparations dans le kanban, du diagnostic à la remise au client.'},
-  {icon: 'package', title: 'Les bonnes pièces, au bon moment.', description: 'Notez les pièces utilisées et celles à demander au client, puis suivez leur réception et leur installation.'},
-  {icon: 'euro', title: 'Des paiements faciles à suivre.', description: 'Fixez le montant de l’intervention et distinguez les réparations payées de celles à encaisser.'},
-  {icon: 'trend', title: 'Une vue claire sur vos gains.', description: 'Retrouvez les montants encaissés et les coûts des pièces, avec une synthèse par semaine ou par mois.'},
-  {icon: 'gamepad', title: 'Vos clients gardent le fil.', description: 'Donnez à chaque client un accès pour suivre ses consoles et les pièces attendues par l’atelier.'},
-];
-
+export function ReparapidBrand() {
+  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><span className="rp-brand-symbol"><Icon name="gamepad" size={29}/><i/></span><span>répa<span>rapid</span><small>PAR MAXXI GAMES · LE KREMLIN-BICÊTRE</small></span></a>;
+}
+export function ShopConsoleArt({item}: {item: {brand: string; model: string; variant?: string}}) {
+  const text = item.model.toLowerCase();
+  if (/playstation 5|ps5/.test(text)) return <svg className="rp-console-svg" viewBox="0 0 320 220" aria-hidden="true"><ellipse cx="165" cy="192" rx="90" ry="11" fill="#b6b1bf" opacity=".25"/><path d="M136 29h47l9 158h-62z" fill="#242938"/><path d="M134 26c-18-8-31-7-34-1l12 159 28 7z" fill="#fcfcfb" stroke="#dedee5" strokeWidth="2"/><path d="M183 26c19-7 31-7 35-1l-9 159-24 7z" fill="#fafafa" stroke="#dedee5" strokeWidth="2"/><path d="m133 35 7 135m43-135 2 137" stroke="#8b91e8" strokeWidth="2"/><path d="M143 189h44l10 6h-65z" fill="#303341"/><path d="M153 151h13m-13 8h13" stroke="#616879" strokeWidth="2"/><path d="M76 151c9-10 33-10 42 0l12 27c2 10-10 12-16 2l-7-8H85l-8 8c-7 9-17 5-14-4z" fill="#fcfcfc" stroke="#dadbe1" strokeWidth="2"/><path d="M79 153v11m-5-5h10" stroke="#606674" strokeWidth="2.5"/><circle cx="111" cy="155" r="2" fill="#8790a8"/><circle cx="117" cy="162" r="2" fill="#8790a8"/><circle cx="89" cy="168" r="4" fill="#444a58"/><circle cx="105" cy="168" r="4" fill="#444a58"/></svg>;
+  if (/xbox/.test(text)) return <svg className="rp-console-svg" viewBox="0 0 320 220" aria-hidden="true"><ellipse cx="164" cy="192" rx="92" ry="10" fill="#809280" opacity=".2"/>{/series s/.test(text) ? <><rect x="122" y="32" width="83" height="151" rx="6" fill="#f9f9f7" stroke="#d7ded4" strokeWidth="2"/><circle cx="163" cy="81" r="31" fill="#30372f"/>{Array.from({length:7},(_,i)=><path key={i} d={`M145 ${62+i*6}h36`} stroke="#5b6458" strokeWidth="1"/>)}<circle cx="163" cy="154" r="4" fill="#747e72"/></> : <><path d="m125 39 36-15 48 10v151l-47 9-37-14z" fill="#2c332d"/><path d="m161 24 48 10-41 16-43-11z" fill="#4f6853"/><path d="M168 50v144l41-9V34z" fill="#202923"/><circle cx="147" cy="67" r="4" fill="#adcfad"/><path d="M179 72v75" stroke="#5d6a61" strokeWidth="2"/></>}<path d="M76 151c9-10 33-10 42 0l12 27c2 10-10 12-16 2l-7-8H85l-8 8c-7 9-17 5-14-4z" fill="#374238" stroke="#273328" strokeWidth="2"/><path d="M82 164v10m-5-5h10" stroke="#93a194" strokeWidth="2"/><circle cx="79" cy="154" r="4" fill="#19251b"/><circle cx="106" cy="169" r="4" fill="#19251b"/><circle cx="111" cy="155" r="2" fill="#bfdb9d"/><circle cx="117" cy="162" r="2" fill="#aabce4"/></svg>;
+  return <ConsoleArt item={item}/>;
+}
 function sectionLink(event: MouseEvent<HTMLAnchorElement>, id: string) {
-  event.preventDefault();
-  const section = document.getElementById(id);
-  section?.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'});
-  section?.focus({preventScroll: true});
+  event.preventDefault(); const section = document.getElementById(id);
+  section?.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'}); section?.focus({preventScroll: true});
 }
-
-function WorkshopPreview() {
-  return <div className="ph-preview-wrap">
-    <div className="ph-preview" aria-hidden="true">
-      <div className="ph-preview-bar"><span className="ph-window-dots"><i/><i/><i/></span><span>La Clinique Rétro · Atelier</span><Icon name="shield" size={14}/></div>
-      <div className="ph-preview-workspace">
-        <div className="ph-preview-sidebar"><Logo/><span className="is-active"><Icon name="wrench" size={19}/></span><span><Icon name="gamepad" size={19}/></span><span><Icon name="users" size={19}/></span><span><Icon name="package" size={19}/></span><span><Icon name="trend" size={19}/></span></div>
-        <div className="ph-preview-main">
-          <div className="ph-preview-heading"><div><span>EXEMPLE D’ATELIER</span><h2>Sur l’établi.</h2></div><span className="ph-preview-add"><Icon name="plus" size={13}/>Réparation</span></div>
-          <div className="ph-preview-board">
-            <div className="ph-preview-column"><h3><i/>Diagnostic</h3><div className="ph-demo-card"><div className="ph-demo-console"><ConsoleArt item={{model: 'Game Boy Color', variant: 'Violet', brand: 'Nintendo'}} small/></div><span className="ph-demo-brand">NINTENDO</span><strong>Game Boy Color</strong><p>Écran à remplacer</p><div className="ph-demo-card-footer"><span><Icon name="user" size={12}/>Dossier client</span><Icon name="right" size={13}/></div></div></div>
-            <div className="ph-preview-column"><h3><i/>En réparation</h3><div className="ph-demo-card"><div className="ph-demo-console"><ConsoleArt item={{model: 'Nintendo Switch Lite', variant: 'Turquoise', brand: 'Nintendo'}} small/></div><span className="ph-demo-brand">NINTENDO</span><strong>Switch Lite</strong><p>Remplacement du joystick</p><div className="ph-demo-card-footer"><span><Icon name="checklist" size={12}/>Tests en cours</span><Icon name="right" size={13}/></div></div></div>
-          </div>
-          <div className="ph-preview-receipt"><span><Icon name="euro" size={16}/>Paiement client</span><strong><Icon name="check" size={13}/>Reçu</strong></div>
-        </div>
-      </div>
-    </div>
-    <div className="ph-preview-part" aria-hidden="true"><span className="ph-preview-part-icon"><Icon name="package" size={21}/></span><div><small>PIÈCE DEMANDÉE AU CLIENT</small><strong>Écran Game Boy Color</strong><span><i/>Livrée à l’atelier</span></div><Icon name="check" size={19}/></div>
-    <p className="ph-preview-caption"><span/>Aperçu avec des dossiers fictifs</p>
-  </div>;
+export function StorefrontShell({children, compact = false, enableIntake = true}: {children: ReactNode; compact?: boolean; enableIntake?: boolean}) {
+  return <div className="reparapid-site"><a className="rp-skip" href="#rp-main" onClick={event => sectionLink(event, 'rp-main')}>Aller au contenu</a><div className="rp-topline"><Icon name="wrench" size={14}/><span>Réparation de consoles · Le Kremlin-Bicêtre</span><a href="#/connexion">Accès magasin<Icon name="right" size={13}/></a></div><header className="rp-header rp-shell"><ReparapidBrand/><nav aria-label="Navigation du site">{!compact && <a href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche</a>}<a href="#/espace-client"><Icon name="user" size={17}/>Mon compte</a>{enableIntake && <a className="rp-button rp-primary" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={16}/></a>}</nav></header>{children}<footer className="rp-footer"><div className="rp-shell rp-footer-inner"><div><ReparapidBrand/><p>Votre prochaine partie commence ici.</p></div><nav aria-label="Liens utiles">{enableIntake && <a href="#/demande-reparation">Demander une réparation</a>}<a href="#/espace-client">Mon espace client</a><a href="#/connexion">Connexion magasin</a></nav><p className="rp-legal-note">Les marques et modèles servent à identifier votre console.<br/>Reparapid est un service indépendant des fabricants.</p></div></footer></div>;
 }
-
-function RegistrationForm() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const controller = useRef<AbortController | null>(null);
-  const mounted = useRef(false);
-  const [busy, setBusy] = useState(false), [submitted, setSubmitted] = useState(false), [error, setError] = useState('');
-  useEffect(() => {
-    mounted.current = true;
-    const clearPasswords = () => {
-      formRef.current?.querySelectorAll<HTMLInputElement>('input[type="password"]').forEach(input => {input.value = '';});
-      controller.current?.abort();
-    };
-    window.addEventListener('pagehide', clearPasswords);
-    return () => {mounted.current = false; clearPasswords(); window.removeEventListener('pagehide', clearPasswords);};
-  }, []);
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const form = event.currentTarget, values = new FormData(form);
-    const password = String(values.get('password') || ''), confirmation = String(values.get('confirmation') || '');
-    if (password !== confirmation) {setError('Les deux mots de passe doivent être identiques.'); return;}
-    const body = {
-      name: String(values.get('name') || '').trim(),
-      email: String(values.get('email') || '').trim(),
-      workshopName: String(values.get('workshopName') || '').trim(),
-      message: String(values.get('message') || '').trim(),
-      password,
-    };
-    form.querySelectorAll<HTMLInputElement>('input[type="password"]').forEach(input => {input.value = '';});
-    setError(''); setBusy(true);
-    const requestController = new AbortController(); controller.current = requestController;
-    try {
-      // A public request never reads an admin session or changes its authentication state.
-      const response = await fetch('/api/public/registrations', {
-        method: 'POST', credentials: 'omit', cache: 'no-store',
-        signal: AbortSignal.any([requestController.signal, AbortSignal.timeout(30000)]),
-        headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
-      });
-      const decoded = await response.json().catch(() => ({}));
-      const result = decoded && typeof decoded === 'object' ? decoded : {};
-      if (!mounted.current || requestController.signal.aborted) return;
-      if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Votre demande n’a pas pu être envoyée. Réessayez.');
-      if (!response.headers.get('content-type')?.includes('application/json') || result.accepted !== true) throw new Error('Le service est momentanément indisponible. Réessayez.');
-      form.reset(); setSubmitted(true);
-    } catch (failure) {
-      if (mounted.current && !requestController.signal.aborted) setError(failure instanceof Error && failure.name !== 'TimeoutError' && failure.name !== 'TypeError' ? failure.message : 'Le serveur est injoignable. Vérifiez votre connexion puis réessayez.');
-    } finally {
-      if (controller.current === requestController) controller.current = null;
-      if (mounted.current) setBusy(false);
-    }
-  }
-  if (submitted) return <div className="ph-registration-card ph-registration-success" role="status">
-    <span className="ph-success-icon"><Icon name="check" size={30}/></span>
-    <span className="ph-eyebrow">DEMANDE TRANSMISE</span>
-    <h3>Votre demande a bien été reçue.</h3>
-    <p>Elle est soumise à validation. Vous pourrez vous connecter avec les identifiants choisis une fois votre accès accepté.</p>
-    <a className="ph-button ph-button-outline" href="#/connexion">Retour à la connexion<Icon name="arrow" size={17}/></a>
-  </div>;
-  return <div className="ph-registration-card">
-    <div className="ph-form-heading"><span className="ph-form-icon"><Icon name="wrench" size={22}/></span><div><h3>Présentez-nous votre atelier.</h3><p>Votre demande sera étudiée avant l’ouverture de votre accès.</p></div></div>
-    <form ref={formRef} onSubmit={submit} aria-busy={busy}>
-      <fieldset disabled={busy}>
-        <div className="ph-form-grid">
-          <label className="ph-field"><span>Votre nom</span><input name="name" type="text" autoComplete="name" required minLength={2} maxLength={120} placeholder="Prénom et nom"/></label>
-          <label className="ph-field"><span>Adresse e-mail</span><input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="vous@votre-atelier.fr"/></label>
-          <label className="ph-field ph-field-wide"><span>Nom de votre atelier</span><input name="workshopName" type="text" autoComplete="organization" required minLength={2} maxLength={120} placeholder="Le nom de votre activité"/></label>
-          <label className="ph-field ph-field-wide"><span>Votre activité <small>Facultatif</small></span><textarea name="message" rows={3} maxLength={2000} placeholder="Les consoles que vous réparez, votre façon de travailler…"/></label>
-          <label className="ph-field"><span>Mot de passe</span><input name="password" type="password" autoComplete="new-password" minLength={15} maxLength={128} required aria-describedby="ph-password-hint"/></label>
-          <label className="ph-field"><span>Confirmer le mot de passe</span><input name="confirmation" type="password" autoComplete="new-password" minLength={15} maxLength={128} required/></label>
-        </div>
-        <p className="ph-password-hint" id="ph-password-hint">Au moins 15 caractères. Vous pouvez utiliser une longue phrase.</p>
-        {error && <p className="ph-form-error" role="alert"><Icon name="alert" size={17}/>{error}</p>}
-        <button className="ph-button ph-button-primary ph-submit" type="submit">{busy ? 'Envoi de la demande…' : 'Demander mon accès'}{!busy && <Icon name="arrow" size={18}/>}</button>
-      </fieldset>
-      <p className="ph-form-note"><Icon name="shield" size={15}/>L’envoi de ce formulaire ouvre une demande, soumise à validation.</p>
-    </form>
-  </div>;
-}
-
+const consoleFamilies = [{brand: 'Sony', model: 'PlayStation 5', label: 'PlayStation', note: 'PS5 · PS4 · PS3', theme: 'playstation'}, {brand: 'Nintendo', model: 'Nintendo Switch', label: 'Nintendo', note: 'Switch · Wii · consoles portables', theme: 'nintendo'}, {brand: 'Microsoft', model: 'Xbox Series X', label: 'Xbox', note: 'Series X|S · One · 360', theme: 'xbox'}];
 export function PublicHome() {
-  useEffect(() => {document.title = 'La Clinique Rétro · Le logiciel des ateliers de réparation';}, []);
-  return <div className="public-home">
-    <a href="#ph-main" className="ph-skip-link" onClick={event => sectionLink(event, 'ph-main')}>Aller au contenu</a>
-    <header className="ph-header"><div className="ph-shell ph-header-inner">
-      <a className="ph-brand" href="#/" aria-label="La Clinique Rétro, accueil"><Logo/><span>La Clinique <strong>Rétro<span>.</span></strong></span></a>
-      <nav className="ph-navigation" aria-label="Navigation du site"><a href="#ph-features" onClick={event => sectionLink(event, 'ph-features')}>Fonctionnalités</a><a href="#ph-access" onClick={event => sectionLink(event, 'ph-access')}>Demander un accès</a></nav>
-      <a className="ph-header-login" href="#/connexion">Se connecter<Icon name="arrow" size={16}/></a>
-    </div></header>
-    <main id="ph-main" tabIndex={-1}>
-      <section className="ph-hero ph-shell" aria-labelledby="ph-title">
-        <div className="ph-hero-copy"><span className="ph-hero-label"><i/>LE LOGICIEL DES ATELIERS DE RÉPARATION</span><h1 id="ph-title">Moins de paperasse.<br/>Plus de <em>réparations.</em></h1><p>De la première panne au dernier test, gardez vos clients, vos consoles et votre atelier sur la même longueur d’onde.</p><div className="ph-hero-actions"><a className="ph-button ph-button-primary" href="#ph-access" onClick={event => sectionLink(event, 'ph-access')}>Demander un accès<Icon name="arrow" size={18}/></a><a className="ph-hero-secondary" href="#ph-features" onClick={event => sectionLink(event, 'ph-features')}>Découvrir l’atelier<Icon name="down" size={16}/></a></div><p className="ph-hero-note"><Icon name="check" size={15}/>Un accès sur validation, pensé pour votre activité.</p></div>
-        <WorkshopPreview/>
-      </section>
-      <div className="ph-benefits"><div className="ph-shell ph-benefits-inner"><span><Icon name="gamepad" size={20}/>Consoles & manettes</span><span><Icon name="wrench" size={20}/>Du diagnostic à la livraison</span><span><Icon name="users" size={20}/>L’atelier & ses clients</span></div></div>
-      <section className="ph-features ph-shell" id="ph-features" tabIndex={-1} aria-labelledby="ph-features-title">
-        <div className="ph-section-heading"><span className="ph-eyebrow">TOUT SUIT LE MÊME DOSSIER</span><h2 id="ph-features-title">Votre établi mérite<br/>un peu d’ordre.</h2><p>Le travail de réparation reste entre vos mains.<br/>Le suivi trouve sa place ici.</p></div>
-        <div className="ph-feature-grid">{features.map((feature, index) => <article className={`ph-feature ${index === 0 ? 'ph-feature-lead' : ''}`} key={feature.title}><span className="ph-feature-icon"><Icon name={feature.icon} size={24}/></span><h3>{feature.title}</h3><p>{feature.description}</p>{index === 0 && <span className="ph-feature-detail"><Icon name="check" size={15}/>Plusieurs consoles par client</span>}</article>)}</div>
-      </section>
-      <div className="ph-client-band ph-shell"><span className="ph-client-icon"><Icon name="gamepad" size={28}/></span><div><h2>Une console en réparation ?</h2><p>Retrouvez le suivi communiqué par votre atelier.</p></div><a className="ph-button ph-button-outline" href="#/espace-client">Mon espace client<Icon name="arrow" size={17}/></a></div>
-      <section className="ph-access" id="ph-access" tabIndex={-1} aria-labelledby="ph-access-title"><div className="ph-shell ph-access-grid">
-        <div className="ph-access-copy"><span className="ph-eyebrow">UNE PLACE POUR VOTRE ATELIER</span><h2 id="ph-access-title">Prêt à remettre<br/>de l’ordre dans<br/><em>vos réparations ?</em></h2><p>L’accès à La Clinique Rétro est ouvert sur demande. Présentez votre activité pour que votre inscription puisse être étudiée.</p><ol className="ph-access-steps"><li><span>01</span><div><strong>Présentez votre atelier</strong><p>Quelques informations sur vous et votre activité.</p></div></li><li><span>02</span><div><strong>Votre demande est étudiée</strong><p>Une validation précède l’ouverture de votre accès.</p></div></li><li><span>03</span><div><strong>Connectez-vous une fois accepté</strong><p>Retrouvez l’atelier avec les identifiants choisis.</p></div></li></ol><p className="ph-already-member">Déjà inscrit ? <a href="#/connexion">Se connecter<Icon name="arrow" size={14}/></a></p></div>
-        <RegistrationForm/>
-      </div></section>
-    </main>
-    <footer className="ph-footer"><div className="ph-shell ph-footer-inner"><div><a className="ph-brand" href="#/"><Logo/><span>La Clinique <strong>Rétro<span>.</span></strong></span></a><p>Le suivi de votre atelier, au même endroit.</p></div><nav aria-label="Liens de pied de page"><a href="#ph-features" onClick={event => sectionLink(event, 'ph-features')}>Fonctionnalités</a><a href="#/connexion">Connexion atelier</a><a href="#/espace-client">Espace client</a></nav><span className="ph-footer-tag"><Icon name="wrench" size={15}/>La passion, ça se répare.</span></div></footer>
-  </div>;
+  const [shop, setShop] = useState<IntakeShop | null>(null);
+  useEffect(() => {document.title = 'RépaRapid · Réparation de consoles par Maxxi Games'; const abort = new AbortController(); void clientApi<{shop: IntakeShop}>('/api/public/repair-intake', {signal: abort.signal, rootWorkshop: true}).then(value => setShop(value.shop)).catch(() => {}); return () => abort.abort();}, []);
+  return <StorefrontShell><main id="rp-main" tabIndex={-1}>
+    <section className="rp-hero rp-shell"><div className="rp-hero-copy"><span className="rp-eyebrow"><i/>UNE PANNE NE TERMINE PAS LA PARTIE.</span><h1>Votre console<br/>a encore <em>du jeu.</em></h1><p>Un écran noir, un joystick qui dérive, une console qui ne démarre plus ? Décrivez la panne. Notre atelier prend le relais.</p><div className="rp-hero-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Demander une réparation<Icon name="arrow" size={19}/></a><a className="rp-text-link" href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche<Icon name="down" size={16}/></a></div><p className="rp-hero-note"><Icon name="info" size={16}/>Le montant de l’intervention est confirmé après diagnostic.</p></div><div className="rp-hero-art" aria-hidden="true"><span className="rp-art-cross cross-one">+</span><span className="rp-art-cross cross-two">+</span><div className="rp-art-orbit"/><div className="rp-hero-console"><ConsoleArt item={{brand: 'Nintendo', model: 'Nintendo Switch', variant: 'Néon'}}/></div><div className="rp-art-status"><span><Icon name="wrench" size={19}/></span><div><small>ON S’OCCUPE DE LA SUITE</small><strong>Réparer. Rejouer.</strong></div><Icon name="check" size={18}/></div><span className="rp-art-label">PLAYER 1 · READY TO REPAIR</span></div></section>
+    <div className="rp-trust-strip"><div className="rp-shell"><span><Icon name="gamepad" size={20}/>Consoles de salon & portables</span><span><Icon name="wrench" size={20}/>Diagnostic à l’atelier</span><span><Icon name="user" size={20}/>Suivi dans votre compte</span></div></div>
+    <section className="rp-devices rp-shell" id="rp-devices" tabIndex={-1}><div className="rp-section-heading"><div><span className="rp-eyebrow">ON COMMENCE PAR VOTRE CONSOLE</span><h2>À chaque console,<br/>sa prochaine partie.</h2></div><p>Choisissez le modèle dans le formulaire.<br/>Les pannes proposées s’adaptent à votre console.</p></div><div className="rp-device-grid">{consoleFamilies.map(item => <a href={`#/demande-reparation?marque=${encodeURIComponent(item.brand)}`} className={`rp-device-card ${item.theme}`} key={item.brand}><span className="rp-device-art"><ShopConsoleArt item={item}/></span><span className="rp-device-copy"><span><strong>{item.label}</strong><small>{item.note}</small></span><span className="rp-circle-arrow"><Icon name="arrow" size={20}/></span></span></a>)}</div><p className="rp-model-note">Votre modèle n’est pas dans la liste ? Vous pouvez le renseigner librement.</p></section>
+    <section className="rp-how" id="rp-how" tabIndex={-1}><div className="rp-shell"><div className="rp-section-heading"><div><span className="rp-eyebrow">DU FORMULAIRE À L’ÉTABLI</span><h2>Quatre étapes.<br/>Un seul dossier.</h2></div><a className="rp-text-link" href="#/demande-reparation">C’est parti<Icon name="arrow" size={18}/></a></div><ol className="rp-steps"><li><span>01</span><Icon name="gamepad" size={26}/><h3>Décrivez la panne</h3><p>Indiquez votre modèle, les symptômes et les accessoires à joindre.</p></li><li><span>02</span><Icon name="user" size={26}/><h3>Créez votre compte</h3><p>Votre demande y apparaît au statut « En attente d’envoi ».</p></li><li><span>03</span><Icon name="package" size={26}/><h3>Préparez votre envoi</h3><p>Imprimez la fiche, glissez-la dans le colis et suivez les consignes de l’atelier.</p></li><li><span>04</span><Icon name="wrench" size={26}/><h3>Gardez le fil</h3><p>À réception, retrouvez le diagnostic et l’avancement dans votre espace client.</p></li></ol></div></section>
+    <section className="rp-shop rp-shell"><div className="rp-shop-visual" aria-hidden="true"><span className="rp-shop-grid"/><Icon name="wrench" size={90}/><span>LOCAL WORKSHOP<br/>REAL REPAIRS</span></div><div className="rp-shop-copy"><span className="rp-eyebrow">MAXXI GAMES · LE KREMLIN-BICÊTRE</span><h2>Votre console,<br/>notre établi.</h2><p>Reparapid vous accompagne dans votre demande de réparation. La console est confiée à Maxxi Games au Kremlin-Bicêtre, avec un dossier que vous pouvez retrouver à tout moment.</p>{shop?.addressConfirmed ? <address><strong>{shop.shopName}</strong>{shop.address}<br/>{shop.postalCode} {shop.city}</address> : <p className="rp-contact-note"><Icon name="info" size={17}/>L’adresse d’expédition sera confirmée par l’atelier avant votre envoi.</p>}{(shop?.email || shop?.phone) && <div className="rp-shop-contact">{shop.email && <a href={`mailto:${shop.email}`}>{shop.email}</a>}{shop.phone && <a href={`tel:${shop.phone.replace(/\s/g, '')}`}>{shop.phone}</a>}</div>}<a className="rp-button rp-outline" href="#/demande-reparation">Ouvrir mon dossier<Icon name="arrow" size={18}/></a></div></section>
+    <section className="rp-final-cta"><div className="rp-shell"><div><span className="rp-eyebrow">LA PARTIE N’EST PAS FINIE.</span><h2>On regarde votre panne ?</h2></div><a className="rp-button rp-light" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={19}/></a></div></section>
+  </main></StorefrontShell>;
 }

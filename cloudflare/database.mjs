@@ -75,7 +75,14 @@ const clientSaveGuard = `EXISTS (
       WHERE s.token_hash=? AND s.client_id=? AND s.csrf=? AND s.expires_at>? AND s.seen_at>? AND a.enabled=1)
 )`;
 
-export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now, idleMs, notifications = [], cancelNotifications = false, clientAuth = null }) {
+// A signup cannot reset/link a prior account. These predicates share the same
+// D1 batch as its root workshop publication, account and initial session.
+const registrationSaveGuard = `EXISTS (SELECT 1 FROM workshop WHERE id=1 AND revision=?)
+  AND NOT EXISTS (SELECT 1 FROM client_accounts WHERE email=?)
+  AND NOT EXISTS (SELECT 1 FROM admin WHERE email=?)
+  AND NOT EXISTS (SELECT 1 FROM saas_workshops WHERE email=?)`;
+
+export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now, idleMs, notifications = [], cancelNotifications = false, clientAuth = null, registration = null }) {
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= 1e9) {
     throw new Error('Révision invalide.');
   }
@@ -83,8 +90,10 @@ export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now,
   if (encoder.encode(text).byteLength > MAX_STORE_BYTES) throw new StoreSizeError('L’atelier dépasse 20 Mio.');
   const chunks = splitJSON(text);
   const generation = crypto.randomUUID();
-  const guard = clientAuth ? clientSaveGuard : saveGuard;
-  const guardValues = clientAuth
+  const guard = registration ? registrationSaveGuard : clientAuth ? clientSaveGuard : saveGuard;
+  const guardValues = registration
+    ? [expectedRevision, registration.email, registration.email, registration.email]
+    : clientAuth
     ? [expectedRevision, tokenHash, clientAuth.clientId, clientAuth.csrf, now, now - idleMs]
     : [expectedRevision, tokenHash, now, now - idleMs];
   const statements = [];
@@ -102,6 +111,15 @@ export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now,
   const publicationIndex = statements.length;
   statements.push(db.prepare(`UPDATE workshop SET revision = ?, generation = ?
     WHERE id = 1 AND ${guard}`).bind(expectedRevision + 1, generation, ...guardValues));
+  if (registration) {
+    statements.push(db.prepare(`INSERT INTO client_accounts(client_id,email,password_hash,enabled,created_at,updated_at)
+      SELECT ?,?,?,1,?,? WHERE EXISTS (SELECT 1 FROM workshop WHERE id=1 AND generation=?)`)
+      .bind(registration.clientId, registration.email, registration.passwordHash, now, now, generation));
+    statements.push(db.prepare(`INSERT INTO client_sessions(token_hash,client_id,csrf,expires_at,seen_at)
+      SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM workshop WHERE id=1 AND generation=?)
+      AND EXISTS (SELECT 1 FROM client_accounts WHERE client_id=? AND email=? AND enabled=1)`)
+      .bind(tokenHash, registration.clientId, registration.csrf, registration.expiresAt, now, generation, registration.clientId, registration.email));
+  }
   for (const batch of notificationBatches(notifications)) {
     statements.push(db.prepare(insertNotificationsSQL +
       ' AND EXISTS (SELECT 1 FROM workshop WHERE id=1 AND generation=?)').bind(batch, generation));
@@ -116,7 +134,7 @@ export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now,
   // Client removal and session revocation share the publication transaction.
   // Guard with its fresh random generation so rejected/stale saves have no
   // effect on any account, including accounts created concurrently.
-  if (!clientAuth) {
+  if (!clientAuth && !registration) {
   statements.push(db.prepare(`UPDATE client_accounts SET enabled=0,updated_at=? WHERE enabled=1
     AND client_id NOT IN (SELECT value FROM json_each(?))
     AND EXISTS (SELECT 1 FROM workshop WHERE id=1 AND generation=?)`)
@@ -132,4 +150,8 @@ export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now,
 // and the workshop revision are checked again at the atomic publication boundary.
 export function saveClientWorkshop(db, {expectedRevision, data, tokenHash, clientId, csrf, now, idleMs}) {
   return saveWorkshop(db, {expectedRevision, data, tokenHash, now, idleMs, clientAuth: {clientId, csrf}});
+}
+
+export function saveRegistrationWorkshop(db, {expectedRevision, data, tokenHash, now, registration}) {
+  return saveWorkshop(db, {expectedRevision, data, tokenHash, now, registration});
 }
