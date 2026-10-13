@@ -1,0 +1,2 @@
+/* Product art keeps its own perspective; the inherited inventory rotation is not applied. */
+.shop-console-art{display:block;filter:none!important;transform:none!important;overflow:visible;flex-shrink:0}

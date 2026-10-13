@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **12 octobre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **13 octobre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -22,13 +22,25 @@ Coordonnées professionnelles publiques relevées sur [reparapid.fr](https://rep
 
 Le domaine **reparapid.fr conserve son site WordPress** ; aucune bascule DNS ni modification de ce site n’a été effectuée. La nouvelle vitrine est publiée sur **https://reparapid.aldeguer-remi.workers.dev** : HTML, JavaScript et CSS servis identiques au build, API publique des coordonnées contrôlée et routes privées refusant les accès anonymes. Le déploiement n’a modifié ni schéma ni données D1. Toute publication d’un dernier ajustement doit refaire ce contrôle des assets.
 
-**Accès administrateur de production : à initialiser par une personne**, avec `npm run cloudflare:admin:create`. Le script masque l’e-mail, la phrase de passe et la confirmation dans un terminal, vérifie la cible dans `.wrangler/reparapid.production.jsonc` et crée seulement `admin(id=1)`. Un compte existant provoque un refus : aucune réinitialisation, aucun transfert de clients ou atelier. Les tests et la recette n’ont pas créé de compte réel de production. `npm run admin:create` cible SQLite local et ne remplace pas cette initialisation D1.
+**Accès administrateur de production : initialisé et vérifié le 13 octobre 2026.** La D1 principale contient un administrateur ; la connexion et `/api/auth/me` ont confirmé le rôle effectif `super_admin`. La seule session créée pour cette vérification a été déconnectée, puis la requête authentifiée a été refusée en HTTP 401. Aucun client, dossier ou Store d’atelier n’a été modifié. Les identifiants sont remis séparément, hors des fichiers versionnés. Pour une autre installation D1 sans administrateur, `npm run cloudflare:admin:create` fournit l’initialisation interactive et refuse tout compte existant. `npm run admin:create` cible uniquement SQLite local.
 
 Les API d’inscription et de nouvelle demande sont limitées au **magasin principal** dans Node et Worker, indépendamment d’un cookie d’un autre atelier. Une session dédiée vérifie ce contexte pour le formulaire. Les inscriptions ne rattachent jamais une fiche existante par simple correspondance d’e-mail et ne remplacent jamais un compte ; un compte déjà présent doit se connecter. Les requêtes sont bornées et limitées, les écritures authentifiées exigent le CSRF, et les gardes de session/révision sont revérifiées au commit. `Repair.publicRequestId` assure l’idempotence par client ; les anciens éditeurs ne peuvent pas effacer ce marqueur ni les coordonnées d’envoi lors d’une sauvegarde ordinaire. Une restauration ou réinitialisation explicite garde ses règles existantes.
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise visuelle : logo original et direction RépaRapid
+## Reprise du 13 octobre 2026 : engagements, avis et illustrations
+
+L’accueil reprend maintenant les engagements publics de [reparapid.fr](https://reparapid.fr/) sous une formulation adaptée à la vitrine : rapidité, expérience du technicien et proximité du magasin. Le détail des délais et horaires se trouve dans [README.md](README.md). Le texte distingue explicitement le temps d’intervention à l’atelier de l’acheminement du colis et conserve les exceptions annoncées par le commerçant.
+
+Trois courts extraits d’avis Google ont été vérifiés dans le widget Trustindex public du site d’origine. Les cartes conservent l’attribution, la date et les cinq étoiles propres à chaque avis ; elles identifient leur source et proposent la fiche Google Maps de l’atelier. La sélection est statique : aucun total, moyenne ou rafraîchissement automatique n’est revendiqué. Les auteurs et dates sont documentés dans [README.md](README.md) ; les textes sont dans `src/public-home.tsx`. Ne pas présenter cette sélection comme un flux d’avis Google connecté.
+
+`src/shop-console-art.tsx` et `src/shop-console-art.css` fournissent les nouvelles illustrations SVG natives de la vitrine. Les 38 entrées du catalogue sont représentées par leurs familles et variantes dans l’accueil, le visuel principal et le formulaire. Les illustrations historiques de gestion et leurs règles de détection restent conservées.
+
+Le **build final et TypeScript ont réussi avec 82 modules**. La recette à **1280 px et 320 px** a contrôlé trois engagements et trois avis sans débordement horizontal ; les 38 modèles possèdent chacun leur choix radio et leur illustration SVG, avec des identifiants de gradients uniques. Les Xbox Series X et Series S sont visuellement distinctes et la sélection d’un modèle fonctionne. La publication a été vérifiée le **13 octobre 2026** : version active sur 100 % du trafic Cloudflare ; SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence identiques au build final ; API publique en HTTP 200 et routes privées contrôlées en HTTP 401 sans exposition de données. La suite complète de **474 tests du 12 octobre** n’a pas été relancée pour ces changements de présentation ; elle reste un résultat historique daté. Les preuves et limites sont dans [TESTS.md](TESTS.md).
+
+Le compte administrateur principal a été **créé et vérifié**, sans réinitialiser ni remplacer l’atelier. Le fichier SQL privé de préparation a été supprimé. Aucun identifiant de connexion, secret, empreinte de mot de passe ni emplacement de fichier privé ne doit apparaître dans les fichiers versionnés.
+
+## Reprise visuelle du 12 octobre : logo original et direction RépaRapid
 
 La demande suivante reprend le **logo original du site RépaRapid**, sans redessin ni retouche, et une partie de sa direction visuelle. Source exacte : [asset original WordPress/CDN](https://i0.wp.com/reparapid.fr/wp-content/uploads/2023/03/Sans-titre-2.png?fit=300%2C300&ssl=1). La copie locale est `public/reparapid-logo-original.webp` ; son SHA-256 est identique à celui de la source : `5c592b863b669335922a51c76171eff93ed948747b0e93582b9aafc1785c8418`. Ce logo est utilisé dans la vitrine, le portail client principal, la fiche imprimable et le favicon.
 
@@ -44,7 +56,7 @@ Le favicon utilise désormais `public/favicon-reparapid.png`, le PNG original 30
 - Worker reparapid et D1 distincte des installations précédentes ; base créée en Europe de l’Ouest, quatre migrations appliquées et aucune migration restante.
 - Build TypeScript/Vite réussi ; HTML, JavaScript, CSS et SVG servis en HTTP 200, avec SHA-256 identiques au build local.
 - Routes /api/store, /api/admin/invoice-source et /api/auth/session : HTTP 401 sans authentification. Accueil public observé dans le navigateur.
-- Compte administrateur initial à créer ; aucun accès ou jeu de données d’une installation précédente n’a été importé. Aucun secret mail n’est configuré.
+- Au 12 octobre, le compte administrateur initial restait à créer ; il a été initialisé et vérifié le 13 octobre. Aucun accès ou jeu de données d’une installation précédente n’a été importé. Aucun secret mail n’est configuré.
 - Utiliser --config .wrangler/reparapid.production.jsonc pour les migrations et publications sur cette machine. Les identifiants du compte/D1 et les détails de version sont conservés hors des fichiers publics.
 
 ## 1. Reprise rapide
@@ -139,7 +151,8 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/nintendo-model-picker.tsx | Suggestions Nintendo ; les champs de modèle restent libres |
 | src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
 | src/email-notifications.tsx, .css | Configuration apparente et historique des notifications |
-| src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, illustrations et coordonnées du magasin |
+| src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, engagements, extraits d’avis publics et coordonnées du magasin |
+| src/shop-console-art.tsx, .css | Illustrations SVG natives de la vitrine, par famille et variante du catalogue |
 | src/repair-intake.tsx, .css, src/repair-intake-domain.ts | Parcours console/panne/compte, catalogue partagé, suggestions, admission et idempotence |
 | src/public-intake-settings.tsx | Réglages admin des coordonnées publiques et destination d’envoi |
 | src/registration-review.tsx, .css | Revue des inscriptions par le super administrateur |
@@ -880,4 +893,4 @@ Il n’y a pas de nouvelle demande de développement à inventer à partir de ce
 
 ### Prompt court de reprise à copier
 
-> Je reprends Reparapid pour RépaRapid · Maxxi Games. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel. La vitrine Cloudflare propose console/pannes/compte → En attente d’envoi → fiche imprimable ; reparapid.fr conserve son site WordPress sans bascule DNS. L’API Node/SQLite locale et la D1 publiée sont distinctes. Préserve l’isolation, les sessions, le CSRF, les révisions et l’idempotence, ainsi que les distinctions coûts/paiements et stock/pièces clients. Utilise --config .wrangler/reparapid.production.jsonc pour cette production. Le premier compte admin réel doit être initialisé par une personne via cloudflare:admin:create. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].
+> Je reprends Reparapid pour RépaRapid · Maxxi Games. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel. La vitrine Cloudflare propose console/pannes/compte → En attente d’envoi → fiche imprimable ; reparapid.fr conserve son site WordPress sans bascule DNS. L’API Node/SQLite locale et la D1 publiée sont distinctes. Préserve l’isolation, les sessions, le CSRF, les révisions et l’idempotence, ainsi que les distinctions coûts/paiements et stock/pièces clients. Utilise --config .wrangler/reparapid.production.jsonc pour cette production. Le compte admin principal est initialisé et sa connexion a été vérifiée le 13 octobre 2026 ; ses identifiants sont conservés hors du dépôt. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].

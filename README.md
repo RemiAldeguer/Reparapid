@@ -2,7 +2,7 @@
 
 Site de réparation de consoles pour **RépaRapid · Maxxi Games**, au Kremlin-Bicêtre, et application de gestion des dossiers du magasin. Cette copie indépendante de La Clinique Rétro a été créée le 12 octobre 2026 ; elle conserve le métier et l’administration de l’application d’origine. Le dépôt contient les sources, les migrations, les tests et la documentation ; chaque installation démarre avec sa propre base vide.
 
-**Vitrine publiée : [https://reparapid.aldeguer-remi.workers.dev](https://reparapid.aldeguer-remi.workers.dev).** Nouveau parcours de réparation publié et vérifié le 12 octobre 2026 : HTML, JavaScript et CSS identiques au build, coordonnées publiques accessibles et routes privées refusant les accès anonymes. La D1 dédiée et ses quatre migrations sont conservées ; la publication n’a modifié aucune donnée de l’atelier. Le premier compte administrateur reste à initialiser ; les e-mails ne sont pas configurés.
+**Vitrine publiée : [https://reparapid.aldeguer-remi.workers.dev](https://reparapid.aldeguer-remi.workers.dev).** Nouveau parcours de réparation publié et vérifié le 12 octobre 2026 : HTML, JavaScript et CSS identiques au build, coordonnées publiques accessibles et routes privées refusant les accès anonymes. La D1 dédiée et ses quatre migrations sont conservées. Le compte administrateur principal a été créé et sa connexion vérifiée le **13 octobre 2026**, sans modification des clients, dossiers ou données de l’atelier. Les e-mails ne sont pas configurés.
 
 Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune bascule DNS ni modification de ce site n’a été effectuée ; l’application Cloudflare utilise actuellement l’adresse `workers.dev` ci-dessus.
 
@@ -27,6 +27,24 @@ Le logo original du [site RépaRapid](https://reparapid.fr/) est repris sans ret
 
 Les titres et la navigation utilisent **Oxanium**, auto-hébergée dans `public/fonts/oxanium.ttf`, avec sa licence `public/fonts/oxanium-OFL.txt`. La source est le [répertoire officiel Google Fonts](https://github.com/google/fonts/tree/main/ofl/oxanium). Cette reprise concerne la présentation ; le parcours, les règles métier et les API restent identiques. TypeScript et le build Vite sont validés ; les assets HTML/JS/CSS, le logo et la police de la version publiée sont identiques au build validé.
 
+Les nouvelles illustrations de la vitrine sont des SVG natifs dans `src/shop-console-art.tsx` et `src/shop-console-art.css`. Elles identifient les 38 choix du catalogue, avec des silhouettes adaptées aux familles et variantes, dans l’accueil, le visuel principal et le formulaire. Les illustrations de l’administration sont conservées.
+
+## Engagements et avis publics
+
+La section **Nos engagements**, ajoutée le **13 octobre 2026**, reformule les informations du [site RépaRapid](https://reparapid.fr/) : interventions courantes annoncées en une heure, délai de 24 à 48 heures si une pièce doit être commandée, hors forte affluence, et prise en charge par un technicien expérimenté. Le site présente un atelier ouvert depuis sept ans, accueillant le public du mardi au samedi, de 10 h à 20 h, sauf exceptions. Ces délais concernent l’intervention à l’atelier ; le transport de la console s’ajoute séparément.
+
+La vitrine présente trois courts extraits d’avis Google vérifiés dans le widget public Trustindex de [reparapid.fr](https://reparapid.fr/), avec le nom de l’auteur, la date et les cinq étoiles de chaque avis :
+
+| Auteur public | Date de l’avis | Note |
+| --- | --- | --- |
+| XevilHaxx | 5 juin 2026 | 5 étoiles |
+| Amin Gasmi | 25 octobre 2025 | 5 étoiles |
+| Ibrahim Camara | 7 mai 2025 | 5 étoiles |
+
+Les extraits sont une sélection datée, sans moyenne ni compteur d’avis. Ils ne se mettent pas à jour automatiquement. La source est indiquée sous les cartes ; le bouton **Tous les avis Google** ouvre la [fiche Google Maps de l’atelier](https://www.google.com/maps/search/?api=1&query=Reparapid%20Le%20Kremlin-Bicetre&query_place_id=ChIJIxKphttx5kcRw7EU2fbERBg) pour consulter les avis complets.
+
+Le build final et TypeScript ont réussi avec **82 modules**. La recette à **1280 px et 320 px** a vérifié les engagements, les avis et les illustrations sans débordement. La publication a été vérifiée le **13 octobre 2026** : version active sur 100 % du trafic Cloudflare, HTML, JavaScript, CSS, logo, police et licence identiques au build final par SHA-256, API publique en HTTP 200 et routes privées contrôlées en HTTP 401 sans exposition de données. La suite de **474 tests du 12 octobre** demeure la dernière validation métier complète, sans nouvelle exécution pour ces changements de présentation.
+
 ## Demander une réparation et préparer l’envoi
 
 Depuis **Demander une réparation** (`#/demande-reparation`), le client suit trois étapes :
@@ -45,9 +63,11 @@ Les coordonnées publiques initiales reprennent le [site RépaRapid](https://rep
 
 Les routes de ce parcours sont implémentées dans les deux hôtes Node/SQLite et Worker/D1. Les inscriptions publiques et les nouvelles demandes concernent exclusivement le magasin principal Reparapid ; une session d’un autre atelier ne peut y créer un dossier. Les écritures vérifient l’origine, la session et le CSRF lorsqu’elles sont authentifiées, avec contrôle atomique de révision et limitation des tentatives.
 
-## Initialiser le premier administrateur Cloudflare
+## Administrateur Cloudflare et nouvelle installation
 
-Le compte du magasin en production reste à créer par une personne dans un terminal interactif :
+Le compte du magasin principal est initialisé depuis le **13 octobre 2026**. La connexion, le rôle effectif **super administrateur** et la déconnexion de la session de vérification ont été contrôlés. Les identifiants sont remis séparément et ne figurent pas dans le dépôt.
+
+Pour une nouvelle installation D1 sans administrateur, configurez sa cible puis utilisez un terminal interactif :
 
 ```sh
 npm run cloudflare:admin:create
@@ -92,7 +112,7 @@ npm start
 
 Pour une copie déjà clonée, remplacez les deux premières commandes par `git pull` dans le projet.
 
-Ouvrez **http://127.0.0.1:3040**, choisissez **Accès magasin**, puis connectez-vous avec l’adresse et la phrase de passe choisies dans `admin:create`. La saisie du mot de passe n’est pas affichée. Aucun compte ni mot de passe par défaut n’est fourni. La commande refuse d’écraser un administrateur existant. Cette commande locale agit sur SQLite ; utilisez `cloudflare:admin:create` pour initialiser la production D1.
+Ouvrez **http://127.0.0.1:3040**, choisissez **Accès magasin**, puis connectez-vous avec l’adresse et la phrase de passe choisies dans `admin:create`. La saisie du mot de passe n’est pas affichée. Aucun compte ni mot de passe par défaut n’est fourni. La commande refuse d’écraser un administrateur existant. Cette commande locale agit sur SQLite ; `cloudflare:admin:create` concerne une D1 sans administrateur. La production Reparapid possède déjà son compte principal.
 
 L’atelier serveur commence vide. Les données de démonstration sont accessibles, après connexion, dans **Réglages & sauvegardes**. Le premier compte doit être créé sur le serveur qui héberge réellement l’application, avec le même `DATABASE_PATH` que l’API.
 

@@ -4,7 +4,7 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-État vérifié le **12 octobre 2026**. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
 ## Résultat automatisé courant
 
@@ -58,7 +58,7 @@ Recette dans le navigateur intégré avec serveur temporaire et coordonnées ent
 
 Les tests automatisés vérifient les refus d’origine et de CSRF, les champs de prix/statut/propriétaire forgés, les limites de corps et tentatives, le refus d’une session d’un autre atelier et les collisions de compte. Ils prouvent aussi le retour au même dossier après un double enregistrement, les gardes de session/révision au commit et l’annulation atomique d’une création échouée. Une ancienne fiche client portant le même e-mail reste séparée : l’inscription crée une nouvelle identité et ne récupère jamais ses données.
 
-Le premier compte administrateur réel de production reste à créer par une personne avec `npm run cloudflare:admin:create`. Les tests de cette commande utilisent une base en mémoire et des valeurs synthétiques ; ils n’initialisent pas la production et ne réinitialisent aucun compte.
+Le premier compte administrateur réel de production a été créé et vérifié le **13 octobre 2026**, séparément des tests. Les tests de `cloudflare:admin:create` utilisent une base en mémoire et des valeurs synthétiques ; ils n’initialisent pas la production et ne réinitialisent aucun compte. La commande reste disponible pour une autre installation D1 sans administrateur.
 
 ## Recette visuelle : logo original et direction RépaRapid
 
@@ -70,6 +70,18 @@ Le premier compte administrateur réel de production reste à créer par une per
 Les règles métier et les API n’ont pas changé. Aucun nouveau compte de production, changement DNS ou écriture D1 n’a été effectué pour cette recette. TypeScript et le build Vite ont réussi (**80 modules**) ; la version Cloudflare est active à 100 % et les hashes du HTML, des bundles, du logo et de la police servis correspondent au build validé. Le résultat précédent de **474 tests** reste daté et n’est pas présenté comme une nouvelle exécution.
 
 Favicon : PNG original 300 × 300 déclaré dans le HTML, compilation validée et HTML/PNG servis identiques au build. Recette Node temporaire en mémoire : PNG/WebP/TTF en GET et HEAD 200 avec MIME correct, octets GET identiques, HEAD sans corps, `nosniff` conservé et `/api/store` anonyme 401. Aucun test de production avec données clients ; aucune nouvelle exécution de la suite métier.
+
+## Évolution du 13 octobre : engagements, avis et illustrations
+
+Périmètre de cette reprise :
+
+- **Nos engagements** : contenu reformulé depuis [reparapid.fr](https://reparapid.fr/), avec les exceptions de délai et d’ouverture ; distinction entre intervention à l’atelier et acheminement du colis.
+- **Avis Google** : trois courts extraits vérifiés dans le widget public Trustindex du site d’origine, avec auteurs, dates et notes individuelles. Source visible et accès aux avis complets via la fiche Google Maps ; aucun agrégat ou compteur, aucune synchronisation automatique revendiquée.
+- **Consoles** : nouvelles illustrations SVG natives dans `src/shop-console-art.tsx` et `src/shop-console-art.css`, adaptées aux 38 modèles du catalogue et à leurs variantes, utilisées sur la vitrine et dans le formulaire. Illustrations de l’administration conservées.
+
+Le **build final et le contrôle TypeScript ont réussi avec 82 modules**. Recette à **1280 px et 320 px** : trois engagements et trois avis visibles, aucun débordement horizontal, 38 choix radio et 38 SVG avec identification de leur silhouette, identifiants de gradients uniques, Xbox Series X et Series S visuellement distinctes et sélection d’un modèle fonctionnelle. Publication vérifiée le **13 octobre 2026** : version active sur 100 % du trafic Cloudflare ; SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence identiques au build final ; API publique en HTTP 200 et toutes les routes privées contrôlées en HTTP 401 sans exposition de données. La suite métier complète n’a pas été relancée : le résultat de **474 tests du 12 octobre 2026** est conservé comme historique, sans le présenter comme une validation automatisée de cette évolution visuelle.
+
+Le compte administrateur principal de la D1 a été créé. La vérification a constaté un seul compte, une connexion réussie et le rôle effectif `super_admin` via `/api/auth/me`. La seule session de vérification a été déconnectée, puis un nouvel appel a été refusé en **HTTP 401**. Aucun client, dossier ou Store d’atelier n’a été modifié ; le SQL privé de préparation a été supprimé. Les identifiants ont été remis séparément, hors du dépôt : aucun secret, empreinte de mot de passe ou chemin privé n’est documenté ici.
 
 ## Recettes historiques de La Clinique Rétro
 
@@ -93,7 +105,7 @@ L’action Imprimer / Enregistrer en PDF s’appuie sur le dialogue du navigateu
 
 La nouvelle vitrine RépaRapid est publiée sur https://reparapid.aldeguer-remi.workers.dev et contrôlée le 12 octobre 2026 : le Worker sert le nouveau déploiement à 100 %, les SHA-256 du HTML, du JavaScript et du CSS correspondent au build, l’API publique renvoie les coordonnées du magasin et les routes privées renvoient 401 sans session. Le déploiement ne modifie aucun schéma ni aucune donnée de la D1 ; les quatre migrations de l’installation initiale restent suffisantes pour ce parcours.
 
-Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune modification DNS n’a été effectuée. Les coordonnées publiques du magasin proviennent de ce site ; aucune donnée client réelle n’a été utilisée pendant la recette. La connexion admin en production reste à vérifier après initialisation humaine du premier compte ; aucun paiement ni envoi de colis réel n’a été réalisé.
+Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune modification DNS n’a été effectuée. Les coordonnées publiques du magasin proviennent de ce site ; aucune donnée client réelle n’a été utilisée pendant la recette. La connexion administrateur en production a été vérifiée après création du compte principal le **13 octobre 2026**, sans modifier l’atelier. Aucun paiement ni envoi de colis réel n’a été réalisé.
 
 Après publication, relever le Version ID Wrangler, vérifier la réponse de l’URL publique et comparer les références/hashes JS-CSS au build. Pour une modification API, vérifier les routes/protections concernées. GET /api/store et GET /api/admin/invoice-source doivent refuser une requête anonyme.
 

@@ -62,3 +62,34 @@
 @media(max-width:1000px){.rp-hero h1{font-size:50px;letter-spacing:-1.8px}.rp-brand>img,.rp-brand-image{height:48px;max-width:195px}}
 @media(max-width:680px){.rp-brand>img,.rp-brand-image{height:39px;max-width:180px}.rp-hero h1{font-size:clamp(39px,10.6vw,61px);letter-spacing:-1.2px}.rp-hero-art{border-radius:10px}.rp-section-heading h2,.rp-shop h2{letter-spacing:-.5px}.rp-final-cta h2{letter-spacing:-.3px}.rp-footer .rp-brand>img,.rp-footer .rp-brand-image{height:36px;max-width:155px}}
 @media(max-width:360px){.rp-header>nav{margin-left:0;margin-top:0}.rp-header{gap:13px}.rp-brand>img,.rp-brand-image{max-width:175px}.rp-hero h1{font-size:39px}}
+
+.rp-commitments{padding:68px 0;background:#181818;color:#fff}
+.rp-commitments .rp-eyebrow{color:#e4a7a2}
+.rp-commitments .rp-section-heading>p{color:#b9b9b9}
+.rp-commitment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
+.rp-commitment-grid>article{position:relative;padding:27px 26px 28px;border:1px solid #ffffff16;border-radius:9px;background:#ffffff03}
+.rp-commitment-icon{width:53px;height:53px;display:grid;place-items:center;background:#b2141424;color:#f0756c;border-radius:12px;margin-bottom:22px}
+.rp-commitment-kicker{font-family:'Oxanium',Arial,sans-serif;font-size:9px;font-weight:600;letter-spacing:1.7px;color:#dc837a}
+.rp-commitment-grid h3{font-size:21px;line-height:1.5;margin:10px 0 14px;font-weight:600;letter-spacing:-.3px}
+.rp-commitment-grid p{font-size:12px;line-height:1.95;color:#bababa;max-width:320px}
+.rp-commitment-grid strong{color:#fff;font-weight:600}
+.rp-commitment-footnote{font-size:10px;line-height:1.8;color:#aaa;margin-top:22px;max-width:850px}
+.rp-reviews{padding:72px 0}
+.rp-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.rp-review-card{display:flex;flex-direction:column;padding:25px 23px;background:#fff;border:1px solid #e5e5e5;border-radius:10px;min-width:0}
+.rp-review-top{display:flex;align-items:center;gap:10px;min-width:0}
+.rp-review-avatar{display:grid;place-items:center;width:40px;height:40px;flex-shrink:0;border-radius:50%;font-size:11px;font-weight:650;background:#f5e0df;color:#a22922}
+.rp-review-avatar.slate{background:#e9edf1;color:#506070}
+.rp-review-avatar.gold{background:#f6ebd5;color:#967426}
+.rp-review-top>div{min-width:0}
+.rp-review-top h3{font-family:Arial,sans-serif;font-size:12px;line-height:1.7;font-weight:650;overflow-wrap:anywhere}
+.rp-review-top time{font-size:9px;color:#737373}
+.rp-google-label{margin-left:auto;font-family:Arial,sans-serif;font-size:10px;font-weight:600;color:#565656}
+.rp-review-stars{display:inline-flex;gap:3px;margin-top:22px;width:max-content;color:#e0a12b}
+.rp-review-stars>svg{width:15px;height:15px;fill:currentColor;stroke:none}
+.rp-review-card blockquote{font-size:15px;line-height:1.9;font-weight:500;color:#363636;margin:13px 0 18px;flex:1;overflow-wrap:anywhere}
+.rp-review-excerpt-label{font-size:8px;letter-spacing:.7px;text-transform:uppercase;color:#898989}
+.rp-review-source{font-size:10px;line-height:1.9;margin-top:22px;color:#7a7a7a;text-align:center}
+.rp-review-source>a{color:#a32720;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:1000px){.rp-commitment-grid{gap:18px}.rp-commitment-grid>article{padding:24px 20px}.rp-commitment-grid h3{font-size:18px}.rp-review-grid{gap:16px}.rp-review-card{padding:21px 17px}.rp-review-top{gap:8px}.rp-review-avatar{width:33px;height:33px;font-size:9px}.rp-google-label{font-size:9px}.rp-review-card blockquote{font-size:13px}}
+@media(max-width:680px){.rp-commitments{padding:43px 0}.rp-commitment-grid{grid-template-columns:1fr;gap:14px}.rp-commitment-grid>article{padding:23px}.rp-commitment-icon{width:45px;height:45px;margin-bottom:17px}.rp-commitment-grid h3{font-size:21px;line-height:1.4}.rp-commitment-grid p{font-size:12px;max-width:none}.rp-commitment-footnote{font-size:9px;margin-top:18px}.rp-reviews{padding:43px 0}.rp-review-grid{grid-template-columns:1fr;gap:14px}.rp-review-card{padding:23px}.rp-review-top{gap:10px}.rp-review-avatar{width:39px;height:39px;font-size:11px}.rp-review-top h3{font-size:13px}.rp-review-top time{font-size:10px}.rp-google-label{font-size:11px}.rp-review-card blockquote{font-size:15px;margin-bottom:15px}.rp-review-stars{margin-top:18px}.rp-review-source{text-align:left;font-size:9px}.rp-commitments .rp-section-heading>p{font-size:11px}}
