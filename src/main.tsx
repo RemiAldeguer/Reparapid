@@ -4,6 +4,7 @@ import {App,ErrorBoundary} from './App';
 import './styles.css';
 import './auth.css';
 import './reparapid-brand.css';
+import './repair-guides.css';
 import './backoffice-theme.css';
 import './backoffice-components.css';
 import {AuthGate} from './auth';

@@ -13,7 +13,7 @@ import { notificationConfiguration, deliverNotifications } from './notification-
 import { nodeNotificationRepository, notificationBatches, insertNotificationsSQL } from './notification-storage.mjs';
 import { notificationAdminRequest, NotificationError } from './notification-admin.mjs';
 import { responseSecurityHeaders } from './response-security.mjs';
-import { publicAsset } from './public-assets.mjs';
+import { publicAsset, publicPageRedirect } from './public-assets.mjs';
 import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest, submitRegistrationRequest, listRegistrationRequests, reviewRegistrationRequest} from './registration-requests.mjs';
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from './workshop-scope.mjs';
 const HOUR = 3600000;
@@ -146,8 +146,9 @@ export function createApplication({ databasePath, origin, distPath, production =
       const pathname = new URL(req.url || '/', origin).pathname;
       if (!pathname.startsWith('/api/')) {
         if (!['GET', 'HEAD'].includes(req.method)) throw new HttpError(405, 'Méthode non autorisée.');
-        let asset;
-        try { asset = publicAsset(req.url || '/'); } catch { throw new HttpError(400, 'Chemin invalide.'); }
+        let asset, redirect;
+        try { redirect = publicPageRedirect(req.url || '/'); asset = publicAsset(req.url || '/'); } catch { throw new HttpError(400, 'Chemin invalide.'); }
+        if (redirect) { res.writeHead(308, {Location: redirect, 'Content-Length': 0}); return res.end(); }
         if (!asset) throw new HttpError(404, 'Fichier introuvable.');
         if (!distPath) throw new HttpError(404, 'Interface indisponible.');
         const root = await realpath(distPath);

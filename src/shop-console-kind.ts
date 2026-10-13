@@ -4,6 +4,7 @@ const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u
 /** Shared classification for the storefront and workshop's product silhouettes. */
 export function shopConsoleKind(item: ShopConsoleItem): string {
   const model = normalized(item.model);
+  if (/steam\s*deck/.test(model)) return 'steam-deck';
   if (/playstation\s*5|ps\s*5/.test(model)) return /pro/.test(model) ? 'ps5-pro' : /slim/.test(model) ? 'ps5-slim' : /digital/.test(model) ? 'ps5-digital' : 'ps5';
   if (/playstation\s*4|ps\s*4/.test(model)) return /pro/.test(model) ? 'ps4-pro' : /slim/.test(model) ? 'ps4-slim' : 'ps4';
   if (/playstation\s*3|ps\s*3/.test(model)) return 'ps3';

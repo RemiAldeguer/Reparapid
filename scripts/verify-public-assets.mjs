@@ -1,9 +1,9 @@
 import {lstat, readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {publicAsset, publicSourceAsset, publicAssetDirectories, publicSourceDirectories} from '../server/public-assets.mjs';
+import {publicAsset, publicSourceAsset, publicAssetDirectories, publicSourceDirectories, generatedPublicFiles} from '../server/public-assets.mjs';
 
-export async function verifyPublicAssets(distPath, {source = false} = {}) {
+export async function verifyPublicAssets(distPath, {source = false, guides = false} = {}) {
   const root = path.resolve(distPath), info = await lstat(root);
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Le build public doit être un dossier sans lien symbolique.');
   const files = [];
@@ -26,6 +26,7 @@ export async function verifyPublicAssets(distPath, {source = false} = {}) {
   }
   await inspect(root);
   if (!source && !files.includes('index.html')) throw new Error('Le build public doit contenir index.html.');
+  if (!source && guides) for (const filename of generatedPublicFiles) if (!files.includes(filename)) throw new Error(`Tutoriel ou fichier SEO manquant : ${filename}`);
   return files;
 }
 
@@ -34,7 +35,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const args = process.argv.slice(2);
     if (args.length && (args.length !== 1 || args[0] !== '--source')) throw new Error('Argument invalide.');
     const source = args[0] === '--source';
-    const files = await verifyPublicAssets(fileURLToPath(new URL(source ? '../public/' : '../dist/', import.meta.url)), {source});
+    const files = await verifyPublicAssets(fileURLToPath(new URL(source ? '../public/' : '../dist/', import.meta.url)), {source, guides: !source});
     console.log(`${source ? 'Sources publiques vérifiées' : 'Build public vérifié'} : ${files.length} fichiers autorisés.`);
   } catch (error) {
     console.error(`Build public refusé. ${error.message}`);

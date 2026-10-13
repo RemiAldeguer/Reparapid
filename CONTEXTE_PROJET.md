@@ -28,7 +28,31 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise du 13 octobre : diffusion des données et fichiers publics
+## Dernière reprise du 13 octobre : 24 tutoriels et retrait du Journal d’activité
+
+L’utilisateur demande de nombreux tutoriels de réparation à faire soi-même, un développement SEO et le retrait de l’onglet **Journal d’activité**. Le site publié propose un catalogue public [/guides/](https://reparapid.aldeguer-remi.workers.dev/guides/) et 24 articles `/guides/{slug}/`, couvrant **7 sujets PlayStation, 9 Nintendo, 4 Xbox, 3 Sega et 1 Steam Deck**. Chaque guide comporte introduction, symptômes, matériel, procédure, contrôles finaux, signes imposant de s’arrêter, deux exemples concrets, deux questions fréquentes et sources liées : **48 exemples et 48 FAQ** au total. Les procédures distinguent les modèles et variantes, les contrôles accessibles et les interventions qui demandent un atelier. Auteur : **RépaRapid · Maxxi Games** ; aucun tarif, temps de réparation ou récit client n’est inventé.
+
+Le contenu TypeScript est rendu en HTML statique à la compilation par `scripts/generate-repair-guides.mjs`, avec React côté build et **esbuild 0.28.2** comme dépendance de développement directe verrouillée. Les pages complètes sont consultables sans JavaScript applicatif. Elles réutilisent les styles Vite, le logo, Oxanium et les SVG natifs du site ; un SVG Steam Deck complète les silhouettes communes. La navigation et le pied de page publics proposent **Tutoriels**, et trois cartes sur l’accueil ouvrent des articles.
+
+Le SEO comprend titres et descriptions uniques, canonical/Open Graph propres, un seul H1, fil d’Ariane visible, données structurées `Article`/`BreadcrumbList` pour les articles et `CollectionPage` pour le catalogue. Les FAQ restent visibles sans schéma `FAQPage`. La date éditoriale est le **13 octobre 2026**, pas la date de chaque rebuild. `sitemap.xml` liste **26 URL** : racine, catalogue et 24 articles, sans API ni route hash privée. `robots.txt` annonce ce sitemap et exclut `/api/` de l’exploration ; ce fichier ne remplace aucune autorisation serveur.
+
+Le domaine canonique reste **https://reparapid.aldeguer-remi.workers.dev**. Le WordPress et le DNS de **reparapid.fr** ne changent pas. Aucun résultat d’indexation ou de classement Google n’est établi et aucune Search Console n’a été consultée ; ne pas présenter les métadonnées comme une garantie de positionnement.
+
+`server/public-assets.mjs` partage entre Node et Worker la liste exacte des pages générées et leurs fichiers. Les URL connues sont servies en GET/HEAD ; les variantes connues sans slash final et avec `index.html` reçoivent un **308** vers le canonical. Un chemin inconnu n’est jamais converti en article. Les fichiers et dossiers non déclarés ainsi que les liens symboliques restent refusés. Le contrôle **public/ avant Vite** accepte seulement les assets de marque fixes ; les guides et fichiers SEO sont produits dans `dist/` par le build, puis leur présence est contrôlée. Cloudflare conserve `run_worker_first=true`, avec `html_handling: "none"` et `not_found_handling: "none"`, pour laisser le Worker décider du routage.
+
+L’interface ne monte plus **Journal d’activité** et retire son lien **Voir tout** du dashboard. La route historique `#/activity` affiche une page inexistante et un retour au tableau de bord. Les événements, les historiques de réparation et les règles qui les utilisent restent conservés dans `src/domain.ts` ; aucune purge ou migration n’est requise.
+
+**Validation finale le 13 octobre : 522 tests réussis (477 Node/domaine/API + 45 Cloudflare)**, aucun échec, test annulé ou ignoré ; contrôle des espaces du diff réussi. TypeScript et le build Vite final de **88 modules** sont réussis : cinq sources publiques autorisées, **35 fichiers dans dist/** dont les 25 pages HTML de tutoriels, `robots.txt` et `sitemap.xml`. Les **510 tests (465 + 45)** et la publication de la reprise de confidentialité ci-dessous restent historiques. Aucune migration ou modification de données D1 n’est nécessaire.
+
+Recette finale sur serveur Node temporaire en mémoire : **24 cartes et SVG** du catalogue, trois teasers et liens publics de l’accueil contrôlés à **1280, 390 et 320 px**, illustrations entières dans leurs cadres et aucun débordement horizontal. Articles PS5 et Steam Deck contrôlés à 1280/320 px, article Switch à 320 px, sommaire et FAQ native ouverte ; deux exemples et deux FAQ par guide, sans script applicatif. Le CTA Steam Deck ouvre le formulaire avec filtre **Autre** et choix **Autre console**. Gestion fictive avec huit rubriques : Journal absent, aucun lien vers `#/activity`, ancienne route inexistante, Inscriptions toujours absent, inventaire avec onze silhouettes communes et un repli. Déconnexion retirant les vues privées, Store strictement inchangé et serveur temporaire arrêté. Aucun export, import, reset, paiement, e-mail ou écriture de données de production. Le détail figure dans [TESTS.md](TESTS.md).
+
+Publication finale vérifiée sur **100 % du trafic Cloudflare**. Les **25 pages HTML** du catalogue et des articles répondent en HTTP 200 et sont identiques au build par SHA-256 ; `robots.txt` et `sitemap.xml` sont également conformes. **37 contrôles SEO réussis** : pages, canonical, absence de bundle applicatif, quatre redirections connues en HTTP 308, cinq chemins inconnus ou de sources en HTTP 404, HEAD en HTTP 200 sans corps. Les six assets principaux HTML/JavaScript/CSS/logo/police/licence sont conformes au build ; API publique en HTTP 200 et cinq routes privées en HTTP 401. Contrôle complémentaire : quatre API privées en HTTP 401 avec `no-store` et 18 GET/HEAD de fichiers privés en HTTP 404 avec `no-store`. Aucune migration, écriture de données de production ou modification DNS.
+
+Pour une modification éditoriale, corriger `src/repair-guides-content.ts` et conserver sa correspondance avec les slugs de `src/repair-guides-manifest.mjs`. `npm run build` génère le catalogue, les articles, `robots.txt` et `sitemap.xml` après Vite, puis contrôle la liste publique complète. Ne pas modifier `dist/` ni copier du HTML dans `public/`. Pour une future bascule de domaine, mettre à jour `GUIDE_ORIGIN` et les canonical/Open Graph de `index.html`, vérifier les origines applicatives, reconstruire puis contrôler les URL et fichiers SEO réellement servis. Utiliser la configuration privée de cette installation lors d’une publication autorisée, sans nouvel import ni reset D1.
+
+Pour consulter les tutoriels localement, lancer `npm run build` puis `npm start`, ou utiliser un serveur Node temporaire servant ce `dist/` pour une recette. Refaire le build après chaque modification éditoriale. Le serveur Vite de développement ne génère pas ces pages statiques à la volée.
+
+## Reprise précédente du 13 octobre : diffusion des données et fichiers publics
 
 L’utilisateur demande un backend évitant d’exposer les données en clair sur le Web. Le backend Node/SQLite et Worker/D1 est déjà présent : Store serveur, sessions, contrôle du propriétaire, séparation des ateliers, CSRF et révisions atomiques. La nouvelle reprise durcit la frontière des fichiers statiques ; elle ne remplace pas ce backend et ne modifie ni schéma, contrat métier ou migration.
 
@@ -140,7 +164,7 @@ Le favicon utilise désormais `public/favicon-reparapid.png`, le PNG original 30
 
 Le site publié et le dossier de sources local sont deux choses différentes. Pour reprendre depuis une autre machine, transférer les sources et les documents, installer les dépendances et configurer l’accès aux services dans l’environnement sécurisé de cette machine. Les journaux et scripts temporaires d’une ancienne session ne constituent pas des sources portables.
 
-Versions installées vérifiées dans package-lock.json : **React / React DOM 19.1.1**, **Vite 7.3.6**, **TypeScript 5.8.3**, **Wrangler 4.147.0**. La dernière exécution utilisait npm **10.8.2**. Certaines plages de package.json sont plus larges que ces versions : conserver le lockfile et examiner les changements lors d’une mise à jour.
+Versions installées vérifiées dans package-lock.json : **React / React DOM 19.1.1**, **Vite 7.3.6**, **TypeScript 5.8.3**, **Wrangler 4.147.0**, **esbuild 0.28.2** pour le rendu des tutoriels pendant la compilation. La dernière exécution utilisait npm **10.8.2**. Certaines plages de package.json sont plus larges que ces versions : conserver le lockfile et examiner les changements lors d’une mise à jour.
 
 Il n’y a actuellement que React et React DOM comme dépendances applicatives. Les SVG, graphiques financiers, factures et composants sont construits dans le code ; ne pas ajouter une bibliothèque lourde pour un petit ajustement visuel.
 
@@ -161,6 +185,7 @@ flowchart LR
 Les deux branches Node et Worker représentent **deux modes d’hébergement**, pas une réplication automatique entre deux bases.
 
 - **Frontend** : application React, navigation par hash, composants et règles métier TypeScript dans src/.
+- **Tutoriels publics** : catalogue et articles en HTML complet à des URL sans hash, générés pendant le build et consultables sans JavaScript ; le formulaire et les comptes restent dans l’application React.
 - **Domaine** : règles indépendantes de React et du stockage dans src/domain.ts ; rapports spécialisés dans finance-domain.ts et invoice-domain.ts.
 - **Node** : server/application.mjs, serveur HTTP natif et SQLite natif ; pas Express.
 - **Worker** : cloudflare/worker.mjs et cloudflare/database.mjs, assets et D1.
@@ -180,7 +205,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/website-requests.tsx, .css | Demandes de la vitrine du magasin principal, filtres, coordonnées et progression via les transitions métier |
 | src/backoffice-theme.css, src/backoffice-components.css | Identité RépaRapid des écrans et composants de gestion, styles limités à .rp-backoffice |
 | src/reparapid-identity.ts | Nom d’atelier importé par défaut présenté sous RépaRapid, avec préservation des noms personnalisés |
-| src/pages.tsx | Dashboard, inventaire, atelier, stock, journal ; composant Metric partagé |
+| src/pages.tsx | Dashboard, inventaire, atelier et stock ; ancien composant de journal conservé mais plus monté ; Metric partagé |
 | src/details.tsx | Fiches console et réparation, onglets et actions du dossier |
 | src/forms.tsx | Formulaires console / réparation / pièce et admission d’un équipement |
 | src/store.tsx | Provider, chargement, copie de travail, transact, sauvegarde révisée et exports |
@@ -206,6 +231,9 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
 | src/email-notifications.tsx, .css | Configuration apparente et historique des notifications |
 | src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, engagements, avis et section contact préparant un mailto |
+| src/repair-guides-content.ts, src/repair-guides-types.ts | Contenu des 24 tutoriels, sections, modèles, difficultés, exemples, FAQ et sources |
+| src/repair-guides-manifest.mjs, .d.mts | Slugs publics exacts, chemins générés, domaine canonique et date éditoriale partagés avec les hôtes |
+| src/repair-guides.tsx, .css | Catalogue, articles, navigation HTML, métadonnées et données structurées rendus pendant le build |
 | src/shop-console-art.tsx, .css | Illustrations SVG natives de la vitrine, par famille et variante du catalogue |
 | src/repair-intake.tsx, .css, src/repair-intake-domain.ts | Parcours console/panne/compte, catalogue partagé, suggestions, admission et idempotence |
 | src/public-intake-settings.tsx | Réglages admin des coordonnées publiques et destination d’envoi |
@@ -227,7 +255,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | server/notification-delivery.mjs | Configuration Resend, envoi, claim, reprises et assainissement des erreurs |
 | server/notification-admin.mjs | Statut, activation / pause et relance depuis l’admin |
 | server/response-security.mjs | En-têtes communs à Node et Worker |
-| server/public-assets.mjs | Liste explicite partagée des fichiers publics autorisés sur Node et Worker |
+| server/public-assets.mjs | Liste explicite des assets et tutoriels publics, chemins canoniques et alias 308 partagés entre Node et Worker |
 | cloudflare/worker.mjs, database.mjs, security.mjs | Routes, stockage D1 et hachage adaptés à Workers |
 | cloudflare/migrations/ | Quatre migrations du stockage Cloudflare |
 | scripts/admin.mjs | Création / reset du compte admin SQLite local |
@@ -235,7 +263,9 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | scripts/cloudflare-export.mjs | Transfert initial privé SQLite vers une nouvelle base D1 |
 | scripts/dev-server.mjs | API de développement avec origine attendue sur 5173 |
 | scripts/build-offline.mjs | Refuse volontairement un build admin sans serveur |
-| scripts/verify-public-assets.mjs | Vérification de public/ avant Vite et de dist/ après Vite, refus des fichiers non autorisés et liens symboliques |
+| scripts/generate-repair-guides.mjs | Rendu temporaire esbuild/React, génération des 25 pages HTML, du sitemap et de robots après Vite |
+| scripts/verify-public-assets.mjs | Vérification de public/ avant Vite et de dist/ après génération, refus des fichiers non autorisés et liens symboliques, présence de tous les guides |
+| tests/repair-guides.test.mjs | Manifeste, garde source/build, génération, métadonnées, sitemap et parité GET/HEAD/308 des pages Node/Worker |
 | tests/ | Tests domaine, Node, session, isolation, portail, notifications et Worker |
 | .github/workflows/ci.yml | Tests et build sur push / pull request ; ne déploie pas le Worker |
 
@@ -246,6 +276,9 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 | Route | Écran / accès |
 | --- | --- |
 | / ou #/accueil | Vitrine publique RépaRapid et accès magasin / client |
+| /guides/ | Catalogue public des 24 tutoriels, HTML complet sans JavaScript applicatif |
+| /guides/{slug}/ | Article public déclaré dans le manifeste, contenu et métadonnées propres |
+| /robots.txt, /sitemap.xml | Consignes d’exploration et liste des 26 URL publiques canoniques |
 | #/accueil?section=rp-contact | Section Contactez-nous, accessible depuis le portail et les éléments publics partagés |
 | #/demande-reparation | Modèle, pannes et compte ; création du dossier En attente d’envoi |
 | #/connexion | Connexion atelier ; une connexion valide redirige vers le dashboard |
@@ -260,14 +293,14 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 | #/finance | Finance, période de référence et granularité |
 | #/invoices | Générateur de factures |
 | #/parts | Stock de pièces de l’atelier |
-| #/activity | Journal |
+| #/activity | Ancienne route du Journal d’activité retirée de l’interface : page inexistante et retour au tableau de bord |
 | #/settings | Réglages et sauvegardes |
 | #/super-admin/registrations | Ancienne route retirée de l’interface : page inexistante et retour au tableau de bord |
 | #/espace-client | Portail client et sa connexion propre |
 
 Les paramètres des pages admin sont après le hash, par exemple #/repairs?payment=unpaid et #/invoices?repairId=ID. Les liens clients des ateliers inscrits utilisent **?atelier=UUID#/espace-client** : le paramètre atelier est avant le hash, car le portail en déduit le contexte de connexion.
 
-La sidebar comprend Tableau de bord, Demandes du site pour le magasin principal, Clients, Consoles, L’atelier, Finance, Factures, Pièces détachées et Journal, puis Réglages et l’identité de l’atelier. Le menu Inscriptions est retiré ; le rôle affiché est Administrateur.
+La sidebar comprend Tableau de bord, Demandes du site pour le magasin principal, Clients, Consoles, L’atelier, Finance, Factures et Pièces détachées, puis Réglages et l’identité de l’atelier. Les menus Inscriptions et Journal d’activité sont retirés ; le rôle affiché est Administrateur. Les historiques des dossiers et événements du domaine restent conservés.
 
 ## 6. Modèle métier à préserver
 
@@ -708,7 +741,7 @@ npm run typecheck
 npm run build
 ~~~
 
-build compile les modules métier, vérifie TypeScript puis produit dist/ avec Vite. Les sorties tests/.compiled/, dist/ et node_modules/ sont générées ; ne pas en faire les sources d’une correction.
+build compile les modules métier, vérifie TypeScript et la liste des sources publiques, produit dist/ avec Vite, puis rend les 25 pages de tutoriels, robots.txt et sitemap.xml. Le contrôle final refuse un fichier non déclaré ou une page générée manquante. Les sorties tests/.compiled/, dist/ et node_modules/ sont générées ; ne pas en faire les sources d’une correction.
 
 Le build complet a pris environ 80–90 secondes dans cette session. L’avertissement Vite sur un chunk supérieur à 500 kB est présent ; c’est un avertissement de taille, pas un échec.
 
@@ -740,6 +773,8 @@ npm run dev
 
 Ouvrir **http://127.0.0.1:5173**, pas une origine arbitraire. Le port 3040 est celui de l’API ; les écritures attendent l’origine Vite en mode dev.
 
+Les tutoriels sont générés pendant le build, pas à la volée par Vite. Pour les contrôler, exécuter `npm run build` puis `npm start`, ou servir le `dist/` obtenu avec une API Node temporaire. Toute modification de contenu exige une reconstruction.
+
 ### Runtime de vérification
 
 Cette copie a été vérifiée avec Node 24.19.0. Utiliser une installation locale de Node 22.16 ou supérieur ; aucun chemin absolu de la machine d’origine n’est requis.
@@ -756,7 +791,7 @@ Configuration portable de référence : [wrangler.jsonc](wrangler.jsonc). La con
 | Account ID | Conservé dans la configuration privée |
 | Main | cloudflare/worker.mjs |
 | Compatibilité | 2026-10-05, nodejs_compat |
-| Assets | dist/, binding ASSETS, run_worker_first=true |
+| Assets | dist/, binding ASSETS, run_worker_first=true, html_handling=none, not_found_handling=none |
 | D1 / binding | reparapid / DB |
 | D1 ID | Conservé dans la configuration privée |
 | Migrations | cloudflare/migrations |
@@ -802,6 +837,8 @@ Après succès :
 4. tenir compte d’un court délai de propagation : examiner le résultat avant de redéployer ;
 5. pour une modification API, vérifier aussi les gardes et routes concernées, sans exposer des données privées.
 
+Pour une publication des tutoriels, contrôler aussi les **25 pages HTML** contre le build, leurs canonical, les GET/HEAD, les alias 308 et le refus des chemins inconnus. Comparer `robots.txt` et `sitemap.xml` au build ; le sitemap doit garder 26 URL publiques et aucune route de compte, de gestion ou d’API. Vérifier les liens du catalogue, d’au moins un article et de l’accueil à 320 px et sur ordinateur, avec les illustrations dans leurs cadres. Ces contrôles de publication ne prouvent pas une indexation Google.
+
 La session a publié directement sur le Worker existant à la demande de l’utilisateur. Pour une future action destructive, un nouveau service payant ou une modification de permissions, obtenir une instruction adaptée ; l’historique n’est pas une autorisation illimitée sur l’infrastructure.
 
 ### Tester D1 localement
@@ -845,6 +882,8 @@ La vitrine RépaRapid suit désormais le logo original, les en-têtes/pieds de p
 Ne pas refaire ces choix visuels en oubliant les retours utilisateur. Les SVG existants et les styles sont la bonne source pour des corrections ; il n’est pas nécessaire de remplacer un pictogramme vectoriel par une image générée.
 
 ## 22. Validation et état de référence
+
+La reprise **24 tutoriels et retrait du Journal d’activité**, du **13/10/2026**, a passé **522 tests (477 Node/domaine/API + 45 Cloudflare)**, sans échec, test annulé ou ignoré. TypeScript et build final de **88 modules** réussis, cinq sources publiques et **35 fichiers de build** autorisés ; recette finale du catalogue et de l’accueil à 1280/390/320 px et articles, CTA et retrait du Journal vérifiés sur données fictives. Publication vérifiée sur 100 % du trafic Cloudflare : 25 pages et fichiers SEO conformes au build, 37 contrôles SEO réussis, six assets principaux conformes, API publique 200 et routes privées refusées. Le résultat précédent de **510 tests (465 + 45)**, son build de 87 modules, sa recette et sa publication de confidentialité restent historiques et sont décrits en tête du document et dans [TESTS.md](TESTS.md).
 
 La personnalisation RépaRapid du **12/10/2026** a passé **474 tests (429 + 45)**, le contrôle TypeScript et le build. La recette du formulaire, des deux demandes fictives, de la réception et de la fiche imprimable est décrite en tête de ce guide et dans [TESTS.md](TESTS.md). La vitrine a été publiée sur le Worker et contrôlée contre le build ; cette vérification doit être répétée après tout dernier ajustement visuel.
 
@@ -904,6 +943,7 @@ Le warning de bundle Vite au-dessus de 500 kB demeure. Une éventuelle séparati
 26. Pièces à fournir par les clients et Réparations clients côte à côte dans Ma synthèse, séparées verticalement sur ordinateur et empilées sur tablette / mobile, avec défilements indépendants.
 27. Vitrine RépaRapid pour Maxxi Games, déclaration publique d’une console avec suggestions de pannes, compte client et dossier En attente d’envoi, fiche imprimable, coordonnées publiques éditables, transitions réception cohérentes, API Node/Worker limitées au magasin principal et initialisation humaine du premier admin Cloudflare.
 28. Logo RépaRapid original repris sans retouche dans les éléments publics, portail principal, fiche et favicon ; direction noire/rouge, motifs CSS et police Oxanium auto-hébergée avec licence.
+29. Catalogue de 24 tutoriels DIY et pages HTML propres sans hash, métadonnées et données structurées, sitemap/robots, liens publics et silhouette Steam Deck ; retrait de l’accès au Journal d’activité sans effacer les historiques. 522 tests, TypeScript, build final de 88 modules et recette locale réussis ; publication vérifiée à 100 % et 37 contrôles SEO réussis, sans migration ni modification de données de production ou du DNS.
 
 ### Versions publiées récentes, à titre de traçabilité
 
@@ -937,6 +977,7 @@ Ces identifiants sont des publications de cette session, pas des commits Git. Ne
 - Stockage : Store complet et photos dans JSON ; limites de 20 Mio et coûts de sauvegarde globale à considérer avant un changement d’échelle.
 - Deployment : plan Cloudflare, quotas et délivrabilité du fournisseur sont des paramètres externes à revérifier, pas des garanties de cette documentation.
 - Git / CI : dépôt indépendant Reparapid et workflow de tests/build ; aucun résultat de CI distante ne doit être déduit des résultats locaux.
+- Référencement : indexation et classement Google non vérifiés, Search Console non consultée ; domaine canonique workers.dev tant que le domaine principal conserve WordPress.
 
 Il n’y a pas de nouvelle demande de développement à inventer à partir de cette liste. Elle explique le périmètre actuel et les points à préciser si une future demande les concerne.
 
@@ -957,4 +998,4 @@ Il n’y a pas de nouvelle demande de développement à inventer à partir de ce
 
 ### Prompt court de reprise à copier
 
-> Je reprends Reparapid pour RépaRapid · Maxxi Games. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel. La vitrine Cloudflare propose console/pannes/compte → En attente d’envoi → fiche imprimable ; reparapid.fr conserve son site WordPress sans bascule DNS. L’API Node/SQLite locale et la D1 publiée sont distinctes. Préserve l’isolation, les sessions, le CSRF, les révisions et l’idempotence, ainsi que les distinctions coûts/paiements et stock/pièces clients. Utilise --config .wrangler/reparapid.production.jsonc pour cette production. Le compte admin principal est initialisé et sa connexion a été vérifiée le 13 octobre 2026 ; ses identifiants sont conservés hors du dépôt. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].
+> Je reprends Reparapid pour RépaRapid · Maxxi Games. Lis AGENTS.md, CONTEXTE_PROJET.md, README.md et TESTS.md, puis vérifie le code actuel et l’état de validation. La vitrine Cloudflare propose console/pannes/compte → En attente d’envoi → fiche imprimable ; les tutoriels sont générés depuis src/repair-guides* à /guides/ et /guides/{slug}/. reparapid.fr conserve son WordPress sans bascule DNS. Le Journal d’activité est retiré de la navigation ; préserver les événements et historiques métier. L’API Node/SQLite locale et la D1 publiée sont distinctes. Préserve l’isolation, les sessions, le CSRF, les révisions et l’idempotence, ainsi que les distinctions coûts/paiements et stock/pièces clients. Utilise --config .wrangler/reparapid.production.jsonc pour cette production. Le compte admin principal est initialisé et sa connexion a été vérifiée le 13 octobre 2026 ; ses identifiants sont conservés hors du dépôt. Ne réinitialise pas la production pour tester. Ma nouvelle demande est : [à compléter].

@@ -93,7 +93,7 @@ async function fixture(t, platform) {
       },
     };
     const assets = new Map([
-      ['/', publicDocument], ['/assets/app-Abcd1234.css', '#root{display:block}'], ['/assets/app-Abcd1234.js', 'document.documentElement.dataset.fixture="public";'],
+      ['/index.html', publicDocument], ['/assets/app-Abcd1234.css', '#root{display:block}'], ['/assets/app-Abcd1234.js', 'document.documentElement.dataset.fixture="public";'],
       ...privateFiles.map(filename => ['/' + filename, 'SYNTHETIC_PRIVATE_CONTENT']),
     ]);
     call = (route, options) => worker.fetch(new Request(origin + route, options), {DB: db, ASSETS: {fetch: async request => {

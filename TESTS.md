@@ -8,6 +8,10 @@ Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous re
 
 ## Résultat automatisé courant
 
+Le **13 octobre 2026**, la reprise **24 tutoriels DIY et retrait du Journal d’activité** a passé la suite intégrée : **522 tests réussis (477 Node/domaine/API + 45 Cloudflare)**, aucun échec, test annulé ou ignoré. Le contrôle des espaces du diff est réussi. TypeScript et le build Vite final ont réussi avec **88 modules**, cinq sources publiques autorisées et **35 fichiers de build**, dont les 25 pages HTML des guides, `robots.txt` et `sitemap.xml`. La recette locale finale est réussie. La publication est **vérifiée sur 100 % du trafic Cloudflare**, avec 25 pages et fichiers SEO conformes au build et **37 contrôles SEO réussis** ; les détails figurent ci-dessous.
+
+## Résultat automatisé de la reprise précédente
+
 Le **13 octobre 2026**, la suite intégrée finale a passé **510 tests (465 Node/domaine/API + 45 Cloudflare)**, sans échec ni test ignoré. La série ciblée de confidentialité a passé **38 tests** et celle d’apparence **14 tests**. TypeScript et le build final Vite ont réussi avec **87 modules** ; cinq fichiers sources publics et huit fichiers de build sont autorisés. La recette et la publication du durcissement, de la suppression locale et des ajustements d’interface sont vérifiées et détaillées ci-dessous.
 
 La reprise précédente **Demandes du site et Contactez-nous**, le **13 octobre 2026**, avait passé **476 tests (431 Node/domaine/API + 45 Cloudflare)**. Deux nouveaux tests Node et Worker couvraient la réception et la clôture ; son build de 87 modules, sa recette et sa publication restent des résultats historiques de cette étape. Le projet exige Node 22.16 ou supérieur.
@@ -43,9 +47,50 @@ npm test compile les modules métier puis exécute les tests listés dans packag
 | Silhouettes et couleurs | tests/console-appearance.test.mjs |
 | En-têtes et limites de réponses | tests/response-security.test.mjs |
 | Liste publique de fichiers, chemins, contrôle des sources/builds et fichiers interdits | tests/public-assets.test.mjs |
+| 24 tutoriels, manifeste, HTML complet, métadonnées, sitemap, garde source/build, GET/HEAD, alias 308 et refus des pages inconnues Node/Worker | tests/repair-guides.test.mjs |
 | Worker/D1, fragments atomiques et sécurité | tests/cloudflare-worker.test.mjs, tests/cloudflare-database.test.mjs, tests/cloudflare-security.test.mjs |
 
 Les identifiants fixes sont exclusivement des fixtures. Les tests utilisent des bases isolées et des transports e-mail simulés ; ils ne créent pas de comptes dans l’atelier réel et n’envoient pas de message client réel.
+
+## Validation des tutoriels et du retrait du Journal d’activité
+
+La suite de tutoriels vérifie le manifeste de **24 slugs distincts**, sa correspondance avec les contenus et les fichiers publics exacts, les titres et descriptions uniques, les sections complètes et les liens internes. Le rendu doit contenir un seul H1, le canonical attendu, Open Graph, la date éditoriale du **13 octobre 2026**, l’auteur **RépaRapid · Maxxi Games**, `Article`/`BreadcrumbList` et `CollectionPage` sur le catalogue. Les FAQ doivent être visibles sans schéma `FAQPage` ; les articles ne chargent pas le bundle JavaScript de l’application.
+
+Les vérifications Node et Worker couvrent GET/HEAD des **25 pages HTML** et des fichiers SEO avec MIME et `nosniff`, HEAD sans corps, les variantes connues sans slash final ou avec `index.html` redirigées en **308**, les méthodes refusées et les chemins inconnus en **404**. Elles contrôlent aussi les liens symboliques, les fichiers et dossiers non autorisés, et le refus de copier les guides ou fichiers SEO dans `public/`. Le générateur doit refuser un lien symbolique avant l’écriture, produire toutes les pages déclarées et le contrôle final doit détecter une page manquante.
+
+Le sitemap doit contenir **26 URL canoniques** du domaine actuel : accueil, catalogue et 24 articles, sans API, route hash ou domaine WordPress. `robots.txt` doit annoncer ce sitemap et exclure `/api/` de l’exploration. Les contrôles de sécurité de fichiers publics et les autorisations API restent requis ; un fichier robots n’autorise ni ne protège une lecture privée.
+
+Commandes de validation sur les sources :
+
+~~~sh
+npm test
+npm run typecheck
+npm run build
+~~~
+
+Le build contrôle `public/` avant Vite, rend les **25 pages** après Vite avec `scripts/generate-repair-guides.mjs`, puis vérifie la présence de tous les fichiers générés et la liste publique. Aucun HTML de tutoriel n’est à écrire directement dans `public/` ou `dist/`.
+
+Pour consulter le résultat localement, utiliser `npm run build` puis `npm start`, ou servir le `dist/` obtenu depuis un serveur Node temporaire de recette. Reconstruire après toute modification du contenu. Le serveur Vite de développement ne génère pas les pages statiques des guides à la volée.
+
+Recette finale réalisée sur un serveur Node temporaire en mémoire avec des données fictives :
+
+- Catalogue à **1280, 390 et 320 px** : **24 cartes et 24 SVG** entiers, texte contenu et aucun débordement horizontal. Accueil aux mêmes largeurs : trois teasers, liens **Tutoriels** de l’en-tête et du pied de page, illustrations dans leurs cadres.
+- Articles PS5 et Steam Deck à **1280 et 320 px**, article Switch à **320 px** : sommaire fonctionnel, FAQ native ouverte, deux exemples et deux FAQ, sans script JavaScript applicatif. Le contenu des 24 articles est aussi vérifié par les tests de rendu.
+- CTA Steam Deck ouvrant le formulaire avec filtre **Autre** et choix **Autre console**. Liens de compte et de formulaire partant de la racine de l’application.
+- Connexion d’un administrateur fictif : huit rubriques, **Journal d’activité** absent, dashboard sans son lien **Voir tout**, aucun lien vers `#/activity`, ancienne route affichant une page inexistante. **Inscriptions** reste absent. Inventaire avec onze illustrations communes et un repli.
+- Déconnexion retirant les vues privées, **Store serveur strictement inchangé** et serveur temporaire arrêté. Aucun export, import, reset, paiement, e-mail ou écriture de données de production.
+
+Après une publication autorisée avec la configuration privée de cette installation, comparer les **25 pages**, les bundles, les assets de marque, `robots.txt` et `sitemap.xml` servis au build validé. Vérifier les canonical, GET/HEAD et alias 308, les chemins de guides inconnus en 404, l’API publique et les refus anonymes des routes privées. La configuration Cloudflare doit laisser `html_handling` et `not_found_handling` à `none` pour conserver le routage décidé par le Worker. Aucun import, reset ou migration D1 n’est nécessaire.
+
+Publication finale vérifiée le **13 octobre 2026** sur **100 % du trafic Cloudflare** :
+
+- **25 pages HTML** du catalogue et des 24 articles en HTTP 200, avec SHA-256 identiques au build final ; `robots.txt` et `sitemap.xml` également conformes.
+- **37 contrôles SEO réussis** : pages et canonical, absence de bundle applicatif, quatre redirections connues en HTTP 308, cinq chemins inconnus ou de sources en HTTP 404, HEAD en HTTP 200 sans corps.
+- Six assets principaux **HTML, JavaScript, CSS, logo, police et licence** conformes au build par SHA-256 ; API publique en HTTP 200 et cinq routes privées en HTTP 401.
+- Contrôle complémentaire de confidentialité : quatre API privées en HTTP 401 avec `no-store`, et **18 GET/HEAD** de fichiers privés en HTTP 404 avec `no-store`.
+- Aucune migration, écriture de données de production ou modification DNS.
+
+**Limites :** ces vérifications confirment la présence du contenu et le socle technique du référencement. Elles ne prouvent aucune indexation ni position Google ; la Search Console n’a pas été consultée. Le WordPress et le DNS de **reparapid.fr** restent inchangés, avec canonical sur **https://reparapid.aldeguer-remi.workers.dev**. La validation de 510 tests ci-dessus reste historique.
 
 ## Recette RépaRapid : vitrine, demande et fiche d’envoi
 

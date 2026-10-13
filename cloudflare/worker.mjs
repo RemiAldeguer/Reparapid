@@ -10,7 +10,7 @@ import { notificationConfiguration, deliverNotifications } from '../server/notif
 import { d1NotificationRepository } from '../server/notification-storage.mjs';
 import { notificationAdminRequest, NotificationError } from '../server/notification-admin.mjs';
 import { responseSecurityHeaders } from '../server/response-security.mjs';
-import { publicAsset } from '../server/public-assets.mjs';
+import { publicAsset, publicPageRedirect } from '../server/public-assets.mjs';
 
 import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest, submitRegistrationRequest, listRegistrationRequests, reviewRegistrationRequest} from '../server/registration-requests.mjs';
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from '../server/workshop-scope.mjs';
@@ -116,12 +116,18 @@ async function handle(request, env, headers, url, secure, configured, context) {
   const pathname = url.pathname;
   if (!pathname.startsWith('/api/')) {
     if (!['GET', 'HEAD'].includes(request.method)) throw new HttpError(405, 'Méthode non autorisée.');
-    let permitted;
-    try { permitted = publicAsset(request.url); } catch { throw new HttpError(400, 'Chemin invalide.'); }
+    let permitted, redirect;
+    try { redirect = publicPageRedirect(request.url); permitted = publicAsset(request.url); } catch { throw new HttpError(400, 'Chemin invalide.'); }
+    if (redirect) return new Response(null, {status: 308, headers: responseSecurityHeaders(secure, {Location: redirect})});
     if (!permitted) throw new HttpError(404, 'Fichier introuvable.');
     if (!env.ASSETS) throw new HttpError(404, 'Interface indisponible.');
-    const asset = await env.ASSETS.fetch(request);
+    // Assets HTML handling is disabled. The shared manifest chooses the exact
+    // filename, so canonical clean URLs never depend on provider redirects.
+    const assetUrl = new URL(request.url);
+    assetUrl.pathname = permitted.pathname;
+    const asset = await env.ASSETS.fetch(new Request(assetUrl, request));
     const assetHeaders = responseSecurityHeaders(secure, asset.headers);
+    if (asset.status === 200) assetHeaders.set('Content-Type', permitted.contentType);
     return new Response(request.method === 'HEAD' ? null : asset.body, {
       status: asset.status, statusText: asset.statusText, headers: assetHeaders,
     });
