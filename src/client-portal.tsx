@@ -54,10 +54,13 @@ function jumpTo(id: string) {
   target?.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'});
   target?.focus({preventScroll: true});
 }
-function RepairJourney({stage}: {stage: Stage}) {
+function PortalRepairStage({repair}: {repair: PortalRepair}) {
+  return repair.intakeSubmitted && repair.stage === 'terminee' ? <Badge tone="green">Prête à récupérer</Badge> : <StageBadge stage={repair.stage}/>;
+}
+function RepairJourney({stage,intakeSubmitted=false}: {stage: Stage; intakeSubmitted?: boolean}) {
   if (stage === 'irreparable' || stage === 'abandonnee') return <div className="portal-closed-journey"><Icon name="archive" size={19}/><span>Dossier clôturé · {stageInfo(stage).short}</span></div>;
   const currentStep = journeySteps.findIndex(step => step.stage === stage);
-  return <ol className="portal-journey" aria-label="Étapes de la réparation">{journeySteps.map((step, index) => <li key={step.stage} className={index < currentStep ? 'is-past' : index === currentStep ? 'is-current' : 'is-future'} aria-current={index === currentStep ? 'step' : undefined}><span><Icon name={index < currentStep ? 'check' : step.icon} size={16}/></span><strong>{step.label}</strong></li>)}</ol>;
+  return <ol className="portal-journey" aria-label="Étapes de la réparation">{journeySteps.map((step, index) => <li key={step.stage} className={index < currentStep ? 'is-past' : index === currentStep ? 'is-current' : 'is-future'} aria-current={index === currentStep ? 'step' : undefined}><span><Icon name={index < currentStep ? 'check' : step.icon} size={16}/></span><strong>{intakeSubmitted && step.stage === 'terminee' ? 'Prête' : step.label}</strong></li>)}</ol>;
 }
 type PartFeedback = {message: string; error: string};
 type PartActions = {busyKey: string; refreshing: boolean; feedback: PartFeedback; onAvailable: (repairId: string, part: PortalClientPart) => void};
@@ -75,9 +78,9 @@ function PartLine({part, repairId}: {part: PortalClientPart; repairId: string}) 
 function RepairProgress({repair}: {repair: PortalRepair}) {
   const shipping = React.useContext(ShippingContext);
   return <article className="portal-repair">
-    <div className="portal-repair-heading"><div><span className="mono">{repair.code}</span><h3>{repair.title}</h3></div><StageBadge stage={repair.stage}/></div>
-    <p className="portal-stage-description">{stageDescriptions[repair.stage]}</p>
-    <RepairJourney stage={repair.stage}/>
+    <div className="portal-repair-heading"><div><span className="mono">{repair.code}</span><h3>{repair.title}</h3></div><PortalRepairStage repair={repair}/></div>
+    <p className="portal-stage-description">{repair.intakeSubmitted && repair.stage === 'terminee' ? 'Votre réparation est terminée. Contactez l’atelier pour convenir du retrait de votre console ou de son retour.' : stageDescriptions[repair.stage]}</p>
+    <RepairJourney stage={repair.stage} intakeSubmitted={repair.intakeSubmitted}/>
     {repair.intakeSubmitted && shipping && <div className="portal-shipping-action"><Icon name="package" size={22}/><div><strong>{repair.stage === 'attente-envoi' ? 'Votre fiche pour préparer l’envoi' : 'La fiche de votre demande'}</strong><p>Le récapitulatif à joindre à votre console. L’adresse de l’atelier y figure.</p></div><button type="button" className="btn secondary" disabled={shipping.busy} onClick={() => shipping.onOpen(repair.id)}><Icon name="print" size={16}/>Voir la fiche</button></div>}
     <div className="portal-repair-amount"><span><Icon name="euro" size={18}/>{repair.totalCost === null ? 'Montant de l’intervention après diagnostic' : 'Montant actuel de ce dossier'}</span><strong>{money(repair.totalCost)}</strong></div>
     {repair.symptoms && <div className="portal-symptoms"><span>Votre demande</span><p className="prewrap">{repair.symptoms}</p></div>}
@@ -99,7 +102,7 @@ function ConsoleTile({item, repairs, onOpen}: {item: PortalConsole; repairs: Por
   const date = repair && (repair.completedAt || repair.dueDate || repair.updatedAt);
   const dateLabel = repair?.completedAt ? 'Clôturée le' : repair?.dueDate ? 'Date prévue' : 'Actualisée le';
   return <article className="portal-mosaic-card"><button type="button" className="portal-mosaic-open" onClick={onOpen} aria-label={`Voir le suivi de ${item.brand} ${item.model}, ${item.code}${item.variant ? `, ${item.variant}` : ''}${repair ? `, ${stageInfo(repair.stage).short}` : ''}`}>
-    <span className="portal-mosaic-art"><span className="mono portal-mosaic-code">{item.code}</span>{repair ? <StageBadge stage={repair.stage}/> : <StateBadge state={item.state}/>}<ConsoleArt item={item}/></span>
+    <span className="portal-mosaic-art"><span className="mono portal-mosaic-code">{item.code}</span>{repair ? <PortalRepairStage repair={repair}/> : <StateBadge state={item.state}/>}<ConsoleArt item={item}/></span>
     <span className="portal-mosaic-body"><span className="portal-mosaic-brand">{item.brand}</span><strong className="portal-mosaic-model">{item.model}</strong><span className="portal-mosaic-variant">{item.variant || 'Couleur non renseignée'}</span><span className="portal-mosaic-status"><strong>{repair?.title || 'Aucune demande enregistrée'}</strong>{repair && <span className="mono">{repair.code}</span>}</span>
     {repair && <span className="portal-mosaic-amount"><span>{repair.totalCost === null ? 'Après diagnostic' : 'Montant actuel'}</span><strong>{money(repair.totalCost)}</strong></span>}
     {!!requestedParts.length && <span className="portal-mosaic-part-list"><span className="portal-mosaic-part-label"><Icon name="package" size={14}/>{waitingParts ? `${waitingParts} ${waitingParts === 1 ? 'pièce à fournir' : 'pièces à fournir'}` : 'Pièces demandées'}</span>{requestedParts.slice(0, 2).map(({part, code}) => <span className="portal-mosaic-part-row" key={`${code}:${part.id}`}><span>{part.quantity} × {part.name}</span><Badge tone={partTone(part.status)} dot={false}>{partLabel(part.status)}</Badge></span>)}{requestedParts.length > 2 && <small>+ {requestedParts.length - 2} autre{requestedParts.length - 2 > 1 ? 's' : ''} demande{requestedParts.length - 2 > 1 ? 's' : ''} dans le suivi</small>}</span>}

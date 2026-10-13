@@ -166,6 +166,105 @@ for (const platform of ['node', 'worker']) {
     // Each malformed case uses a fresh fixture, so the IP limiter doesn't hide validation.
   });
 
+  test(`${platform}: a website request persists through reception and completion with isolated customer tracking`, async t => {
+    const store = emptyStore(); store.settings.owner = 'PRIVATE_STORE_OWNER';
+    const f = await fixture(t, platform, {store}), input = registration();
+    const registered = await f.signup(input); assert.equal(registered.status, 201);
+    // The same retry key belongs to different requests when the owners differ.
+    const other = await f.signup(registration({customer: {...customer, name: 'Autre client fictif', email: 'other-intake@example.invalid'},
+      intake: {...input.intake, description: 'OTHER_CLIENT_DESCRIPTION', serial: 'OTHER_CLIENT_SERIAL'}}));
+    assert.equal(other.status, 201); assert.notEqual(other.data.repairId, registered.data.repairId);
+    const repairId = registered.data.repairId, clientId = registered.data.session.user.clientId;
+    const initial = f.read(), original = initial.repairs.find(repair => repair.id === repairId);
+    const consoleId = original.consoleId;
+    assert.equal(original.publicRequestId, input.intake.requestId);
+    assert.equal(original.stage, 'attente-envoi');
+    assert.equal(initial.consoles.find(console => console.id === consoleId).clientId, clientId);
+    const otherRepair = structuredClone(initial.repairs.find(repair => repair.id === other.data.repairId)),
+      otherConsole = structuredClone(initial.consoles.find(console => console.id === otherRepair.consoleId)),
+      otherClient = structuredClone(initial.clients.find(client => client.id === other.data.session.user.clientId));
+    const otherProjection = await f.request('/api/client/portal', other.auth);
+    assert.equal(otherProjection.status, 200);
+
+    const value = token(), csrf = token(), expires = Date.now() + 3600000;
+    f.sqlite.prepare('INSERT INTO sessions(token_hash,admin_id,csrf,expires_at,seen_at) VALUES(?,1,?,?,?)')
+      .run(digest(value), csrf, expires, Date.now());
+    const admin = {cookie: `${platform === 'node' ? 'clinique_session' : '__Host-clinique_session'}=${value}`, csrf};
+    const sheetPath = `/api/client/repair-intake/${repairId}/sheet`;
+    async function verifyTracking(stage) {
+      const current = f.read(), repair = current.repairs.find(item => item.id === repairId),
+        console = current.consoles.find(item => item.id === consoleId);
+      assert.equal(repair.publicRequestId, input.intake.requestId);
+      assert.equal(repair.consoleId, consoleId); assert.equal(console.clientId, clientId);
+      assert.equal(repair.code, original.code); assert.equal(repair.createdAt, original.createdAt);
+      assert.equal(repair.symptoms, original.symptoms); assert.equal(repair.stage, stage);
+      assert.equal(current.repairs.length, 2); assert.equal(current.consoles.length, 2);
+      assert.deepEqual(current.repairs.find(item => item.id === otherRepair.id), otherRepair);
+      assert.deepEqual(current.consoles.find(item => item.id === otherConsole.id), otherConsole);
+      assert.deepEqual(current.clients.find(item => item.id === otherClient.id), otherClient);
+      const portal = await f.request('/api/client/portal', registered.auth);
+      assert.equal(portal.status, 200); assert.equal(portal.data.repairs.length, 1); assert.equal(portal.data.consoles.length, 1);
+      const projected = portal.data.repairs[0];
+      assert.equal(projected.id, repairId); assert.equal(projected.consoleId, consoleId);
+      assert.equal(projected.stage, stage); assert.equal(projected.intakeSubmitted, true);
+      assert.equal(projected.createdAt, original.createdAt); assert.equal(projected.completedAt, repair.completedAt);
+      for (const key of ['publicRequestId', 'diagnosis', 'tests', 'photos', 'worklogs', 'payment']) assert.equal(Object.hasOwn(projected, key), false);
+      for (const key of ['notes', 'location', 'clientId']) assert.equal(Object.hasOwn(portal.data.consoles[0], key), false);
+      const publicJSON = JSON.stringify(portal.data);
+      for (const hidden of ['PRIVATE_', 'OTHER_CLIENT_', otherRepair.id, otherConsole.id, otherClient.id, input.intake.requestId]) {
+        assert.ok(!publicJSON.includes(hidden), `Unexpected customer projection field: ${hidden}`);
+      }
+      const sheet = await f.request(sheetPath, registered.auth);
+      assert.equal(sheet.status, 200); assert.equal(sheet.data.repair.id, repairId); assert.equal(sheet.data.repair.stage, stage);
+      assert.ok(!JSON.stringify(sheet.data).includes('PRIVATE_'));
+      assert.ok(!JSON.stringify(sheet.data).includes(input.intake.requestId));
+      assert.equal((await f.request(sheetPath, other.auth)).status, 404);
+      assert.equal((await f.request(`/api/client/repair-intake/${otherRepair.id}/sheet`, registered.auth)).status, 404);
+      assert.deepEqual((await f.request('/api/client/portal', other.auth)).data, otherProjection.data);
+    }
+    async function retryOriginalRequest() {
+      const before = f.read(), retry = await f.request('/api/client/repair-intake', {...registered.auth, method: 'POST',
+        body: {intake: {...input.intake, description: 'Changed retry must not reopen or replace this request.'}}});
+      assert.equal(retry.status, 200); assert.equal(retry.data.repairId, repairId); assert.equal(retry.data.repairCode, original.code);
+      assert.deepEqual(f.read(), before);
+    }
+    await verifyTracking('attente-envoi');
+    const blocked = await f.request('/api/store', {...admin, csrf: undefined, method: 'PUT',
+      body: {data: initial, revision: initial.revision, mode: 'edit'}});
+    assert.equal(blocked.status, 403); assert.deepEqual(f.read(), initial);
+    for (const stage of ['reception', 'diagnostic', 'reparation', 'tests', 'terminee']) {
+      const loaded = await f.request('/api/store', admin); assert.equal(loaded.status, 200);
+      const draft = structuredClone(loaded.data);
+      if (stage === 'reception') {
+        draft.repairs.find(repair => repair.id === repairId).diagnosis = 'PRIVATE_DIAGNOSIS';
+        draft.repairs.find(repair => repair.id === repairId).tests[0].label = 'PRIVATE_INTERNAL_CHECK';
+        draft.consoles.find(console => console.id === consoleId).notes = 'PRIVATE_CONSOLE_NOTE';
+        draft.clients.find(client => client.id === clientId).notes = 'PRIVATE_CLIENT_NOTE';
+      }
+      moveRepair(draft, repairId, stage); draft.revision = loaded.data.revision + 1;
+      const body = {data: draft, revision: loaded.data.revision, mode: 'edit'};
+      const saved = await f.request('/api/store', {...admin, method: 'PUT', body});
+      assert.equal(saved.status, 200, JSON.stringify(saved.data));
+      assert.equal(saved.data.revision, loaded.data.revision + 1); assert.deepEqual(f.read(), saved.data);
+      const console = saved.data.consoles.find(item => item.id === consoleId);
+      assert.equal(console.location, 'À l’atelier');
+      assert.equal(console.state, stage === 'terminee' ? 'fonctionnelle' : 'en-reparation');
+      const repair = saved.data.repairs.find(item => item.id === repairId);
+      assert.equal(repair.diagnosis, 'PRIVATE_DIAGNOSIS');
+      assert.equal(repair.tests[0].label, 'PRIVATE_INTERNAL_CHECK');
+      if (stage === 'terminee') {
+        assert.ok(repair.completedAt); assert.ok(repair.tests.length > 0);
+        assert.ok(repair.tests.every(check => check.result === 'pass'));
+      } else assert.equal(repair.completedAt, '');
+      await verifyTracking(stage);
+      if (stage === 'reception' || stage === 'terminee') {
+        assert.equal((await f.request('/api/store', {...admin, method: 'PUT', body})).status, 409);
+        assert.deepEqual(f.read(), saved.data);
+        await retryOriginalRequest();
+      }
+    }
+  });
+
   test(`${platform}: intake enforces origin, CSRF, request bounds and canonical ownership`, async t => {
     const f = await fixture(t, platform);
     assert.equal((await f.signup(registration(), {headers: {Origin: 'https://attacker.example'}})).status, 403);

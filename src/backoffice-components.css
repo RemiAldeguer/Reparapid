@@ -1,0 +1,442 @@
+/* RépaRapid administration: presentation only. Status and chart colors stay intact. */
+.rp-backoffice {
+  --rp-component-ink: #252525;
+  --rp-component-muted: #696969;
+  --rp-component-line: #e5e5e5;
+  --rp-component-soft: #f6f6f6;
+  --rp-component-red: #b21414;
+  --rp-component-red-soft: #fff1f0;
+}
+
+/* Customer cards, contact details and admission forms. */
+.rp-backoffice :is(.client-summary, .client-repair-summary, .client-intake-intro,
+  .client-intake-console, .client-access-credentials .client-access-password) {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+  color: var(--rp-component-muted);
+}
+.rp-backoffice :is(.client-summary strong, .client-repair-summary strong,
+  .client-name, .client-console strong, .client-intake-line-heading,
+  .client-intake-console strong, .client-access-body strong,
+  .client-access-credentials dd) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.client-name, .client-repair-summary strong,
+  .client-intake-line legend, .client-intake-line-heading) {
+  font-family: 'Oxanium', Arial, sans-serif;
+}
+.rp-backoffice .client-avatar {
+  background: var(--rp-component-red-soft);
+  color: var(--rp-component-red);
+}
+.rp-backoffice :is(.client-code, .client-card-contacts, .client-card-footer,
+  .client-contact, .client-contact span, .client-contact a, .client-contact p,
+  .client-notes, .client-console small, .client-console > svg,
+  .client-intake-intro p, .client-intake-line legend, .client-intake-console p,
+  .client-intake-add > span, .client-access-body > p:not(.auth-error):not(.auth-notice),
+  .client-access-form > p:not(.auth-error):not(.auth-notice),
+  .client-access-credentials dt) {
+  color: var(--rp-component-muted);
+}
+.rp-backoffice :is(.client-card-footer, .client-repair-tabs, .client-console,
+  .client-intake-line) {
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .client-intake-line { background: #fff; }
+.rp-backoffice .client-console:hover { background: var(--rp-component-soft); }
+.rp-backoffice .client-name:hover,
+.rp-backoffice .client-contact a:hover { color: var(--rp-component-red); }
+.rp-backoffice .client-repair-tabs > button { color: var(--rp-component-muted); }
+.rp-backoffice .client-repair-tabs > button.active {
+  color: var(--rp-component-red);
+  border-bottom-color: var(--rp-component-red);
+}
+.rp-backoffice .client-repair-tabs > button > span {
+  background: #eeeeee;
+  color: #555;
+}
+.rp-backoffice .client-repair-tabs > button.active > span {
+  background: var(--rp-component-red-soft);
+  color: var(--rp-component-red);
+}
+
+/* Dashboard summaries retain the meanings of amounts and stock warnings. */
+.rp-backoffice :is(.dashboard-revenue-copy h3, .summary-repairs-head h3,
+  .summary-client-parts-head h3, .summary-repair-title,
+  .summary-client-part-copy > strong, .summary-client-part-console strong) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.dashboard-revenue-copy h3, .summary-repairs-head h3,
+  .summary-client-parts-head h3) {
+  font-family: 'Oxanium', Arial, sans-serif;
+}
+.rp-backoffice :is(.dashboard-revenue-copy p, .summary-repairs-head p,
+  .summary-repair-copy > p, .summary-repair-owner > .mono,
+  .summary-repair-amount > small, .summary-repairs-empty,
+  .summary-repairs-foot > span, .summary-client-parts-head p,
+  .summary-client-part-copy > p, .summary-client-part-owner > .mono,
+  .summary-client-part-console small, .summary-client-parts-empty) {
+  color: var(--rp-component-muted);
+}
+.rp-backoffice .dashboard-revenue:not(.dashboard-receipts):not(.dashboard-theoretical)
+  .dashboard-revenue-total { color: var(--rp-component-ink); }
+.rp-backoffice .dashboard-receipts { background: #f7faf8; }
+.rp-backoffice .dashboard-theoretical { background: #faf9fc; }
+.rp-backoffice :is(.dashboard-summary-lists, .summary-repairs,
+  .dashboard-summary-lists > .summary-client-parts, .summary-repair-row,
+  .summary-repairs-empty, .summary-repairs-foot) {
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .dashboard-revenue-grid .dashboard-revenue:not(:last-child) {
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .summary-client-parts { border-color: var(--rp-component-line); }
+.rp-backoffice .summary-repairs-filters {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .summary-repairs-filters > button { color: var(--rp-component-muted); }
+.rp-backoffice .summary-repairs-filters > button[aria-pressed=true] {
+  background: #fff;
+  color: var(--rp-component-red);
+  box-shadow: 0 1px 4px #00000012;
+}
+.rp-backoffice .summary-repairs-filters > button > span {
+  background: #eaeaea;
+  color: #555;
+}
+.rp-backoffice .summary-repairs-filters > button[aria-pressed=true] > span {
+  background: var(--rp-component-red-soft);
+  color: var(--rp-component-red);
+}
+.rp-backoffice :is(.summary-repair-title:hover,
+  .summary-client-part-console:hover strong) { color: var(--rp-component-red); }
+.rp-backoffice .summary-repairs-list:focus-visible {
+  outline-color: var(--rp-component-red);
+}
+
+/* Parts provided by customers: neutral surfaces, existing availability colors. */
+.rp-backoffice :is(.client-part-intro, .repair-card-client-parts) {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice :is(.client-part-item, .repair-card-client-parts li,
+  .repair-card-parts-more) { border-color: var(--rp-component-line); }
+.rp-backoffice :is(.client-part-copy > h3, .client-part-quantity > strong,
+  .repair-card-client-parts > h3, .repair-card-part-name) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.client-part-copy > h3, .repair-card-client-parts > h3) {
+  font-family: 'Oxanium', Arial, sans-serif;
+}
+.rp-backoffice :is(.client-part-owner, .client-part-explanation,
+  .client-part-unassigned > p, .client-part-closed, .client-part-quantity,
+  .client-part-note, .client-part-panel > .empty > p,
+  .repair-card-part-name > span) { color: var(--rp-component-muted); }
+.rp-backoffice .client-part-status > select { color: var(--rp-component-ink); }
+.rp-backoffice :is(.repair-card-client-parts > h3 > svg,
+  .repair-card-parts-more) { color: var(--rp-component-red); }
+.rp-backoffice .repair-card-parts-more:hover { color: #8d1010; }
+.rp-backoffice .repair-card-parts-more:focus-visible {
+  outline-color: var(--rp-component-red);
+}
+
+/* Financial controls and tables. Received/gain/negative series are unchanged. */
+.rp-backoffice :is(.finance-controls, .finance-granularity) {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .finance-granularity > button { color: var(--rp-component-muted); }
+.rp-backoffice .finance-granularity > button[aria-pressed=true] {
+  background: #fff;
+  color: var(--rp-component-red);
+  box-shadow: 0 1px 4px #00000012;
+}
+.rp-backoffice .finance-metric { border-color: var(--rp-component-line); }
+.rp-backoffice .finance-metric.outstanding .finance-metric-icon {
+  background: var(--rp-component-soft);
+  color: var(--rp-component-muted);
+}
+.rp-backoffice .finance-metric:not(.received):not(.is-negative) dd {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.finance-metric dd, .finance-periods > summary) {
+  font-family: 'Oxanium', Arial, sans-serif;
+}
+.rp-backoffice :is(.finance-anchor > span, .finance-window, .finance-metric dt,
+  .finance-metric > p, .finance-method, .finance-panel-caption,
+  .finance-chart > figcaption > p, .finance-chart-legend > span,
+  .finance-chart-date, .finance-chart-note, .finance-period-table caption,
+  .finance-payments-head, .finance-payment-date,
+  .finance-payment-dossier > .mono, .finance-payment-dossier > p,
+  .finance-payment-values dt, .finance-mobile-label, .finance-scope) {
+  color: var(--rp-component-muted);
+}
+.rp-backoffice .finance-method > svg { color: var(--rp-component-red); }
+.rp-backoffice .finance-chart-scroll {
+  scrollbar-color: #bcbcbc #f4f4f4;
+}
+.rp-backoffice .finance-chart-period:hover {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .finance-chart-period[aria-pressed=true] {
+  background: var(--rp-component-red-soft);
+  border-color: #d89892;
+  box-shadow: inset 0 0 0 1px #b214141a;
+}
+.rp-backoffice .finance-chart-period:focus-visible {
+  outline-color: var(--rp-component-red);
+}
+.rp-backoffice .finance-chart-zero { border-top-color: #bcbcbc; }
+.rp-backoffice :is(.finance-periods, .finance-period-table th,
+  .finance-period-table td, .finance-payment-row, .finance-payment-values) {
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .finance-periods > summary { color: var(--rp-component-red); }
+.rp-backoffice .finance-periods > summary:hover { background: var(--rp-component-soft); }
+.rp-backoffice .finance-period-table :is(th, td):not(.finance-gain-value):not(.is-negative) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice .finance-period-table thead th,
+.rp-backoffice .finance-payments-head { background: var(--rp-component-soft); }
+.rp-backoffice .finance-period-table .is-selected { background: var(--rp-component-red-soft); }
+.rp-backoffice .finance-payment-open,
+.rp-backoffice .finance-payment-values dd:not(.finance-gain-value):not(.is-negative) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice .finance-payment-open:hover { color: var(--rp-component-red); }
+
+/* Email settings and history keep delivery warnings and failures distinct. */
+.rp-backoffice :is(.notifications-body > p:not(.notification-feedback), .notification-controls p,
+  .notification-sender dt, .notification-item-content > p:not(.notification-delivery-error),
+  .notification-recipient, .notification-item time, .notification-empty,
+  .notification-empty p, .notification-client-recipient > div > span,
+  .notification-client-recipient p) { color: var(--rp-component-muted); }
+.rp-backoffice :is(.notification-sender dd, .notification-controls strong,
+  .notification-history h3, .notification-item-heading > strong,
+  .notification-client-recipient strong) { color: var(--rp-component-ink); }
+.rp-backoffice .notification-history h3 { font-family: 'Oxanium', Arial, sans-serif; }
+.rp-backoffice :is(.notification-sender,
+  .notification-history, .notification-item,
+  .notification-counts li:not(.has-errors)) { border-color: var(--rp-component-line); }
+.rp-backoffice :is(.notification-sender, .notification-counts li:not(.has-errors),
+  .notifications-body > .notification-configuration-text) {
+  background: var(--rp-component-soft);
+}
+.rp-backoffice .notification-counts li:not(.has-errors) strong {
+  color: var(--rp-component-ink);
+  font-family: 'Oxanium', Arial, sans-serif;
+}
+.rp-backoffice .notification-counts li:not(.has-errors) span { color: var(--rp-component-muted); }
+.rp-backoffice .notification-recipient-icon {
+  background: var(--rp-component-red-soft);
+  color: var(--rp-component-red);
+}
+.rp-backoffice .notification-feedback:not(.error) {
+  border-color: var(--rp-component-line);
+  background: var(--rp-component-soft);
+  color: var(--rp-component-ink);
+}
+
+/* Registration selection uses the brand accent; approval statuses keep theirs. */
+.rp-backoffice .registration-count { border-color: var(--rp-component-line); }
+.rp-backoffice :is(.registration-count > span, .registration-count > small,
+  .registration-result-count, .registration-request-copy > span,
+  .registration-request-copy > small, .registration-request-status,
+  .registration-loading, .registration-limit-note, .registration-detail-label,
+  .registration-contact dt, .registration-contact dt > svg,
+  .registration-contact dd, .registration-message > p,
+  .registration-pending-info, .registration-pending-info > p,
+  .registration-history > p, .registration-history > div > span,
+  .registration-history > div > p, .registration-no-selection > p,
+  .registration-review-confirm > p) { color: var(--rp-component-muted); }
+.rp-backoffice :is(.registration-count > strong, .registration-request-copy > strong,
+  .registration-detail-body > h2, .registration-message > h3,
+  .registration-history > h3, .registration-no-selection > h2) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.registration-count > strong, .registration-detail-body > h2,
+  .registration-message > h3, .registration-history > h3,
+  .registration-no-selection > h2) { font-family: 'Oxanium', Arial, sans-serif; }
+.rp-backoffice .registration-count:hover:not(:disabled) {
+  border-color: #cfcfcf;
+  background: var(--rp-component-soft);
+}
+.rp-backoffice .registration-count[aria-pressed=true] {
+  background: var(--rp-component-red-soft);
+  border-color: #d89892;
+  box-shadow: 0 0 0 1px #b214141a;
+}
+.rp-backoffice .registration-count[aria-pressed=true] > small { color: var(--rp-component-red); }
+.rp-backoffice :is(.registration-notice, .registration-pending-info,
+  .registration-limit-note, .registration-no-selection, .registration-history) {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .registration-notice { color: var(--rp-component-ink); }
+.rp-backoffice .registration-search {
+  background: #fff;
+  border-color: var(--rp-component-line);
+  color: var(--rp-component-muted);
+}
+.rp-backoffice .registration-search:focus-within {
+  border-color: var(--rp-component-red);
+  box-shadow: 0 0 0 2px #b2141412;
+}
+.rp-backoffice .registration-search > input { color: var(--rp-component-ink); }
+.rp-backoffice .registration-search > input::placeholder { color: #929292; }
+.rp-backoffice .registration-list > li > button { border-top-color: var(--rp-component-line); }
+.rp-backoffice .registration-list > li:first-child > button { border-top-color: transparent; }
+.rp-backoffice .registration-list > li > button:hover:not(:disabled) {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .registration-list > li > button[aria-pressed=true] {
+  background: var(--rp-component-red-soft);
+  border-color: #e9c2bd;
+}
+.rp-backoffice .registration-avatar,
+.rp-backoffice .registration-no-selection > span {
+  background: var(--rp-component-soft);
+  color: #777;
+}
+.rp-backoffice .registration-list > li > button[aria-pressed=true] > .registration-avatar {
+  background: #f7dfdc;
+  color: var(--rp-component-red);
+}
+.rp-backoffice :is(.registration-message, .registration-history,
+  .registration-history > div, .registration-decision-buttons) {
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .registration-decision-buttons { background: #fff; }
+
+/* Invoice forms and the printable document share the storefront identity. */
+.rp-backoffice .invoice-page {
+  --invoice-ink: var(--rp-component-ink);
+  --invoice-muted: var(--rp-component-muted);
+  --invoice-line: var(--rp-component-line);
+}
+.rp-backoffice .invoice-page .page-heading .eyebrow { color: var(--rp-component-red); }
+.rp-backoffice :is(.invoice-intro, .invoice-section-heading, .invoice-selection-total,
+  .invoice-simple-names) {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice :is(.invoice-intro-icon, .invoice-section-heading > span,
+  .invoice-format-icon) {
+  background: var(--rp-component-red-soft);
+  border-color: #f0d4d0;
+  color: var(--rp-component-red);
+}
+.rp-backoffice :is(.invoice-intro strong, .invoice-format-option strong,
+  .invoice-section-heading h2, .invoice-field, .invoice-repair-copy > strong,
+  .invoice-repair-reference, .invoice-repair-cost, .invoice-selection-total strong,
+  .invoice-selection-total > div:first-child > span, .invoice-simple-names dd,
+  .invoice-preview-heading h2, .invoice-page legend) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.invoice-section-heading h2, .invoice-selection-total strong,
+  .invoice-preview-heading h2) { font-family: 'Oxanium', Arial, sans-serif; }
+.rp-backoffice .invoice-format-option:hover {
+  background: var(--rp-component-soft);
+  border-color: #cfcfcf;
+}
+.rp-backoffice .invoice-format-option.is-active,
+.rp-backoffice .invoice-repair-option.is-selected {
+  background: var(--rp-component-red-soft);
+  border-color: #d89892;
+}
+.rp-backoffice .invoice-format-option.is-active .invoice-format-icon {
+  background: #f7dfdc;
+  color: var(--rp-component-red);
+}
+.rp-backoffice :is(.invoice-format-option, .invoice-repair-option):focus-within {
+  outline-color: var(--rp-component-red);
+}
+.rp-backoffice .invoice-format-option > input[type=radio],
+.rp-backoffice .invoice-repair-option > input { accent-color: var(--rp-component-red); }
+.rp-backoffice .invoice-field :is(input, select, textarea),
+.rp-backoffice .invoice-search { border-color: var(--rp-component-line); }
+.rp-backoffice .invoice-field :is(input, select, textarea):focus,
+.rp-backoffice .invoice-search:focus-within {
+  border-color: var(--rp-component-red);
+  box-shadow: 0 0 0 3px #b2141412;
+}
+.rp-backoffice .invoice-field :is(input, textarea)::placeholder,
+.rp-backoffice .invoice-search input::placeholder { color: #929292; }
+.rp-backoffice .invoice-search { color: var(--rp-component-muted); }
+.rp-backoffice .invoice-page .text-link,
+.rp-backoffice .invoice-reference-help > a { color: var(--rp-component-red); }
+.rp-backoffice .invoice-page .text-link:disabled { color: var(--rp-component-muted); }
+.rp-backoffice .invoice-repairs-list { scrollbar-color: #bcbcbc transparent; }
+.rp-backoffice .invoice-repair-option {
+  background: #fff;
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .invoice-repair-option:hover {
+  border-color: #cfcfcf;
+  background: var(--rp-component-soft);
+}
+.rp-backoffice .invoice-repair-option.is-selected:hover {
+  border-color: #d89892;
+  background: var(--rp-component-red-soft);
+}
+.rp-backoffice :is(.invoice-console-visual, .invoice-identity-fields,
+  .invoice-parties-form, .invoice-parties-form > fieldset:last-child,
+  .invoice-repair-cost) { border-color: var(--rp-component-line); }
+.rp-backoffice .invoice-preview-notice {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+  color: var(--rp-component-ink);
+}
+.rp-backoffice .invoice-document {
+  color: var(--rp-component-ink);
+  border-color: var(--rp-component-line);
+  box-shadow: 0 5px 22px #00000010;
+}
+.rp-backoffice .invoice-document-header { border-bottom-color: var(--rp-component-red); }
+.rp-backoffice :is(.invoice-document-brand strong, .invoice-document-identity h2,
+  .invoice-document-number, .invoice-document-identity dd,
+  .invoice-document-parties strong, .invoice-document-console,
+  .invoice-document-service, .invoice-document-fault,
+  .invoice-document-line-total, .invoice-document-totals > div) {
+  color: var(--rp-component-ink);
+}
+.rp-backoffice :is(.invoice-document-brand strong, .invoice-document-identity h2,
+  .invoice-document h3, .invoice-document-grand-total) {
+  font-family: 'Oxanium', Arial, sans-serif;
+}
+.rp-backoffice :is(.invoice-document-brand span, .invoice-document-identity dt,
+  .invoice-document h3, .invoice-document-parties p,
+  .invoice-document-lines caption, .invoice-document-line-index,
+  .invoice-document-variant, .invoice-document-reference,
+  .invoice-document-fault > span, .invoice-document-service-date,
+  .invoice-document-mentions p, .invoice-document-footer) {
+  color: var(--rp-component-muted);
+}
+.rp-backoffice .invoice-document-customer {
+  background: var(--rp-component-soft);
+  border-color: var(--rp-component-line);
+}
+.rp-backoffice .invoice-document-lines th {
+  background: #efefef;
+  border-color: #d9d9d9;
+  color: var(--rp-component-ink);
+}
+.rp-backoffice .invoice-document-lines td,
+.rp-backoffice .invoice-document-footer { border-color: var(--rp-component-line); }
+.rp-backoffice .invoice-document-totals .invoice-document-grand-total {
+  border-top-color: var(--rp-component-red);
+  border-bottom-color: var(--rp-component-line);
+  color: var(--rp-component-ink);
+}
+
+@media print {
+  .rp-backoffice:has(.invoice-page) { background: #fff !important; }
+  .rp-backoffice .invoice-document {
+    color: var(--rp-component-ink);
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}

@@ -44,7 +44,7 @@ function AccessForm({client, access, onClose, onSaved}: {client: Client; access:
     if (!credentials) return;
     setError('');
     try {
-      await navigator.clipboard.writeText(`La Clinique Rétro — votre espace client\n${portalUrl}\nAdresse e-mail : ${credentials.email}\nMot de passe : ${credentials.password}`);
+      await navigator.clipboard.writeText(`RépaRapid — votre espace client\n${portalUrl}\nAdresse e-mail : ${credentials.email}\nMot de passe : ${credentials.password}`);
       setCopied(true);
     } catch {setError('La copie est indisponible. Vous pouvez sélectionner les identifiants ci-dessus.');}
   }

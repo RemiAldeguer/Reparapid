@@ -34,7 +34,7 @@ const paths:Record<string,string[]>={
   box:['M4 4h16v16H4zM4 9h16M9 4v5M9 14h6'],tools:['m14 4 6 6M3 21l9-9M2 5l5-3 5 6-4 4zM15 14l6 6-3 3-6-6'],
 };
 export function Icon({name,size=20,className=''}:{name:string;size?:number;className?:string}) {return <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{(paths[name]||paths.gamepad).map((d,i)=><path key={i} d={d}/>)}</svg>;}
-export function Logo(){return <div className="brand-mark" aria-hidden="true"><img src="/logo-clinique-retro.svg" width="80" height="80" alt=""/></div>;}
+export function Logo(){return <div className="brand-mark" aria-hidden="true"><img src="/reparapid-logo-original.webp" width="80" height="80" alt=""/></div>;}
 export function ConsoleArt({item,small=false}:{item:ConsoleVisualItem;small?:boolean}){
   const grad=useId().replace(/:/g,'');
   const palette=consoleAppearance(item);

@@ -93,3 +93,42 @@
 .rp-review-source>a{color:#a32720;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:1000px){.rp-commitment-grid{gap:18px}.rp-commitment-grid>article{padding:24px 20px}.rp-commitment-grid h3{font-size:18px}.rp-review-grid{gap:16px}.rp-review-card{padding:21px 17px}.rp-review-top{gap:8px}.rp-review-avatar{width:33px;height:33px;font-size:9px}.rp-google-label{font-size:9px}.rp-review-card blockquote{font-size:13px}}
 @media(max-width:680px){.rp-commitments{padding:43px 0}.rp-commitment-grid{grid-template-columns:1fr;gap:14px}.rp-commitment-grid>article{padding:23px}.rp-commitment-icon{width:45px;height:45px;margin-bottom:17px}.rp-commitment-grid h3{font-size:21px;line-height:1.4}.rp-commitment-grid p{font-size:12px;max-width:none}.rp-commitment-footnote{font-size:9px;margin-top:18px}.rp-reviews{padding:43px 0}.rp-review-grid{grid-template-columns:1fr;gap:14px}.rp-review-card{padding:23px}.rp-review-top{gap:10px}.rp-review-avatar{width:39px;height:39px;font-size:11px}.rp-review-top h3{font-size:13px}.rp-review-top time{font-size:10px}.rp-google-label{font-size:11px}.rp-review-card blockquote{font-size:15px;margin-bottom:15px}.rp-review-stars{margin-top:18px}.rp-review-source{text-align:left;font-size:9px}.rp-commitments .rp-section-heading>p{font-size:11px}}
+
+/* Contact details and email preparation share the storefront's merchant palette. */
+.rp-contact{padding:68px 0;background:#f3f3f3;scroll-margin-top:24px}
+.rp-contact .rp-section-heading>p{max-width:430px}
+.rp-contact-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:26px;align-items:stretch}
+.rp-contact-details{padding:32px;background:#171717;color:#fff;border-radius:10px;min-width:0}
+.rp-contact-store{display:block;font-family:'Oxanium',Arial,sans-serif;font-size:18px;font-weight:650;line-height:1.5;margin-bottom:27px}
+.rp-contact-row{display:flex;align-items:flex-start;gap:15px;margin-top:23px}
+.rp-contact-icon{display:grid;place-items:center;width:39px;height:39px;flex-shrink:0;background:#b2141424;border:1px solid #dc504328;color:#f07c70;border-radius:8px}
+.rp-contact-row>div{min-width:0;padding-top:2px}
+.rp-contact-row h3{font-size:13px;font-weight:600;color:#e9e9e9;margin-bottom:4px}
+.rp-contact-row a,.rp-contact-row address,.rp-contact-row p{font-size:13px;line-height:1.9;color:#c5c5c5;overflow-wrap:anywhere}
+.rp-contact-row address{font-style:normal}
+.rp-contact-row a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.rp-contact-row .rp-contact-directions{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;font-weight:600;color:#f09389}
+.rp-contact-hours{display:flex;align-items:flex-start;gap:12px;margin-top:27px;padding-top:23px;border-top:1px solid #ffffff16;color:#e17f73}
+.rp-contact-hours>svg{margin-top:2px}
+.rp-contact-hours strong{font-size:12px;font-weight:600;color:#e9e9e9;line-height:1.8}
+.rp-contact-hours p{font-size:10px;line-height:1.9;color:#a8a8a8;margin-top:3px}
+.rp-contact-social{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:23px;font-size:10px;color:#bbb}
+.rp-contact-social>span{flex-basis:100%;font-size:9px;color:#969696}
+.rp-contact-social>a{display:inline-flex;align-items:center;gap:5px;min-height:28px}
+.rp-contact-social>a:hover{color:#fff;text-decoration:underline}
+.rp-contact-details a:focus-visible{outline-color:#fff}
+.rp-contact-form{padding:32px;background:#fff;border:1px solid #dedede;border-radius:10px;min-width:0}
+.rp-contact-form>h3{font-size:24px;line-height:1.5;font-weight:650;margin-bottom:23px;letter-spacing:-.3px}
+.rp-contact-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.rp-contact-fields>label{display:flex;flex-direction:column;gap:7px;min-width:0}
+.rp-contact-fields>label>span{font-size:11px;font-weight:600;color:#494949}
+.rp-contact-wide{grid-column:1/-1}
+.rp-contact-fields input,.rp-contact-fields textarea{width:100%;min-width:0;border:1px solid #cfcfcf;border-radius:5px;background:#fafafa;padding:11px 12px;color:#333;font:13px/1.6 Arial,sans-serif}
+.rp-contact-fields textarea{resize:vertical;min-height:120px}
+.rp-contact-fields input::placeholder,.rp-contact-fields textarea::placeholder{color:#777;font-size:11px}
+.rp-contact-fields input:focus,.rp-contact-fields textarea:focus{outline:2px solid #b21414;outline-offset:2px;border-color:#b21414;box-shadow:none}
+.rp-contact-mail-note{display:flex;align-items:flex-start;gap:8px;margin-top:21px;font-size:10px;line-height:1.85;color:#666}
+.rp-contact-mail-note>svg{margin-top:2px;color:#b21414}
+.rp-contact-form>.rp-button{margin-top:22px}
+@media(max-width:1000px){.rp-contact-grid{gap:19px}.rp-contact-details,.rp-contact-form{padding:25px}.rp-header>nav{gap:19px}}
+@media(max-width:680px){.rp-contact{padding:43px 0;scroll-margin-top:16px}.rp-contact-grid{grid-template-columns:minmax(0,1fr);gap:17px}.rp-contact-details,.rp-contact-form{padding:23px}.rp-contact .rp-section-heading>p{font-size:11px}.rp-contact-store{font-size:17px;margin-bottom:22px}.rp-contact-row{gap:12px;margin-top:20px}.rp-contact-row a,.rp-contact-row address,.rp-contact-row p{font-size:12px}.rp-contact-hours{gap:10px;margin-top:23px;padding-top:20px}.rp-contact-hours strong{font-size:11px}.rp-contact-form>h3{font-size:22px;margin-bottom:19px}.rp-contact-fields{grid-template-columns:minmax(0,1fr);gap:15px}.rp-contact-fields input,.rp-contact-fields textarea{font-size:16px}.rp-contact-mail-note{font-size:10px}.rp-contact-form>.rp-button{width:100%}.rp-header>nav{gap:16px;flex-wrap:wrap}}

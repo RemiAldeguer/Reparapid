@@ -29,6 +29,16 @@ Les titres et la navigation utilisent **Oxanium**, auto-hébergée dans `public/
 
 Les nouvelles illustrations de la vitrine sont des SVG natifs dans `src/shop-console-art.tsx` et `src/shop-console-art.css`. Elles identifient les 38 choix du catalogue, avec des silhouettes adaptées aux familles et variantes, dans l’accueil, le visuel principal et le formulaire. Les illustrations de l’administration sont conservées.
 
+### Harmonisation de la gestion du magasin
+
+Une nouvelle reprise du **13 octobre 2026**, préparée dans les sources, applique l’identité RépaRapid à la connexion du magasin, la navigation, les écrans de gestion et le logo des factures : noir, rouge et titres Oxanium. Les styles dédiés sont dans `src/backoffice-theme.css` et `src/backoffice-components.css`. Les états métier et les graphiques gardent leurs couleurs de lecture.
+
+`src/reparapid-identity.ts` présente le nom d’atelier importé par défaut sous **RépaRapid · Maxxi Games** ; un nom personnalisé reste affiché tel quel. Les libellés et les noms des fichiers téléchargés utilisent Reparapid. Les clés de stockage et les canaux de session existants sont conservés, sans migration ni modification automatique des données.
+
+Le formulaire `#/demande-reparation` borne désormais les cadres et SVG des consoles, ainsi que les libellés longs, dans `src/repair-intake.css`. La recette sur un serveur Node temporaire en mémoire a contrôlé la connexion et neuf pages de gestion, puis les principales vues à 320 px sans débordement. Les 38 illustrations du formulaire restent dans leur cadre à 1280, 390 et 320 px. Un aperçu de facture simple fictive conserve son total et l’identité RépaRapid ; aucune impression ni facture de production n’a été réalisée.
+
+Le **build final et TypeScript ont réussi avec 85 modules**. La publication de cette harmonisation est vérifiée sur 100 % du trafic Cloudflare : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final, API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données. La suite métier n’a pas été relancée ; le résultat de 474 tests du 12 octobre reste historique. La publication précédente ci-dessous concerne les engagements, avis et nouvelles illustrations.
+
 ## Engagements et avis publics
 
 La section **Nos engagements**, ajoutée le **13 octobre 2026**, reformule les informations du [site RépaRapid](https://reparapid.fr/) : interventions courantes annoncées en une heure, délai de 24 à 48 heures si une pièce doit être commandée, hors forte affluence, et prise en charge par un technicien expérimenté. Le site présente un atelier ouvert depuis sept ans, accueillant le public du mardi au samedi, de 10 h à 20 h, sauf exceptions. Ces délais concernent l’intervention à l’atelier ; le transport de la console s’ajoute séparément.
@@ -62,6 +72,22 @@ Les coordonnées publiques initiales reprennent le [site RépaRapid](https://rep
 À l’arrivée de la console, le magasin passe le dossier à **Réception**, puis utilise le diagnostic et le suivi de réparation existants. La fiche du client reste disponible après ce changement d’étape. Les notes, diagnostics, photos, tests et données internes du magasin restent exclus de cette fiche et du portail.
 
 Les routes de ce parcours sont implémentées dans les deux hôtes Node/SQLite et Worker/D1. Les inscriptions publiques et les nouvelles demandes concernent exclusivement le magasin principal Reparapid ; une session d’un autre atelier ne peut y créer un dossier. Les écritures vérifient l’origine, la session et le CSRF lorsqu’elles sont authentifiées, avec contrôle atomique de révision et limitation des tentatives.
+
+## Suivre les demandes du site au magasin
+
+Le menu **Demandes du site** (`#/website-requests`), réservé au magasin principal, rassemble les réparations créées depuis la vitrine. Les compteurs et filtres distinguent **À réceptionner**, **En traitement**, **Prêtes à récupérer** et **Autres clôturées**. Recherche et tri permettent de retrouver une référence, un modèle, un client ou une panne ; les cartes présentent la console, les coordonnées du client et les symptômes. Elles utilisent les nouvelles silhouettes de consoles tout en conservant les photos déjà présentes.
+
+**Confirmer la réception** demande de confirmer l’arrivée physique de la console, puis passe le dossier à **Réception**. Les actions suivantes suivent les transitions métier de l’atelier. Avant la clôture, la confirmation annonce que tous les tests seront marqués **OK** et que le chronomètre sera arrêté. Une étape modifiée depuis l’affichage bloque l’action et invite à consulter le dossier. Le détail permet de revenir aux demandes du site.
+
+**Prête à récupérer** correspond au statut **Terminée**. Le retrait ou le retour de la console reste à organiser avec le client ; aucun nouveau statut d’expédition ou de remise n’est enregistré. Dans l’espace client, une demande terminée porte aussi **Prête à récupérer** et invite à contacter l’atelier pour convenir du retrait ou du retour.
+
+## Contacter le magasin
+
+**Contact** ouvre la section **Contactez-nous** de l’accueil, y compris depuis l’espace client. Elle reprend les coordonnées publiques du magasin, les horaires du mardi au samedi de 10 h à 20 h sauf exceptions, les liens téléphone/e-mail, l’itinéraire et les réseaux sociaux indiqués sur le [site RépaRapid](https://reparapid.fr/), vérifié le **13 octobre 2026**.
+
+Le formulaire demande **Prénom**, **Nom**, **E-mail** et **Message**. **Ouvrir mon e-mail** prépare un message dans la messagerie de l’utilisateur via un lien `mailto:` ; l’utilisateur doit ensuite l’envoyer lui-même. Le formulaire ne transmet rien à un serveur et n’envoie aucun e-mail automatiquement. Aucun message réel n’a été envoyé pendant la recette.
+
+Cette reprise a passé **476 tests** et le build final TypeScript/Vite de **87 modules**. Les parcours du magasin et du client ainsi que le contact ont été contrôlés sur une base temporaire, sans modifier la production. La publication est vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données.
 
 ## Administrateur Cloudflare et nouvelle installation
 

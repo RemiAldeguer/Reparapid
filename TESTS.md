@@ -8,9 +8,9 @@ Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous re
 
 ## Résultat automatisé courant
 
-Le **12 octobre 2026**, `npm test` a passé **474 tests : 429 dans la première suite Node/domaine/API, puis 45 dans la suite Cloudflare**, sans échec ni test ignoré. Le contrôle TypeScript et le build Vite ont également réussi. La nouvelle vitrine a été publiée et vérifiée sur le Worker ; les derniers ajustements visuels doivent conserver ce contrôle des assets après chaque publication. Le projet exige Node 22.16 ou supérieur ; cette recette utilise Node 24.19.0.
+Le **13 octobre 2026**, `npm test` a passé **476 tests : 431 Node/domaine/API, puis 45 Cloudflare**, sans échec ni test ignoré. Deux nouveaux tests Node et Worker couvrent la réception et la clôture du parcours des demandes du site. TypeScript et le build final Vite ont réussi avec **87 modules**, après les derniers ajustements des illustrations et coordonnées de cartes. La recette des demandes, du portail et du contact est détaillée ci-dessous ; la publication est vérifiée sur 100 % du trafic Cloudflare, avec assets conformes au build final et protections des routes privées contrôlées. Le projet exige Node 22.16 ou supérieur.
 
-Ce résultat précède la reprise du logo original et de la direction visuelle RépaRapid. La suite n’a pas été relancée pour cette évolution limitée à la présentation et aux assets. Le contrôle TypeScript et le build Vite de cette reprise sont validés ; les hashes des nouveaux assets, du logo et de la police publiés correspondent au build validé.
+Le résultat précédent du **12 octobre 2026**, **474 tests (429 Node/domaine/API + 45 Cloudflare)** avec Node 24.19.0, reste historique. Il précédait les reprises visuelles successives du logo, des engagements et de la gestion ; ces évolutions avaient été vérifiées par build et recette sans nouvelle exécution de la suite métier.
 
 Ce résultat est daté. Les anciens chiffres de 52 tests décrivaient l’ajout initial de l’authentification et ne représentaient plus la suite actuelle.
 
@@ -33,7 +33,7 @@ npm test compile les modules métier puis exécute les tests listés dans packag
 | Authentification, cookies, CSRF, limites, transactions et sessions | tests/auth.test.mjs |
 | Accès clients, projections et révocation sur les deux hôtes | tests/client-access.test.mjs |
 | Catalogue de consoles, suggestions de panne, admission en attente d’envoi et transitions | tests/repair-intake-domain.test.cjs |
-| Compte et demande atomiques, fiche filtrée, CSRF, isolation, idempotence, révocation et conflits sur les deux hôtes | tests/repair-intake-api.test.mjs |
+| Compte et demande atomiques, fiche filtrée, parcours réception/clôture, CSRF, isolation, idempotence, révocation et conflits sur les deux hôtes | tests/repair-intake-api.test.mjs |
 | Premier administrateur Cloudflare : cible dédiée, refus hors terminal, INSERT sans remplacement et aide sûre | tests/cloudflare-admin-create.test.mjs |
 | Notifications, dépôt, destinataires, idempotence et reprises | tests/repair-notifications.test.mjs, tests/notification-delivery.test.mjs, tests/notifications-api.test.mjs |
 | Vie des sessions navigateur et réponses tardives | tests/api-session.test.mjs |
@@ -82,6 +82,40 @@ Périmètre de cette reprise :
 Le **build final et le contrôle TypeScript ont réussi avec 82 modules**. Recette à **1280 px et 320 px** : trois engagements et trois avis visibles, aucun débordement horizontal, 38 choix radio et 38 SVG avec identification de leur silhouette, identifiants de gradients uniques, Xbox Series X et Series S visuellement distinctes et sélection d’un modèle fonctionnelle. Publication vérifiée le **13 octobre 2026** : version active sur 100 % du trafic Cloudflare ; SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence identiques au build final ; API publique en HTTP 200 et toutes les routes privées contrôlées en HTTP 401 sans exposition de données. La suite métier complète n’a pas été relancée : le résultat de **474 tests du 12 octobre 2026** est conservé comme historique, sans le présenter comme une validation automatisée de cette évolution visuelle.
 
 Le compte administrateur principal de la D1 a été créé. La vérification a constaté un seul compte, une connexion réussie et le rôle effectif `super_admin` via `/api/auth/me`. La seule session de vérification a été déconnectée, puis un nouvel appel a été refusé en **HTTP 401**. Aucun client, dossier ou Store d’atelier n’a été modifié ; le SQL privé de préparation a été supprimé. Les identifiants ont été remis séparément, hors du dépôt : aucun secret, empreinte de mot de passe ou chemin privé n’est documenté ici.
+
+## Reprise du 13 octobre : gestion et cadres du formulaire
+
+Modifications préparées dans les sources :
+
+- Identité RépaRapid de la connexion magasin, de la navigation et des écrans de gestion ; logo des factures et noms des fichiers téléchargés harmonisés.
+- Nom d’atelier importé par défaut présenté via `workshopDisplayName`, noms personnalisés conservés et identifiants internes de stockage/session inchangés.
+- Styles dédiés `src/backoffice-theme.css` et `src/backoffice-components.css`, avec préservation des couleurs métier ; cadres, SVG et libellés du formulaire bornés dans `src/repair-intake.css`.
+
+Recette réalisée sur une **API Node temporaire en mémoire**, avec deux clients et des dossiers fictifs :
+
+- Connexion et **neuf pages de gestion** contrôlées : logo original, sidebar noire, actions rouges, Oxanium et aucune mention visible de La Clinique Rétro.
+- Modale d’ajout d’une console recevant les styles du thème.
+- À **320 px** : tableau de bord, clients, réglages, factures et aperçu généré sans débordement ; ouverture/fermeture du menu et navigation fonctionnelles.
+- Aperçu de facture simple fictive conservant le total de **27,15 €**, avec nom RépaRapid, logo et séparateurs rouges. Aucune impression, aucun PDF ni facture de production.
+- Formulaire public à **1280, 390 et 320 px** : 38 cartes, 38 SVG et aucune illustration hors cadre ; récapitulatif après sélection d’une PS5 Digital contenu.
+- Déconnexion locale contrôlée : dossiers retirés et retour à la connexion. Onglets temporaires fermés et dimensions du navigateur rétablies après la recette.
+
+Le **build final et TypeScript ont réussi avec 85 modules**. La publication est vérifiée sur 100 % du trafic Cloudflare ; les SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence correspondent au build final. L’API publique répond en HTTP 200 et **cinq routes privées** contrôlées refusent les appels anonymes en HTTP 401 sans exposition de données. Aucun nouveau résultat de test métier n’est annoncé. La validation de **474 tests du 12 octobre** et la publication précédente des engagements/avis/illustrations restent des résultats historiques datés. Aucune API, migration ou donnée de production n’a été modifiée pour cette harmonisation.
+
+## Dernière reprise du 13 octobre : demandes du site et contact
+
+Recette sur une base temporaire en mémoire, avec demandes et coordonnées fictives :
+
+- **Demandes du site** : trois demandes publiques parmi neuf dossiers hors site ; seules les trois demandes du site apparaissent. Filtres, compteurs, recherche et tri disponibles.
+- Confirmation de réception physique : compteur **À réceptionner** ramené à zéro et dossier au statut **Réception**. Clôture : un dossier **Prêt à récupérer** et filtre correspondant affichant une demande. Étapes et compteurs conservés après rechargement.
+- Cartes et SVG contenus à **1280 px et 320 px**, sans débordement. Silhouettes `ShopConsoleArt` utilisées dans cette vue ; photos de consoles conservées.
+- Portail du même client : badge et description **Prête à récupérer**, invitation à organiser le retrait ou le retour avec l’atelier, aucune donnée interne exposée.
+- **Contactez-nous** accessible depuis le portail : coordonnées publiques, téléphone, e-mail, itinéraire, horaires et réseaux sociaux ; section sans débordement à **1280 px et 320 px**.
+- Quatre champs obligatoires contrôlés avec des valeurs fictives : prénom et nom limités à 80 caractères chacun, e-mail à 254 et message à 3 000 ; validation du format e-mail.
+
+Le bouton **Ouvrir mon e-mail** prépare un `mailto:`. Il n’a pas été soumis pendant la recette : aucun message n’a été envoyé et aucune transmission à un backend n’est implémentée. **Prête à récupérer** reste le libellé d’un dossier `terminee`, sans nouveau suivi d’expédition ou de remise.
+
+`npm test` : **476 réussis (431 + 45)**, aucun échec ni test ignoré, avec deux tests supplémentaires du parcours révisé sur Node et Worker. TypeScript et build final de **87 modules** réussis. Aucune API, structure de projection, migration ou donnée de production modifiée. Publication vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données.
 
 ## Recettes historiques de La Clinique Rétro
 

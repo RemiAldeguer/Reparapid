@@ -55,7 +55,7 @@ export function Clients() {
   const rows = summaries.filter(({client, openCount}) => (filter !== 'active' || openCount > 0) && searchable([client.name, client.code, client.email, client.phone, client.address].join(' ')).includes(searchable(search.trim()))).sort((a, b) => a.client.name.localeCompare(b.client.name, 'fr'));
   const activeCount = summaries.filter(summary => summary.openCount > 0).length;
   return <>
-    <PageHeader eyebrow="LES CLIENTS DE LA CLINIQUE" title="Chaque client, toutes ses consoles." description={`${plural(data.clients.length, 'client')} référencé${data.clients.length === 1 ? '' : 's'} · Retrouvez leurs coordonnées et leurs demandes de réparation.`}>
+    <PageHeader eyebrow="LES CLIENTS DE L’ATELIER" title="Chaque client, toutes ses consoles." description={`${plural(data.clients.length, 'client')} référencé${data.clients.length === 1 ? '' : 's'} · Retrouvez leurs coordonnées et leurs demandes de réparation.`}>
       <button className="btn primary" onClick={() => setShowForm(true)}><Icon name="plus" size={18}/>Nouveau client</button>
     </PageHeader>
     <div className="client-summary"><span><Icon name="users" size={18}/><strong>{data.clients.length}</strong> clients</span><span><Icon name="wrench" size={17}/><strong>{activeCount}</strong> avec des réparations en cours</span></div>

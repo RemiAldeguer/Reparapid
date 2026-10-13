@@ -28,7 +28,29 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Reprise du 13 octobre 2026 : engagements, avis et illustrations
+## Dernière reprise du 13 octobre : demandes du site et contact
+
+La nouvelle vue `#/website-requests`, **Demandes du site**, est réservée au magasin principal. Elle sélectionne uniquement les dossiers portant `publicRequestId`, avec compteurs, filtres, recherche et tri. Les cartes montrent modèle, coordonnées client et symptômes ; `ShopConsoleArt` fournit les silhouettes lorsque la console n’a pas de photo, et les photos existantes restent prioritaires. Le détail d’un dossier propose un retour vers cette vue.
+
+La réception demande de confirmer l’arrivée physique au magasin. Les actions passent ensuite par `moveRepair` et conservent les transitions canoniques ; `transact` vérifie que le dossier possède encore l’étape attendue avant d’appliquer l’action. La clôture annonce explicitement les tests tous marqués OK et l’arrêt du chronomètre. **Prête à récupérer** désigne `terminee` : le retrait ou le retour reste à organiser, sans nouveau champ ni statut de remise ou d’expédition. Le portail affiche ce même libellé et invite au contact pour les dossiers `intakeSubmitted` terminés. Aucun schéma, contrat d’API ou structure de projection n’a changé.
+
+L’accueil propose maintenant **Contactez-nous**, accessible depuis les éléments publics partagés et le portail. Les coordonnées viennent des réglages publics du magasin, avec les valeurs initiales et les liens professionnels vérifiés sur [reparapid.fr](https://reparapid.fr/) le 13 octobre. Les horaires du mardi au samedi, 10 h à 20 h, conservent leurs exceptions. Le formulaire comporte prénom, nom, e-mail et message ; **Ouvrir mon e-mail** prépare uniquement un lien `mailto:`. La transmission exige que l’utilisateur envoie le message dans sa messagerie ; il n’y a pas de route serveur de contact ni d’envoi automatique. Aucun e-mail n’a été transmis pendant la recette.
+
+Validation finale : **476 tests réussis (431 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré. Deux nouveaux tests Node et Worker couvrent le parcours révisé. TypeScript et le build final ont réussi avec **87 modules**, après l’ajustement des illustrations et coordonnées des cartes. Sur une base temporaire en mémoire : trois demandes du site parmi neuf dossiers hors site, réception, clôture, compteurs, filtre et persistance après rechargement ; portail du même client avec statut prêt et sans données internes ; contact et navigation contrôlés. Cartes, SVG et contact restent contenus à 1280 et 320 px. Publication vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données. Aucune donnée de production n’a été modifiée.
+
+## Reprise précédente du 13 octobre : gestion du magasin et cadres du formulaire
+
+L’utilisateur demande d’harmoniser la gestion avec l’identité RépaRapid et de corriger les illustrations qui débordent dans `#/demande-reparation`. La recette visuelle est réalisée sur une API Node temporaire en mémoire avec deux clients et des dossiers fictifs. Le **build final et TypeScript ont réussi avec 85 modules**. Cette harmonisation est publiée sur 100 % du trafic Cloudflare ; les SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence correspondent au build final. L’API publique répond en HTTP 200 et cinq routes privées contrôlées refusent les appels anonymes en HTTP 401 sans exposition de données. Les résultats de publication de la section suivante concernent la reprise précédente.
+
+`src/backoffice-theme.css` et `src/backoffice-components.css` appliquent le noir, le rouge et la typographie Oxanium aux écrans de gestion sous le conteneur `.rp-backoffice`, y compris les composants clients, synthèse, finance, notifications, inscriptions et factures. `src/auth.css` et `src/auth.tsx` reprennent cette identité pour l’accès au magasin. La navigation, les libellés, le logo partagé et celui des factures utilisent RépaRapid ; les noms des fichiers téléchargés portent Reparapid. Les couleurs sémantiques des états et graphiques restent conservées.
+
+`workshopDisplayName`, dans `src/reparapid-identity.ts`, remplace uniquement à l’affichage le nom importé par défaut ; les noms d’ateliers personnalisés sont conservés. Les identifiants invisibles du stockage et des canaux de session restent identiques pour préserver la compatibilité. Les sources métier et les contrats d’API ne changent pas ; aucune migration ni donnée de production n’a été modifiée dans cette reprise.
+
+Dans `src/repair-intake.css`, les cartes, cadres d’illustration et SVG sont bornés ; les libellés longs peuvent se répartir sur plusieurs lignes sans élargir la carte. Le catalogue, les suggestions de pannes et le parcours console → panne → compte sont conservés. Les **38 cartes et 38 SVG** ont été contrôlés à **1280, 390 et 320 px**, sans illustration hors cadre ; le récapitulatif après sélection d’une PS5 Digital reste contenu.
+
+La connexion et neuf pages de gestion ont été contrôlées : logo original, navigation noire, actions rouges et Oxanium, sans mention visible de La Clinique Rétro. La modale d’ajout d’une console reçoit le thème. À **320 px**, tableau de bord, clients, réglages, factures et aperçu généré restent sans débordement ; le menu s’ouvre, se ferme et permet la navigation. Un aperçu simple fictif conserve son total de **27,15 €**, avec le nom RépaRapid, le logo et les séparateurs rouges. La déconnexion locale retire les dossiers et ramène à la connexion. Aucun PDF, impression ou facture de production n’a été réalisé. Les API et les données de production n’ont pas changé ; la suite métier de 474 tests du 12 octobre n’a pas été relancée.
+
+## Reprise précédente du 13 octobre : engagements, avis et illustrations
 
 L’accueil reprend maintenant les engagements publics de [reparapid.fr](https://reparapid.fr/) sous une formulation adaptée à la vitrine : rapidité, expérience du technicien et proximité du magasin. Le détail des délais et horaires se trouve dans [README.md](README.md). Le texte distingue explicitement le temps d’intervention à l’atelier de l’acheminement du colis et conserve les exceptions annoncées par le commerçant.
 
@@ -127,6 +149,9 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | --- | --- |
 | src/main.tsx | Choix entre accueil public, portail client et application protégée |
 | src/App.tsx | Shell, sidebar, routes admin, recherche globale, modales, confirmations et erreurs |
+| src/website-requests.tsx, .css | Demandes de la vitrine du magasin principal, filtres, coordonnées et progression via les transitions métier |
+| src/backoffice-theme.css, src/backoffice-components.css | Identité RépaRapid des écrans et composants de gestion, styles limités à .rp-backoffice |
+| src/reparapid-identity.ts | Nom d’atelier importé par défaut présenté sous RépaRapid, avec préservation des noms personnalisés |
 | src/pages.tsx | Dashboard, inventaire, atelier, stock, journal ; composant Metric partagé |
 | src/details.tsx | Fiches console et réparation, onglets et actions du dossier |
 | src/forms.tsx | Formulaires console / réparation / pièce et admission d’un équipement |
@@ -151,7 +176,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/nintendo-model-picker.tsx | Suggestions Nintendo ; les champs de modèle restent libres |
 | src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
 | src/email-notifications.tsx, .css | Configuration apparente et historique des notifications |
-| src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, engagements, extraits d’avis publics et coordonnées du magasin |
+| src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, engagements, avis et section contact préparant un mailto |
 | src/shop-console-art.tsx, .css | Illustrations SVG natives de la vitrine, par famille et variante du catalogue |
 | src/repair-intake.tsx, .css, src/repair-intake-domain.ts | Parcours console/panne/compte, catalogue partagé, suggestions, admission et idempotence |
 | src/public-intake-settings.tsx | Réglages admin des coordonnées publiques et destination d’envoi |
@@ -190,9 +215,11 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 | Route | Écran / accès |
 | --- | --- |
 | / ou #/accueil | Vitrine publique RépaRapid et accès magasin / client |
+| #/accueil?section=rp-contact | Section Contactez-nous, accessible depuis le portail et les éléments publics partagés |
 | #/demande-reparation | Modèle, pannes et compte ; création du dossier En attente d’envoi |
 | #/connexion | Connexion atelier ; une connexion valide redirige vers le dashboard |
 | #/dashboard | Dashboard / Ma synthèse |
+| #/website-requests | Demandes créées depuis la vitrine et progression ; magasin principal seulement |
 | #/clients | Répertoire clients |
 | #/clients/ID | Fiche client, consoles, dossiers, accès et notifications |
 | #/inventory | Inventaire de consoles, cartes ou liste |
@@ -209,7 +236,7 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 
 Les paramètres des pages admin sont après le hash, par exemple #/repairs?payment=unpaid et #/invoices?repairId=ID. Les liens clients des ateliers inscrits utilisent **?atelier=UUID#/espace-client** : le paramètre atelier est avant le hash, car le portail en déduit le contexte de connexion.
 
-La sidebar comprend Tableau de bord, Clients, Consoles, L’atelier, Finance, Factures, Pièces détachées, Journal et Inscriptions pour le super admin, puis Réglages et l’identité de l’atelier.
+La sidebar comprend Tableau de bord, Demandes du site pour le magasin principal, Clients, Consoles, L’atelier, Finance, Factures, Pièces détachées, Journal et Inscriptions pour le super admin, puis Réglages et l’identité de l’atelier.
 
 ## 6. Modèle métier à préserver
 
