@@ -150,3 +150,7 @@ Une courte propagation Cloudflare peut servir l’ancien HTML : examiner la rép
 Les tests ne remplacent pas un audit indépendant, un test d’intrusion ou une validation juridique des factures. Ils ne vérifient pas la réception réelle d’un e-mail Resend ou un paiement bancaire.
 
 Le workflow .github/workflows/ci.yml exécute tests et build. Aucun résultat de CI distante n’a été consulté pour cette reprise ; les résultats ci-dessus sont locaux.
+
+## Recette de présentation du parcours — 13 octobre 2026
+
+La section « Votre réparation, pas à pas » distingue les actions du client et la prise en charge à l’atelier. Contrôle à 1280 / 390 / 320 px : quatre étapes lisibles, texte contenu, une colonne sur mobile, liens vers `#/demande-reparation` et `#/espace-client` opérationnels, ancre directe `#/accueil?section=rp-how` accessible et focalisée. Aucun compte, colis, paiement ou e-mail n’a été créé ou envoyé. Recette sur API publique temporaire en mémoire. TypeScript et le build final Vite sont validés (87 modules). Publication vérifiée sur 100 % du trafic Cloudflare : HTML, JavaScript, CSS, logo, police et licence servis identiques au build par SHA-256 ; API publique 200 et cinq routes privées contrôlées 401 sans exposition de données. Les 476 tests de la reprise précédente restent datés ; aucune suite métier relancée pour ce changement de texte et de disposition.

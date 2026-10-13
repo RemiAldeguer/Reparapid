@@ -28,6 +28,12 @@ const googleReviewExcerpts = [
   {author:'Amin Gasmi',date:'2025-10-25',label:'25 octobre 2025',text:'technicien compétant et très sociable',initials:'AG',color:'slate'},
   {author:'Ibrahim Camara',date:'2025-05-07',label:'7 mai 2025',text:'Service top merci',initials:'IC',color:'gold'},
 ];
+const repairJourneySteps = [
+  {number: '01', role: 'VOUS · EN LIGNE', icon: 'gamepad', title: 'Décrivez la panne', text: 'Choisissez votre modèle, sélectionnez les symptômes proposés et ajoutez vos précisions. Indiquez aussi les accessoires que vous comptez joindre.', result: 'Modèle et symptômes renseignés'},
+  {number: '02', role: 'VOUS · VOTRE COMPTE', icon: 'user', title: 'Enregistrez votre demande', text: 'Créez votre compte ou connectez-vous à votre compte existant. Votre dossier et sa référence apparaissent dans votre espace client.', result: 'Statut : En attente d’envoi'},
+  {number: '03', role: 'VOUS · VOTRE COLIS', icon: 'package', title: 'Envoyez votre console', text: 'Depuis votre compte, imprimez la fiche récapitulative et glissez-la dans le colis. Envoyez votre console à Maxxi Games, au Kremlin-Bicêtre, à l’adresse confirmée sur la fiche.', result: 'Fiche jointe, console expédiée'},
+  {number: '04', role: 'RÉPARAPID · À L’ATELIER', icon: 'wrench', title: 'Suivez, puis récupérez', text: 'À réception, l’atelier diagnostique et prend en charge la console. Suivez les étapes et le montant dans votre compte. Une fois prête, contactez le magasin pour organiser son retrait ou son retour.', result: 'Statut : Prête à récupérer'},
+];
 function GoogleStars() {
   return <span className="rp-review-stars" role="img" aria-label="5 étoiles sur 5">{Array.from({length:5},(_,i)=><svg key={i} viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3.1 6.3 7 1-5.1 4.9 1.2 6.9L12 17.8l-6.2 3.3 1.2-6.9L1.9 9.3l7-1z"/></svg>)}</span>;
 }
@@ -84,13 +90,20 @@ function StoreContact({shop}: {shop: IntakeShop | null}) {
 export function PublicHome() {
   const [shop, setShop] = useState<IntakeShop | null>(null);
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      if (new URLSearchParams(window.location.hash.split('?')[1]).get('section') !== 'rp-contact') return;
-      const section = document.getElementById('rp-contact');
-      section?.scrollIntoView({block: 'start'});
-      section?.focus({preventScroll: true});
-    });
-    return () => cancelAnimationFrame(frame);
+    let frame = 0;
+    const showRequestedSection = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const sectionId = new URLSearchParams(window.location.hash.split('?')[1]).get('section');
+        if (sectionId !== 'rp-contact' && sectionId !== 'rp-how') return;
+        const section = document.getElementById(sectionId);
+        section?.scrollIntoView({block: 'start'});
+        section?.focus({preventScroll: true});
+      });
+    };
+    showRequestedSection();
+    window.addEventListener('hashchange', showRequestedSection);
+    return () => {cancelAnimationFrame(frame); window.removeEventListener('hashchange', showRequestedSection);};
   }, []);
   useEffect(() => {document.title = 'RépaRapid · Réparation de consoles par Maxxi Games'; const abort = new AbortController(); void clientApi<{shop: IntakeShop}>('/api/public/repair-intake', {signal: abort.signal, rootWorkshop: true}).then(value => setShop(value.shop)).catch(() => {}); return () => abort.abort();}, []);
   return <StorefrontShell><main id="rp-main" tabIndex={-1}>
@@ -98,7 +111,19 @@ export function PublicHome() {
     <div className="rp-trust-strip"><div className="rp-shell"><span><Icon name="gamepad" size={20}/>Consoles de salon & portables</span><span><Icon name="wrench" size={20}/>Diagnostic à l’atelier</span><span><Icon name="user" size={20}/>Suivi dans votre compte</span></div></div>
     <section className="rp-devices rp-shell" id="rp-devices" tabIndex={-1}><div className="rp-section-heading"><div><span className="rp-eyebrow">ON COMMENCE PAR VOTRE CONSOLE</span><h2>À chaque console,<br/>sa prochaine partie.</h2></div><p>Choisissez le modèle dans le formulaire.<br/>Les pannes proposées s’adaptent à votre console.</p></div><div className="rp-device-grid">{consoleFamilies.map(item => <a href={`#/demande-reparation?marque=${encodeURIComponent(item.brand)}`} className={`rp-device-card ${item.theme}`} key={item.brand}><span className="rp-device-art"><ShopConsoleArt item={item}/></span><span className="rp-device-copy"><span><strong>{item.label}</strong><small>{item.note}</small></span><span className="rp-circle-arrow"><Icon name="arrow" size={20}/></span></span></a>)}</div><p className="rp-model-note">Votre modèle n’est pas dans la liste ? Vous pouvez le renseigner librement.</p></section>
     <StoreCommitments/>
-    <section className="rp-how" id="rp-how" tabIndex={-1}><div className="rp-shell"><div className="rp-section-heading"><div><span className="rp-eyebrow">DU FORMULAIRE À L’ÉTABLI</span><h2>Quatre étapes.<br/>Un seul dossier.</h2></div><a className="rp-text-link" href="#/demande-reparation">C’est parti<Icon name="arrow" size={18}/></a></div><ol className="rp-steps"><li><span>01</span><Icon name="gamepad" size={26}/><h3>Décrivez la panne</h3><p>Indiquez votre modèle, les symptômes et les accessoires à joindre.</p></li><li><span>02</span><Icon name="user" size={26}/><h3>Créez votre compte</h3><p>Votre demande y apparaît au statut « En attente d’envoi ».</p></li><li><span>03</span><Icon name="package" size={26}/><h3>Préparez votre envoi</h3><p>Imprimez la fiche, glissez-la dans le colis et suivez les consignes de l’atelier.</p></li><li><span>04</span><Icon name="wrench" size={26}/><h3>Gardez le fil</h3><p>À réception, retrouvez le diagnostic et l’avancement dans votre espace client.</p></li></ol></div></section>
+    <section className="rp-how" id="rp-how" tabIndex={-1} aria-labelledby="rp-how-title">
+      <div className="rp-shell">
+        <div className="rp-section-heading"><div><span className="rp-eyebrow">QUATRE ÉTAPES · UN SEUL DOSSIER</span><h2 id="rp-how-title">Votre réparation,<br/>pas à pas.</h2></div><p>Vous préparez la demande et l’envoi.<br/>L’atelier prend le relais à réception, avec un suivi dans votre compte.</p></div>
+        <ol className="rp-steps" aria-label="Les quatre étapes de votre réparation">{repairJourneySteps.map((step, index) => <li className={`rp-journey-step${index === 3 ? ' rp-journey-workshop' : ''}`} key={step.number}>
+          <div className="rp-step-top"><span className="rp-step-number" aria-hidden="true">{step.number}</span><Icon name={step.icon} size={25}/></div>
+          <p className="rp-step-role">{step.role}</p><h3>{step.title}</h3><p className="rp-step-description">{step.text}</p>
+          <div className="rp-step-result"><Icon name={index === 3 ? 'check' : 'right'} size={15}/><span>{step.result}</span></div>
+          {index < 3 && <span className="rp-step-link" aria-hidden="true"><Icon name="arrow" size={19}/></span>}
+        </li>)}</ol>
+        <div className="rp-journey-notes"><p><Icon name="print" size={21}/><span><strong>La fiche identifie votre dossier.</strong> L’étiquette de transport et l’affranchissement sont à prévoir séparément.</span></p><p><Icon name="euro" size={21}/><span><strong>Le montant est confirmé après diagnostic.</strong> Aucun paiement n’est demandé dans le formulaire.</span></p></div>
+        <div className="rp-journey-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Faire ma demande de réparation<Icon name="arrow" size={18}/></a><a className="rp-text-link" href="#/espace-client">J’ai déjà un dossier : accéder à mon compte<Icon name="right" size={16}/></a></div>
+      </div>
+    </section>
     <section className="rp-shop rp-shell"><div className="rp-shop-visual" aria-hidden="true"><span className="rp-shop-grid"/><Icon name="wrench" size={90}/><span>LOCAL WORKSHOP<br/>REAL REPAIRS</span></div><div className="rp-shop-copy"><span className="rp-eyebrow">MAXXI GAMES · LE KREMLIN-BICÊTRE</span><h2>Votre console,<br/>notre établi.</h2><p>Reparapid vous accompagne dans votre demande de réparation. La console est confiée à Maxxi Games au Kremlin-Bicêtre, avec un dossier que vous pouvez retrouver à tout moment.</p>{shop?.addressConfirmed ? <address><strong>{shop.shopName}</strong>{shop.address}<br/>{shop.postalCode} {shop.city}</address> : <p className="rp-contact-note"><Icon name="info" size={17}/>L’adresse d’expédition sera confirmée par l’atelier avant votre envoi.</p>}<a className="rp-button rp-outline" href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contacter l’atelier<Icon name="arrow" size={18}/></a></div></section>
     <GoogleReviews/>
     <StoreContact shop={shop}/>

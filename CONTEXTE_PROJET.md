@@ -28,7 +28,13 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise du 13 octobre : demandes du site et contact
+## Parcours expliqué sur l’accueil — 13 octobre 2026
+
+La section **Votre réparation, pas à pas** précise les quatre étapes : modèle et symptômes, enregistrement avec un compte nouveau ou existant au statut **En attente d’envoi**, impression de la fiche et expédition vers l’adresse confirmée, puis réception et prise en charge à l’atelier avec suivi des étapes et du montant. Les trois actions du client et le relais de RépaRapid sont distingués visuellement. Le statut **Prête à récupérer** invite à organiser le retrait ou le retour avec le magasin. La fiche identifie le dossier ; affranchissement et étiquette de transport se prévoient séparément. Le montant est confirmé après diagnostic, sans paiement dans le formulaire. Aucun texte de diagnostic interne n’est promis au client.
+
+Deux liens proposent de commencer une demande ou de retrouver un dossier. L’ancre `#/accueil?section=rp-how` ouvre directement cette section. La recette à 1280, 390 et 320 px valide les quatre cartes, leur ordre, l’absence de débordement de texte et les destinations des liens. TypeScript et le build final Vite sont validés (87 modules). Publication vérifiée sur 100 % du trafic Cloudflare : HTML, JavaScript, CSS, logo, police et licence servis identiques au build par SHA-256 ; API publique 200 et cinq routes privées contrôlées 401 sans exposition de données. Aucun métier, API, schéma ou donnée d’atelier ne change ; la suite complète de **476 tests** appartient à la reprise fonctionnelle précédente et n’a pas été relancée pour cette présentation.
+
+## Reprise précédente du 13 octobre : demandes du site et contact
 
 La nouvelle vue `#/website-requests`, **Demandes du site**, est réservée au magasin principal. Elle sélectionne uniquement les dossiers portant `publicRequestId`, avec compteurs, filtres, recherche et tri. Les cartes montrent modèle, coordonnées client et symptômes ; `ShopConsoleArt` fournit les silhouettes lorsque la console n’a pas de photo, et les photos existantes restent prioritaires. Le détail d’un dossier propose un retour vers cette vue.
 
