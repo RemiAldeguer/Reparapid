@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {readFileSync, readdirSync} from 'node:fs';
-import {mkdtemp, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
@@ -16,7 +16,8 @@ const origin = 'https://security-fixture.example';
 const adminEmail = 'security-admin@example.invalid';
 const phrase = 'Synthetic response security testing phrase!';
 const hashes = {};
-const publicDocument = '<!doctype html><link rel="stylesheet" href="/app.css"><div id="root"></div><script src="/app.js" defer></script>';
+const publicDocument = '<!doctype html><link rel="stylesheet" href="/assets/app-Abcd1234.css"><div id="root"></div><script src="/assets/app-Abcd1234.js" defer></script>';
+const privateFiles = ['.env', 'assets/app-Abcd1234.js.map', 'workshop.sqlite', 'clients.json', 'backup.html', 'export.sql', 'internal.js', 'notes.txt'];
 
 function assertResponseSecurity(response, {secure = true, upstreamVary = false} = {}) {
   const headers = response.headers;
@@ -56,13 +57,12 @@ async function fixture(t, platform) {
   if (platform === 'node') {
     const distPath = await mkdtemp(path.join(os.tmpdir(), 'clinique-response-security-'));
     t.after(() => rm(distPath, {recursive: true, force: true}));
+    await mkdir(path.join(distPath, 'assets'));
     await Promise.all([
       writeFile(path.join(distPath, 'index.html'), publicDocument),
-      writeFile(path.join(distPath, 'app.js'), 'document.documentElement.dataset.fixture="public";'),
-      writeFile(path.join(distPath, 'app.css'), '#root{display:block}'),
-      writeFile(path.join(distPath, '.env'), 'SYNTHETIC_PRIVATE_CONTENT'),
-      writeFile(path.join(distPath, 'app.js.map'), 'SYNTHETIC_PRIVATE_CONTENT'),
-      writeFile(path.join(distPath, 'workshop.sqlite'), 'SYNTHETIC_PRIVATE_CONTENT'),
+      writeFile(path.join(distPath, 'assets', 'app-Abcd1234.js'), 'document.documentElement.dataset.fixture="public";'),
+      writeFile(path.join(distPath, 'assets', 'app-Abcd1234.css'), '#root{display:block}'),
+      ...privateFiles.map(filename => writeFile(path.join(distPath, filename), 'SYNTHETIC_PRIVATE_CONTENT')),
     ]);
     const app = createApplication({databasePath: ':memory:', origin, distPath, notificationPollingMs: 0});
     sqlite = app.db;
@@ -92,7 +92,10 @@ async function fixture(t, platform) {
         catch (error) {sqlite.exec('ROLLBACK'); throw error;}
       },
     };
-    const assets = new Map([['/', publicDocument], ['/app.css', '#root{display:block}'], ['/app.js', 'document.documentElement.dataset.fixture="public";']]);
+    const assets = new Map([
+      ['/', publicDocument], ['/assets/app-Abcd1234.css', '#root{display:block}'], ['/assets/app-Abcd1234.js', 'document.documentElement.dataset.fixture="public";'],
+      ...privateFiles.map(filename => ['/' + filename, 'SYNTHETIC_PRIVATE_CONTENT']),
+    ]);
     call = (route, options) => worker.fetch(new Request(origin + route, options), {DB: db, ASSETS: {fetch: async request => {
       const url = new URL(request.url), body = assets.get(url.pathname);
       return new Response(body || 'Missing asset', {status: body ? 200 : 404, headers: {
@@ -118,14 +121,14 @@ async function fixture(t, platform) {
 for (const platform of ['node', 'worker']) {
   test(`${platform}: public documents and bundled assets receive the restrictive policy without private data`, async t => {
     const f = await fixture(t, platform);
-    for (const route of ['/', '/app.js', '/app.css']) {
+    for (const route of ['/', '/assets/app-Abcd1234.js', '/assets/app-Abcd1234.css']) {
       const result = await f.request(route); assert.equal(result.status, 200);
       assertResponseSecurity(result.response, {upstreamVary: platform === 'worker'});
       assert.ok(!result.text.includes('INTERNAL_')); assert.ok(!result.text.includes('42.5'));
     }
     const head = await f.request('/', {method: 'HEAD'}); assert.equal(head.status, 200); assert.equal(head.text, ''); assertResponseSecurity(head.response);
-    if (platform === 'node') for (const route of ['/.env', '/app.js.map', '/workshop.sqlite']) {
-      const denied = await f.request(route); assert.equal(denied.status, 404); assertResponseSecurity(denied.response);
+    for (const filename of privateFiles) for (const method of ['GET', 'HEAD']) {
+      const denied = await f.request('/' + filename, {method}); assert.equal(denied.status, 404); assertResponseSecurity(denied.response);
       assert.ok(!denied.text.includes('SYNTHETIC_PRIVATE_CONTENT'));
     }
   });

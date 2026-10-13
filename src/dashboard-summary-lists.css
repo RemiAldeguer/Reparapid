@@ -4,6 +4,7 @@
   border-top:1px solid #e5ebe4;
 }
 .dashboard-summary-lists>section{min-width:0;border-top:0}
+.dashboard-summary-lists>.summary-repairs:only-child{grid-column:1/-1;border-top:0}
 .dashboard-summary-lists>.summary-client-parts{border-right:1px solid #e5ebe4}
 .dashboard-summary-lists .summary-client-parts-head{
   display:grid;
@@ -18,6 +19,7 @@
   .dashboard-summary-lists .summary-client-parts-head,
   .dashboard-summary-lists .summary-repairs-head{min-height:122px;padding:18px 20px}
   .dashboard-summary-lists .summary-repairs-head{flex-direction:column;align-items:flex-start;justify-content:center;gap:10px}
+  .dashboard-summary-lists>.summary-repairs:only-child .summary-repairs-head{min-height:0;flex-direction:row;align-items:center;justify-content:space-between}
   .dashboard-summary-lists .summary-repairs-filters{max-width:100%;flex-wrap:wrap}
   .dashboard-summary-lists .summary-client-parts-list,
   .dashboard-summary-lists .summary-repairs-list{max-height:min(440px,65vh);flex:1}

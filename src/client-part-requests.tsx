@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {useApp} from './store';
+import {useAuth} from './auth';
 import {Badge,Empty,Field,Icon,Modal,Panel} from './ui';
 import {number,text} from './forms';
 import {
@@ -12,6 +13,7 @@ const STATUS_ORDER:ClientPartStatus[]=['en-attente','disponible','livree','insta
 
 export function ClientPartRequestsPanel({repair}:{repair:Repair}){
   const {data,transact,ask,go,edit}=useApp();
+  const {user}=useAuth();
   const [editor,setEditor]=useState<{id:string|null}|null>(null);
   const consoleItem=data.consoles.find(item=>item.id===repair.consoleId);
   const client=data.clients.find(item=>item.id===consoleItem?.clientId);
@@ -32,6 +34,8 @@ export function ClientPartRequestsPanel({repair}:{repair:Repair}){
     });
   }
 
+  // RépaRapid hides this workflow; existing requests and their history remain stored.
+  if(!user.workshopId)return null;
   return <Panel className="client-part-panel" title="Pièces à demander au client" aside={
     <button type="button" className="btn primary small" disabled={!canEdit} title={editHint} onClick={()=>setEditor({id:null})}>
       <Icon name="plus" size={16}/>Demander une pièce
@@ -92,7 +96,8 @@ function ClientPartRequestForm({repair,request,clientName,onClose}:{repair:Repai
 }
 
 export function ClientPartRequestsPrint({repair}:{repair:Repair}){
+  const {user}=useAuth();
   const requests=repair.clientParts??[];
-  if(!requests.length)return null;
+  if(!user.workshopId||!requests.length)return null;
   return <><h3>Pièces à fournir par le client</h3>{requests.map(request=><div key={request.id}><p>{request.quantity} × {request.name} · {CLIENT_PART_STATUSES[request.status]}.</p>{request.note&&<p className="prewrap">{request.note}</p>}</div>)}</>;
 }

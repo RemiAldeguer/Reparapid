@@ -1,10 +1,13 @@
 import React from 'react';
 import {useApp} from './store';
+import {useAuth} from './auth';
 import {ConsoleVisual,Icon} from './ui';
 import './dashboard-client-parts.css';
 
 export function DashboardClientParts() {
   const {data,go}=useApp();
+  const {user}=useAuth();
+  if(!user.workshopId)return null;
   const clients=new Map(data.clients.map(client=>[client.id,client]));
   const consoles=new Map(data.consoles.map(console=>[console.id,console]));
   const waiting=data.repairs.flatMap(repair=>{

@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import {useAuth} from './auth';
 import {type Repair, type ClientPartStatus, CLIENT_PART_STATUSES} from './domain';
 import {Badge, Icon} from './ui';
 import './repair-card-client-parts.css';
@@ -8,6 +9,8 @@ const statusTone: Record<ClientPartStatus, string> = {'en-attente': 'amber', dis
 
 export function RepairCardClientParts({repair}: {repair: Repair}) {
   const [expanded, setExpanded] = useState(false);
+  const {user} = useAuth();
+  if (!user.workshopId) return null;
   const parts = [...(repair.clientParts || [])].sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
   if (!parts.length) return null;
   const visible = expanded ? parts : parts.slice(0, 3);

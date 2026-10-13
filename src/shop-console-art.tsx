@@ -1,38 +1,10 @@
 import {useId, type ReactNode} from 'react';
+import {shopConsoleKind, type ShopConsoleItem} from './shop-console-kind';
 import './shop-console-art.css';
 
-export type ShopConsoleItem = {brand: string; model: string; variant?: string};
+export {shopConsoleKind, type ShopConsoleItem} from './shop-console-kind';
 type Paint = {dark: string; light: string; screen: string; metal: string};
 const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-/** Decorative product silhouettes drawn for the storefront, independent of workshop illustrations. */
-export function shopConsoleKind(item: ShopConsoleItem): string {
-  const model = normalized(item.model);
-  if (/playstation\s*5|ps\s*5/.test(model)) return /pro/.test(model) ? 'ps5-pro' : /slim/.test(model) ? 'ps5-slim' : /digital/.test(model) ? 'ps5-digital' : 'ps5';
-  if (/playstation\s*4|ps\s*4/.test(model)) return /pro/.test(model) ? 'ps4-pro' : /slim/.test(model) ? 'ps4-slim' : 'ps4';
-  if (/playstation\s*3|ps\s*3/.test(model)) return 'ps3';
-  if (/playstation\s*2|ps\s*2/.test(model)) return 'ps2';
-  if (/vita/.test(model)) return 'vita';
-  if (/psp|playstation portable/.test(model)) return 'psp';
-  if (/playstation|ps\s*1/.test(model)) return 'ps1';
-  if (/switch/.test(model)) return /lite/.test(model) ? 'switch-lite' : /oled/.test(model) ? 'switch-oled' : /switch\s*2/.test(model) ? 'switch-2' : 'switch';
-  if (/xbox/.test(model)) return /series\s*s/.test(model) ? 'xbox-series-s' : /series\s*x/.test(model) ? 'xbox-series-x' : /360/.test(model) ? 'xbox-360' : /one\s*s/.test(model) ? 'xbox-one-s' : /one\s*x/.test(model) ? 'xbox-one-x' : 'xbox-one';
-  if (/wii\s*u/.test(model)) return 'wii-u';
-  if (/wii/.test(model)) return 'wii';
-  if (/game\s*cube/.test(model)) return 'gamecube';
-  if (/nintendo\s*64|n64/.test(model)) return 'n64';
-  if (/super nintendo|snes|super famicom/.test(model)) return 'snes';
-  if (/\bnes\b|nintendo entertainment/.test(model)) return 'nes';
-  if (/2ds/.test(model)) return /new 2ds/.test(model) && !model.includes('/') ? '2ds-xl' : '2ds';
-  if (/3ds/.test(model)) return /xl/.test(model) ? '3ds-xl' : '3ds';
-  if (/\bds\b|\bdsi\b/.test(model)) return 'ds';
-  if (/game boy advance|gba/.test(model)) return /(?:advance|gba)\s*sp/.test(model) && !model.includes('/') ? 'advance-sp' : 'advance';
-  if (/game\s*boy/.test(model)) return /color/.test(model) && !model.includes('/') ? 'gameboy-color' : 'gameboy';
-  if (/mega\s*drive|genesis/.test(model)) return 'megadrive';
-  if (/dreamcast/.test(model)) return 'dreamcast';
-  if (/game\s*gear/.test(model)) return 'gamegear';
-  return 'other';
-}
 function Dpad({x, y, size = 8, color = '#30343d'}: {x: number; y: number; size?: number; color?: string}) {
   return <g transform={`translate(${x} ${y})`}><path d={`M${-size / 2} ${-size * 1.5}h${size}v${size}h${size}v${size}h${-size}v${size}h${-size}v${-size}h${-size}v${-size}h${size}z`} fill={color} stroke="#101822" strokeOpacity=".2" strokeWidth="1"/><path d={`M${-size / 3} ${-size}h${size * .66}M${-size} ${-size / 3}v${size * .66}`} stroke="#fff" strokeOpacity=".18" strokeWidth="1"/></g>;
 }
@@ -110,7 +82,7 @@ function OtherConsole({paint}: {paint: Paint}) {
   return <g><rect x="60" y="66" width="197" height="105" rx="18" fill={paint.light} stroke="#b4c1cd" strokeWidth="2"/><rect x="88" y="85" width="142" height="58" rx="7" fill="#dde5ea" stroke="#bdcbd7" strokeDasharray="4 4"/><path d="M148 102c0-15 26-16 26 0 0 11-14 10-14 21" fill="none" stroke="#8fa3b4" strokeWidth="6" strokeLinecap="round"/><circle cx="160" cy="134" r="3" fill="#8fa3b4"/><circle cx="74" cy="90" r="4" fill="#a9bccb"/><path d="M80 159h25m99 0h25" stroke="#9eb1c2" strokeWidth="4" strokeLinecap="round"/></g>;
 }
 
-export function ShopConsoleArt({item}: {item: ShopConsoleItem}) {
+export function ShopConsoleArt({item, small = false, className = '', label}: {item: ShopConsoleItem; small?: boolean; className?: string; label?: string}) {
   const id = useId().replace(/:/g, ''), kind = shopConsoleKind(item);
   const paint: Paint = {dark: `url(#${id}-dark)`, light: `url(#${id}-light)`, screen: `url(#${id}-screen)`, metal: `url(#${id}-metal)`};
   let art: ReactNode;
@@ -125,7 +97,7 @@ export function ShopConsoleArt({item}: {item: ShopConsoleItem}) {
   else if (kind.startsWith('xbox')) art = <XboxConsole kind={kind} paint={paint}/>;
   else if (['megadrive', 'dreamcast', 'gamegear'].includes(kind)) art = <SegaConsole kind={kind} paint={paint}/>;
   else art = <OtherConsole paint={paint}/>;
-  return <svg className="console-art rp-console-svg shop-console-art" width="320" height="220" viewBox="0 0 320 220" aria-hidden="true" focusable="false" data-console-kind={kind}>
+  return <svg className={`console-art rp-console-svg shop-console-art${small ? ' small' : ''}${className ? ` ${className}` : ''}`} width="320" height="220" viewBox="0 0 320 220" aria-hidden={label ? undefined : true} aria-label={label} role={label ? 'img' : undefined} focusable="false" data-console-kind={kind}>
     <defs><linearGradient id={`${id}-dark`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#46566a"/><stop offset=".52" stopColor="#293747"/><stop offset="1" stopColor="#111f30"/></linearGradient><linearGradient id={`${id}-light`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff"/><stop offset=".48" stopColor="#edf1f4"/><stop offset="1" stopColor="#cbd5df"/></linearGradient><linearGradient id={`${id}-screen`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1a344e"/><stop offset="1" stopColor="#071322"/></linearGradient><linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="0"><stop stopColor="#9fafbe"/><stop offset=".35" stopColor="#eef3f7"/><stop offset=".65" stopColor="#d4dde5"/><stop offset="1" stopColor="#8d9dab"/></linearGradient></defs>
     <ellipse cx="161" cy="202" rx={['ps5', 'ps5-pro', 'ps5-slim', 'ps5-digital', 'ps2', 'wii'].includes(kind) ? 95 : 115} ry="9" fill="#33495c" opacity=".13"/>{art}
   </svg>;

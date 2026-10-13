@@ -13,6 +13,7 @@ import { notificationConfiguration, deliverNotifications } from './notification-
 import { nodeNotificationRepository, notificationBatches, insertNotificationsSQL } from './notification-storage.mjs';
 import { notificationAdminRequest, NotificationError } from './notification-admin.mjs';
 import { responseSecurityHeaders } from './response-security.mjs';
+import { publicAsset } from './public-assets.mjs';
 import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest, submitRegistrationRequest, listRegistrationRequests, reviewRegistrationRequest} from './registration-requests.mjs';
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from './workshop-scope.mjs';
 const HOUR = 3600000;
@@ -145,19 +146,18 @@ export function createApplication({ databasePath, origin, distPath, production =
       const pathname = new URL(req.url || '/', origin).pathname;
       if (!pathname.startsWith('/api/')) {
         if (!['GET', 'HEAD'].includes(req.method)) throw new HttpError(405, 'Méthode non autorisée.');
+        let asset;
+        try { asset = publicAsset(req.url || '/'); } catch { throw new HttpError(400, 'Chemin invalide.'); }
+        if (!asset) throw new HttpError(404, 'Fichier introuvable.');
         if (!distPath) throw new HttpError(404, 'Interface indisponible.');
         const root = await realpath(distPath);
-        let decoded;
-        try { decoded = decodeURIComponent(pathname); } catch { throw new HttpError(400, 'Chemin invalide.'); }
-        let filename = path.resolve(root, '.' + (decoded === '/' ? '/index.html' : decoded));
-        if (!filename.startsWith(root + path.sep) || decoded.includes('\0')) throw new HttpError(404, 'Fichier introuvable.');
-        try { filename = await realpath(filename); } catch { throw new HttpError(404, 'Fichier introuvable.'); }
-        if (!filename.startsWith(root + path.sep) || !(await stat(filename)).isFile()) throw new HttpError(404, 'Fichier introuvable.');
-        const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
-        const type = types[path.extname(filename)];
-        if (!type) throw new HttpError(404, 'Fichier introuvable.');
+        const expectedFilename = path.resolve(root, asset.filename);
+        if (!expectedFilename.startsWith(root + path.sep)) throw new HttpError(404, 'Fichier introuvable.');
+        let filename;
+        try { filename = await realpath(expectedFilename); } catch { throw new HttpError(404, 'Fichier introuvable.'); }
+        if (filename !== expectedFilename || !filename.startsWith(root + path.sep) || !(await stat(filename)).isFile()) throw new HttpError(404, 'Fichier introuvable.');
         const body = await readFile(filename);
-        res.writeHead(200, { 'Content-Type': type, 'Content-Length': body.length });
+        res.writeHead(200, { 'Content-Type': asset.contentType, 'Content-Length': body.length });
         return res.end(req.method === 'HEAD' ? undefined : body);
       }
       if (req.headers['sec-fetch-site'] === 'cross-site') throw new HttpError(403, 'Requête intersite refusée.');

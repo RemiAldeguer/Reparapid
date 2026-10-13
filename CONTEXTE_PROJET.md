@@ -28,7 +28,29 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Parcours expliqué sur l’accueil — 13 octobre 2026
+## Dernière reprise du 13 octobre : diffusion des données et fichiers publics
+
+L’utilisateur demande un backend évitant d’exposer les données en clair sur le Web. Le backend Node/SQLite et Worker/D1 est déjà présent : Store serveur, sessions, contrôle du propriétaire, séparation des ateliers, CSRF et révisions atomiques. La nouvelle reprise durcit la frontière des fichiers statiques ; elle ne remplace pas ce backend et ne modifie ni schéma, contrat métier ou migration.
+
+Le module partagé `server/public-assets.mjs` limite Node et Worker aux assets publics explicitement autorisés et aux fichiers JavaScript/CSS Vite hashés. Un fichier non autorisé est refusé même s’il est injecté dans `dist/`. `scripts/verify-public-assets.mjs` vérifie **public/ avant Vite**, car Vite peut déréférencer les liens : seuls logos, favicon, police et licence fixes sont acceptés, sans HTML ni faux bundle JavaScript/CSS copié. Le contrôle de `dist/` après Vite est conservé et refuse liens symboliques, exports, configurations, source maps et fichiers inconnus. `.gitignore` couvre les exports JSON/CSV, récupérations et brouillons sous les nouveaux noms Reparapid.
+
+Les réglages proposent la suppression manuelle de l’ancienne copie `localStorage`, avec confirmation et relecture pour ne pas retirer une copie qui a changé. La purge n’est pas automatique et ne touche pas le Store du serveur. La recette fictive a conservé une copie changée entre lecture et confirmation, puis l’a supprimée après relecture et nouvelle confirmation ; le Store serveur est resté strictement identique. Les protections de session, de propriétaire et d’atelier restent obligatoires pour chaque requête privée.
+
+Les données et les exports explicites restent du JSON lisible ; l’application ne chiffre pas la base de bout en bout. HTTPS protège le transport et les projections limitent la diffusion au destinataire autorisé, qui peut toujours inspecter ses données dans le navigateur. Ne pas promettre une invisibilité des données à leur propriétaire ni un chiffrement applicatif absent.
+
+Limite non corrigée : l’inscription publique distingue une création de compte d’une adresse déjà enregistrée, ce qui permet une faible énumération d’accès, sans accès aux dossiers. Une fermeture complète dépend d’une vérification de possession de l’e-mail. Le service d’envoi n’est pas configuré ; le choix du parcours reste soumis à clarification.
+
+Une demande supplémentaire masque **Pièces à fournir par les clients** dans le magasin principal RépaRapid et le portail principal ; les ateliers distincts gardent cette fonction. La recette a confirmé l’absence des sections, compteurs et actions malgré une demande fictive conservée dans les données. Le stock, les pièces utilisées et les accessoires habituels restent inchangés. Les anciennes données `clientParts`, les règles du domaine et les API restent conservées : masquer les éléments d’interface ne purge pas les demandes et ne change pas le contrat serveur.
+
+L’interface de gestion ne propose plus **Inscriptions**, ni création ou validation d’autres administrateurs ou ateliers. `App.tsx` n’importe et ne monte plus `RegistrationReview` ; l’ancienne route `#/super-admin/registrations` affiche une page inexistante avec retour au tableau de bord. Les libellés affichent **Administrateur**. Le compte du magasin, les comptes clients et l’admission publique restent conservés. Les anciens rôles effectifs, API, règles et ateliers du backend sont inchangés : ce retrait d’interface n’est pas une fermeture des anciennes routes serveur.
+
+`ConsoleArt` réutilise désormais `ShopConsoleArt` du site. Le classificateur est partagé dans `src/shop-console-kind.ts` ; `workshopConsoleArtItem`, dans `console-appearance.ts`, adapte les alias de modèles, avec cadres bornés dans `workshop-console-art.css` et options de présentation/accessibilité du composant commun. Les photos restent prioritaires. Accessoires, Game Boy Pocket/Light/Micro, Xbox originale et modèles inconnus conservent un repli. La parité des 38 modèles du catalogue est couverte par les tests d’apparence, **14 réussis sur 14**.
+
+Validation finale intégrée : **510 tests réussis (465 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré ; **38 tests ciblés de confidentialité** réussis. TypeScript et build Vite de **87 modules** validés, avec cinq fichiers autorisés dans `public/` et huit dans `dist/`. Recette Node en mémoire avec client, consoles, dossiers et pièce client fictifs : réglages et ancienne route sans inscriptions, pièces clients masquées, 11 illustrations communes et un repli dans l’inventaire, paiement/coût conservés et aucun SVG hors cadre ou débordement à 1280/320 px. Le portail conserve ses consoles/statistiques et masque les pièces clients ; déconnexions admin/client retirant les vues privées. Aucun export, import, reset ou paiement réel ; serveur temporaire arrêté et Store strictement inchangé.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence identiques au build final ; API publique en HTTP 200 et cinq routes privées en HTTP 401. Contrôle complémentaire : quatre API privées en HTTP 401 avec `no-store` et 18 GET/HEAD vers neuf chemins de fichiers interdits en HTTP 404 avec `no-store`. Aucune migration, réinitialisation ou modification de données de production. Les résultats précédents restent historiques et datés.
+
+## Reprise précédente : parcours expliqué sur l’accueil — 13 octobre 2026
 
 La section **Votre réparation, pas à pas** précise les quatre étapes : modèle et symptômes, enregistrement avec un compte nouveau ou existant au statut **En attente d’envoi**, impression de la fiche et expédition vers l’adresse confirmée, puis réception et prise en charge à l’atelier avec suivi des étapes et du montant. Les trois actions du client et le relais de RépaRapid sont distingués visuellement. Le statut **Prête à récupérer** invite à organiser le retrait ou le retour avec le magasin. La fiche identifie le dossier ; affranchissement et étiquette de transport se prévoient séparément. Le montant est confirmé après diagnostic, sans paiement dans le formulaire. Aucun texte de diagnostic interne n’est promis au client.
 
@@ -177,7 +199,8 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/dashboard-metrics.css | Design des quatre cartes du dashboard, sans affecter les autres métriques |
 | src/finance.tsx, src/finance-domain.ts | Rapports hebdomadaires / mensuels, encaissements et gains estimés |
 | src/invoices.tsx, src/invoice-domain.ts, src/invoices.css | Formats simple / complet, préparation, aperçu et impression |
-| src/console-appearance.ts | Détection du modèle et de la couleur des miniatures |
+| src/console-appearance.ts | Détection du modèle/couleur et adaptateur workshopConsoleArtItem des alias de gestion vers les silhouettes communes |
+| src/shop-console-kind.ts, src/workshop-console-art.css | Classificateur commun des silhouettes et cadres bornés des illustrations dans l’atelier |
 | src/console-handheld-art.tsx, src/ui.tsx | SVG des consoles, visuels, icônes et composants génériques |
 | src/nintendo-model-picker.tsx | Suggestions Nintendo ; les champs de modèle restent libres |
 | src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
@@ -186,7 +209,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/shop-console-art.tsx, .css | Illustrations SVG natives de la vitrine, par famille et variante du catalogue |
 | src/repair-intake.tsx, .css, src/repair-intake-domain.ts | Parcours console/panne/compte, catalogue partagé, suggestions, admission et idempotence |
 | src/public-intake-settings.tsx | Réglages admin des coordonnées publiques et destination d’envoi |
-| src/registration-review.tsx, .css | Revue des inscriptions par le super administrateur |
+| src/registration-review.tsx, .css | Ancienne vue d’inscriptions conservée dans les sources, plus importée ni montée dans l’interface |
 | src/seed.ts | Jeux de démonstration, à ne pas injecter dans la production pour une recette |
 | src/styles.css | Styles historiques et globaux, dont plusieurs lignes très longues |
 | public/reparapid-logo-original.webp | Copie exacte du logo RépaRapid, utilisée par les éléments publics, fiche et favicon |
@@ -204,6 +227,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | server/notification-delivery.mjs | Configuration Resend, envoi, claim, reprises et assainissement des erreurs |
 | server/notification-admin.mjs | Statut, activation / pause et relance depuis l’admin |
 | server/response-security.mjs | En-têtes communs à Node et Worker |
+| server/public-assets.mjs | Liste explicite partagée des fichiers publics autorisés sur Node et Worker |
 | cloudflare/worker.mjs, database.mjs, security.mjs | Routes, stockage D1 et hachage adaptés à Workers |
 | cloudflare/migrations/ | Quatre migrations du stockage Cloudflare |
 | scripts/admin.mjs | Création / reset du compte admin SQLite local |
@@ -211,6 +235,7 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | scripts/cloudflare-export.mjs | Transfert initial privé SQLite vers une nouvelle base D1 |
 | scripts/dev-server.mjs | API de développement avec origine attendue sur 5173 |
 | scripts/build-offline.mjs | Refuse volontairement un build admin sans serveur |
+| scripts/verify-public-assets.mjs | Vérification de public/ avant Vite et de dist/ après Vite, refus des fichiers non autorisés et liens symboliques |
 | tests/ | Tests domaine, Node, session, isolation, portail, notifications et Worker |
 | .github/workflows/ci.yml | Tests et build sur push / pull request ; ne déploie pas le Worker |
 
@@ -237,12 +262,12 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 | #/parts | Stock de pièces de l’atelier |
 | #/activity | Journal |
 | #/settings | Réglages et sauvegardes |
-| #/super-admin/registrations | Revue des inscriptions, super admin seulement |
+| #/super-admin/registrations | Ancienne route retirée de l’interface : page inexistante et retour au tableau de bord |
 | #/espace-client | Portail client et sa connexion propre |
 
 Les paramètres des pages admin sont après le hash, par exemple #/repairs?payment=unpaid et #/invoices?repairId=ID. Les liens clients des ateliers inscrits utilisent **?atelier=UUID#/espace-client** : le paramètre atelier est avant le hash, car le portail en déduit le contexte de connexion.
 
-La sidebar comprend Tableau de bord, Demandes du site pour le magasin principal, Clients, Consoles, L’atelier, Finance, Factures, Pièces détachées, Journal et Inscriptions pour le super admin, puis Réglages et l’identité de l’atelier.
+La sidebar comprend Tableau de bord, Demandes du site pour le magasin principal, Clients, Consoles, L’atelier, Finance, Factures, Pièces détachées et Journal, puis Réglages et l’identité de l’atelier. Le menu Inscriptions est retiré ; le rôle affiché est Administrateur.
 
 ## 6. Modèle métier à préserver
 
@@ -340,6 +365,8 @@ Dans Ma synthèse :
 
 ### Deux listings dans Ma synthèse
 
+Le listing des pièces concerne les ateliers distincts. Pour RépaRapid principal, il est masqué ; la liste des réparations reste disponible, sans suppression des données historiques.
+
 Les deux listes occupent **la même rangée sur ordinateur**, avec les pièces à gauche, les réparations à droite et un séparateur vertical. Chaque liste conserve son défilement indépendant. À 1100 px de largeur d’écran et en dessous, elles s’empilent avec un séparateur horizontal. Les lignes et les en-têtes sont adaptés aux colonnes plus étroites ; les filtres et boutons de paiement restent présents.
 
 **Pièces à fournir par les clients**, à gauche :
@@ -369,6 +396,8 @@ Les deux listes occupent **la même rangée sur ordinateur**, avec les pièces �
 Le stock a des références, quantités, seuils, prix unitaires, compatibilités, fournisseurs et emplacements. Utiliser une pièce la déduit du stock et l’inscrit dans le dossier avec son prix de consommation.
 
 ### Pièces à fournir par le client
+
+Fonction conservée pour les ateliers distincts ; son affichage est masqué dans le magasin et le portail principaux RépaRapid. Les données et transitions ci-dessous restent valides dans le domaine et les sauvegardes.
 
 Statuts exacts :
 
@@ -429,13 +458,13 @@ Connexion distincte de l’admin, à partir de l’accès créé dans la fiche c
 
 Le portail propose :
 
-- synthèse du suivi et des quantités de pièces à fournir ;
+- synthèse du suivi et, pour les ateliers distincts, des quantités de pièces à fournir ;
 - mosaïque par défaut, vue détaillée, recherche et filtres ;
 - consoles avec silhouette / couleur et montants courants des dossiers ;
 - accès au détail et à l’historique des réparations ;
 - nouvelle demande de réparation et fiche d’envoi imprimable pour les dossiers déclarés en ligne au magasin principal ;
-- tableau des pièces demandées et filtre par statut ;
-- signalement Marquer disponible, avec confirmation de toute la quantité demandée ;
+- pour les ateliers distincts, tableau des pièces demandées et filtre par statut ;
+- pour les ateliers distincts, signalement Marquer disponible, avec confirmation de toute la quantité demandée ;
 - actualisation et contrôle de session.
 
 **Projection serveur explicite** dans server/client-portal.mjs :
@@ -618,6 +647,7 @@ Un signalement client de pièce incrémente aussi la révision. Un admin utilisa
 - CSP : scripts même origine, pas de script inline, pas de frames ni workers ; attributs style React permis pour graphiques ; images same-origin / data / blob.
 - API et frontend de même origine, pas de CORS permissif pour contourner un problème d’origine.
 - Aucun secret dans VITE_*, dist/, exports, journaux ou ces documents.
+- Fichiers statiques limités à la liste publique partagée, avec vérification avant et après Vite ; ne jamais servir une base, un export ou une configuration sous prétexte qu’ils sont dans dist/.
 
 AuthGate retire réellement le sous-arbre privé après expiration / déconnexion / départ de page. Le retour depuis l’historique revalide la session. BroadcastChannel propage les déconnexions entre onglets.
 
@@ -658,6 +688,7 @@ Envoyé signifie accepté par Resend, pas lu ni nécessairement reçu. Les erreu
 - Compte admin conservé lors d’une restauration ; accès clients devenus orphelins / sessions et messages devenus invalides sont traités par les gardes serveur.
 - Les anciennes sauvegardes sans clients et avec a-commander sont normalisées.
 - L’ancienne clé localStorage la-clinique-retro:v1 sert à la migration explicite, pas au stockage courant.
+- Une suppression manuelle de cette ancienne copie est disponible dans les réglages, avec confirmation et protection contre une copie modifiée entre-temps ; elle préserve l’atelier serveur.
 - La base et ses sauvegardes contiennent des données privées. Ne pas les exposer en assets publics.
 - SQLite WAL : une copie du fichier principal seul à chaud n’est pas une sauvegarde fiable ; utiliser une sauvegarde cohérente ou arrêter le serveur puis copier les données protégées.
 - D1 et SQLite ne se synchronisent pas automatiquement.

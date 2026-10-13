@@ -1,6 +1,8 @@
 import React, {useEffect,useRef,useId} from 'react';
-import {consoleAppearance,type ConsoleVisualItem} from './console-appearance';
+import {consoleAppearance,workshopConsoleArtItem,type ConsoleVisualItem} from './console-appearance';
 import {HandheldConsoleArt} from './console-handheld-art';
+import {ShopConsoleArt} from './shop-console-art';
+import './workshop-console-art.css';
 import {STATES,PRIORITIES,stageInfo,dateFmt,timeFmt,type ConsoleItem,type Stage,type Priority,type Activity,type ConsoleState} from './domain';
 const paths:Record<string,string[]>={
   users:['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2','M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0','M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'],
@@ -38,6 +40,8 @@ export function Logo(){return <div className="brand-mark" aria-hidden="true"><im
 export function ConsoleArt({item,small=false}:{item:ConsoleVisualItem;small?:boolean}){
   const grad=useId().replace(/:/g,'');
   const palette=consoleAppearance(item);
+  const shopItem=workshopConsoleArtItem(item);
+  if(shopItem)return <ShopConsoleArt item={shopItem} small={small} className="workshop-console-art" label={[item.model,item.variant].filter(Boolean).join(' · ')}/>;
   if(!['snes','playstation','dreamcast','gamegear','megadrive'].includes(palette.kind))return <HandheldConsoleArt item={item} small={small} palette={palette}/>;
   let art:React.ReactNode;
   if(palette.kind==='snes')art=<g transform="rotate(-6 160 112)"><path d="M75 77 93 46h139l21 39v69q0 15-17 15H89q-17 0-17-15z" fill={palette.shellDark} stroke="#9da1b2" strokeWidth="2"/><rect x="84" y="57" width="155" height="83" rx="12" fill={palette.shell}/><path d="M113 72h97v28h-97z" fill={palette.shellDark}/><path d="M127 79h70v5h-70z" fill="#5e667d"/><path d="M131 111h22v22h-22zM171 111h22v22h-22z" fill="#8c87b5"/><path d="M128 121h28m12 0h28" stroke="#ada8d0" strokeWidth="4"/><rect x="92" y="149" width="48" height="13" rx="4" fill="#6e7586"/><rect x="181" y="149" width="48" height="13" rx="4" fill="#6e7586"/><text x="95" y="118" fontSize="6" fill="#7d8094" fontFamily="monospace">16 BIT</text></g>;

@@ -213,6 +213,7 @@
 
 /* Original RépaRapid identity applies only to the principal store's client area. */
 .reparapid-portal{background:#f6f6f6}
+.reparapid-portal .portal-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
 .reparapid-portal .portal-header{background:#090909;border-color:#252525}
 .reparapid-portal .portal-brand{color:#fff;font-family:'Oxanium',Arial,sans-serif}
 .reparapid-portal .portal-brand small,.reparapid-portal .portal-header-nav>a,.reparapid-portal .portal-header-nav>button,.reparapid-portal .portal-account>span{color:#d6d6d6}
@@ -229,4 +230,5 @@
 .intake-sheet-document>header>.intake-sheet-brand strong{font-family:'Oxanium',Arial,sans-serif;font-size:24px;letter-spacing:-.5px;color:#222}
 .intake-sheet-document .intake-sheet-destination{background:#fff4f4;border-color:#ecd0d0}
 @media(max-width:620px){.reparapid-portal .portal-rp-logo{width:37px;height:37px}.intake-sheet-document>header>.intake-sheet-brand img{width:42px;height:42px}}
+@media(max-width:900px){.reparapid-portal .portal-summary{grid-template-columns:minmax(0,1fr)}}
 @media print{.intake-sheet-print .intake-sheet-document>header>.intake-sheet-brand img{width:13mm;height:13mm}.intake-sheet-print .intake-sheet-document>header>.intake-sheet-brand strong{font-size:18pt}}

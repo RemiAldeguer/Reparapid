@@ -1,0 +1,10 @@
+/* Reuse storefront art inside the existing workshop card, list and detail frames. */
+.console-art.shop-console-art.workshop-console-art {
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  overflow: hidden;
+  flex-shrink: 0;
+}

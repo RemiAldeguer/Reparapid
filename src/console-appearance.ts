@@ -1,4 +1,5 @@
 import type {Illustration} from './domain';
+import {shopConsoleKind, type ShopConsoleItem} from './shop-console-kind.ts';
 
 /** The same miniature can be used with an inventory item or the client's public view. */
 export type ConsoleVisualItem = {model: string; variant?: string; brand?: string; illustration?: Illustration};
@@ -74,7 +75,7 @@ function mentionedColors(value: string): Color[] {
   return result;
 }
 
-function kindFor(item: ConsoleVisualItem): ConsoleKind {
+function kindFor(item: ConsoleVisualItem): ConsoleKind | null {
   const model = normalized(item.model);
   const is = (pattern: string) => new RegExp(`(^|[^a-z0-9])(?:${pattern})(?=$|[^a-z0-9])`).test(model);
   // Accessories must resolve before their console's name ("Manette Pro Switch" has no screen).
@@ -124,7 +125,30 @@ function kindFor(item: ConsoleVisualItem): ConsoleKind {
   if (is('mega[ -]*drive|genesis')) return 'megadrive';
   if (is('dreamcast')) return 'dreamcast';
   if (is('game[ -]*gear')) return 'gamegear';
-  return item.illustration ?? 'gameboy';
+  return null;
+}
+
+/** Keep the existing drawings for accessories and revisions without storefront art. */
+export function workshopConsoleArtItem(item: ConsoleVisualItem): ShopConsoleItem | null {
+  const model = normalized(item.model), kind = kindFor(item);
+  if (/(^|[^a-z0-9])(?:manette|controller|controleur|dualsense|dual[ -]*shock|joy[ -]*con|game[ -]*pad|wiimote|wii[ -]*remote|telecommande|nunchu[ck]k?)(?=$|[^a-z0-9])/.test(model)) return null;
+  if (kind?.startsWith('controller-') || ['wii-remote', 'nunchuk', 'wii-u-gamepad', 'joy-con-left', 'joy-con-right', 'joy-con-pair', 'gameboy-pocket', 'gameboy-light', 'micro'].includes(kind ?? '')) return null;
+  // The catalogue groups some revisions with a slash: retain exactly its chosen silhouette.
+  const aliases: Partial<Record<ConsoleKind, string>> = {
+    gameboy: 'Game Boy', 'gameboy-color': 'Game Boy Color', advance: 'Game Boy Advance', 'advance-sp': 'Game Boy Advance SP',
+    ds: 'Nintendo DS', 'ds-lite': 'Nintendo DS', dsi: 'Nintendo DS', 'dsi-xl': 'Nintendo DS',
+    '3ds': 'Nintendo 3DS', 'new-3ds': 'Nintendo 3DS', '3ds-xl': 'Nintendo 3DS XL', 'new-3ds-xl': 'Nintendo 3DS XL',
+    '2ds': 'Nintendo 2DS', 'new-2ds-xl': 'New 2DS XL', 'switch-lite': 'Switch Lite', psp: 'PSP',
+    nes: 'NES', snes: 'Super Nintendo', n64: 'Nintendo 64', gamecube: 'GameCube', 'wii-u': 'Wii U', wii: 'Wii',
+    megadrive: 'Mega Drive', dreamcast: 'Dreamcast', gamegear: 'Game Gear',
+  };
+  const modernSony = /(^|[^a-z0-9])(?:playstation[ -]*[1-5]|ps[ -]*[1-5]|(?:ps[ -]*)?vita)(?=$|[^a-z0-9])/.test(model);
+  const xbox = /(^|[^a-z0-9])xbox[ -]*(?:360|one|series[ -]*[sx])(?=$|[^a-z0-9])/.test(model);
+  if (!kind && !modernSony && !xbox && model !== 'autre console') return null;
+  // The storefront's generic Xbox fallback is an Xbox One, never the original Xbox.
+  if (/xbox/.test(model) && !xbox) return null;
+  const mapped: ShopConsoleItem = {brand: item.brand ?? '', model: !model.includes('/') && kind && aliases[kind] ? aliases[kind]! : item.model, variant: item.variant};
+  return shopConsoleKind(mapped) !== 'other' || model === 'autre console' ? mapped : null;
 }
 
 const defaultColor: Record<ConsoleKind, string> = {
@@ -145,7 +169,7 @@ function shade(hex: string, target: number, amount: number): string {
 }
 
 export function consoleAppearance(item: ConsoleVisualItem): ConsoleAppearance {
-  const kind = kindFor(item);
+  const kind = kindFor(item) ?? item.illustration ?? 'gameboy';
   const switch2 = /(^|[^a-z0-9])(?:switch|joy[ -]*con)[ -]*2(?=$|[^a-z0-9])/.test(normalized(item.model));
   const variantColors = mentionedColors(item.variant ?? '');
   const explicit = variantColors.length ? variantColors : mentionedColors(item.model);

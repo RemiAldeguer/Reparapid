@@ -8,7 +8,9 @@ Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous re
 
 ## Résultat automatisé courant
 
-Le **13 octobre 2026**, `npm test` a passé **476 tests : 431 Node/domaine/API, puis 45 Cloudflare**, sans échec ni test ignoré. Deux nouveaux tests Node et Worker couvrent la réception et la clôture du parcours des demandes du site. TypeScript et le build final Vite ont réussi avec **87 modules**, après les derniers ajustements des illustrations et coordonnées de cartes. La recette des demandes, du portail et du contact est détaillée ci-dessous ; la publication est vérifiée sur 100 % du trafic Cloudflare, avec assets conformes au build final et protections des routes privées contrôlées. Le projet exige Node 22.16 ou supérieur.
+Le **13 octobre 2026**, la suite intégrée finale a passé **510 tests (465 Node/domaine/API + 45 Cloudflare)**, sans échec ni test ignoré. La série ciblée de confidentialité a passé **38 tests** et celle d’apparence **14 tests**. TypeScript et le build final Vite ont réussi avec **87 modules** ; cinq fichiers sources publics et huit fichiers de build sont autorisés. La recette et la publication du durcissement, de la suppression locale et des ajustements d’interface sont vérifiées et détaillées ci-dessous.
+
+La reprise précédente **Demandes du site et Contactez-nous**, le **13 octobre 2026**, avait passé **476 tests (431 Node/domaine/API + 45 Cloudflare)**. Deux nouveaux tests Node et Worker couvraient la réception et la clôture ; son build de 87 modules, sa recette et sa publication restent des résultats historiques de cette étape. Le projet exige Node 22.16 ou supérieur.
 
 Le résultat précédent du **12 octobre 2026**, **474 tests (429 Node/domaine/API + 45 Cloudflare)** avec Node 24.19.0, reste historique. Il précédait les reprises visuelles successives du logo, des engagements et de la gestion ; ces évolutions avaient été vérifiées par build et recette sans nouvelle exécution de la suite métier.
 
@@ -40,6 +42,7 @@ npm test compile les modules métier puis exécute les tests listés dans packag
 | Inscriptions et ateliers isolés | tests/registration-requests.test.mjs, tests/workshop-scope.test.mjs, tests/saas-api.test.mjs |
 | Silhouettes et couleurs | tests/console-appearance.test.mjs |
 | En-têtes et limites de réponses | tests/response-security.test.mjs |
+| Liste publique de fichiers, chemins, contrôle des sources/builds et fichiers interdits | tests/public-assets.test.mjs |
 | Worker/D1, fragments atomiques et sécurité | tests/cloudflare-worker.test.mjs, tests/cloudflare-database.test.mjs, tests/cloudflare-security.test.mjs |
 
 Les identifiants fixes sont exclusivement des fixtures. Les tests utilisent des bases isolées et des transports e-mail simulés ; ils ne créent pas de comptes dans l’atelier réel et n’envoient pas de message client réel.
@@ -116,6 +119,29 @@ Recette sur une base temporaire en mémoire, avec demandes et coordonnées ficti
 Le bouton **Ouvrir mon e-mail** prépare un `mailto:`. Il n’a pas été soumis pendant la recette : aucun message n’a été envoyé et aucune transmission à un backend n’est implémentée. **Prête à récupérer** reste le libellé d’un dossier `terminee`, sans nouveau suivi d’expédition ou de remise.
 
 `npm test` : **476 réussis (431 + 45)**, aucun échec ni test ignoré, avec deux tests supplémentaires du parcours révisé sur Node et Worker. TypeScript et build final de **87 modules** réussis. Aucune API, structure de projection, migration ou donnée de production modifiée. Publication vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données.
+
+## Validation finale du 13 octobre : backend et fichiers publics
+
+Liste explicite d’assets publics partagée entre Node et Worker, refus des fichiers non autorisés même copiés dans `dist/`. Le build vérifie **public/ avant Vite**, pour détecter les liens que Vite peut déréférencer ; seules les images de marque, le favicon, la police et sa licence fixes sont admis, sans HTML ou faux bundle JavaScript/CSS copié. `dist/` reste contrôlé après Vite contre liens symboliques, exports, configurations, source maps et fichiers inconnus. Les exports et brouillons Reparapid sont exclus du dépôt. Les réglages permettent la suppression confirmée de l’ancienne copie locale, sans purge automatique, sans retrait d’une copie modifiée depuis sa lecture et sans modification du serveur.
+
+Résultat final : **510 tests réussis (465 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré ; **38 tests ciblés de confidentialité** réussis. **14 tests d’apparence** réussis, dont la parité des 38 modèles du catalogue entre site et atelier. TypeScript et le build final de **87 modules** validés ; contrôle des cinq fichiers sources publics et huit fichiers de build réussi. Aucun schéma, contrat métier ou migration ne change. Le backend conserve les gardes de session, propriétaire, atelier, origine, CSRF et révision.
+
+Recette privée sur serveur Node en mémoire, avec un client, douze consoles, neuf dossiers et une demande de pièce client entièrement fictifs :
+
+- Connexion admin et réglages sans inscriptions ; ancienne route `#/super-admin/registrations` affichant une page inexistante.
+- Tableau de bord et détail de réparation sans demandes de pièces clients ; paiement et coût fictif de **27,15 €** conservés.
+- Inventaire avec onze illustrations `ShopConsoleArt` et un repli pour un modèle non couvert ; identifiants de gradients uniques. Aucun SVG hors cadre ni débordement horizontal à **1280 et 320 px**.
+- Portail du même client : section, compteur et action de pièces absents malgré une demande encore présente dans les données ; statistiques et illustrations communes conservées, sans débordement à **320 px**.
+- Suppression locale : copie fictive changée entre lecture et clic conservée, confirmation restant ouverte ; après relecture et nouvelle confirmation, copie supprimée et boutons de récupération/suppression retirés.
+- Déconnexions client/admin retirant les vues privées ; onglet temporaire fermé, dimensions du navigateur rétablies et serveur temporaire arrêté. Le JSON du Store serveur est resté **strictement inchangé**. Aucun export, import, reset ou paiement réel.
+
+Le retrait visible des pièces clients concerne uniquement le magasin et le portail principaux RépaRapid. Les ateliers distincts, le stock, les accessoires, les anciennes données `clientParts` et les API sont conservés.
+
+Le menu **Inscriptions** et sa branche d’interface sont retirés ; les réglages et libellés ne proposent plus de créer ou valider d’autres administrateurs/ateliers. Le compte du magasin, les comptes clients et l’admission sont préservés ; les anciennes API restent inchangées. Les illustrations de l’atelier utilisent celles du site, avec photos prioritaires et repli pour les modèles non couverts.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence identiques au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données. Vérification complémentaire : quatre API privées en HTTP 401 avec `no-store`, et **18 requêtes GET/HEAD vers neuf chemins de fichiers interdits en HTTP 404 avec `no-store`**. Aucune migration, réinitialisation ou modification de données de production.
+
+Ces contrôles ne chiffrent pas le JSON dans la base ou les exports explicites. Les données fournies à un navigateur autorisé y restent lisibles. La différence de réponse à l’inscription pour une adresse déjà enregistrée reste connue et n’est pas présentée comme corrigée ; sa fermeture complète requiert un parcours de possession d’e-mail encore à décider.
 
 ## Recettes historiques de La Clinique Rétro
 

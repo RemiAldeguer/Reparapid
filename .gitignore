@@ -25,6 +25,12 @@ clinique-retro-recuperation.*
 clinique-retro-brouillon*.json
 clinique-retro-ancienne-sauvegarde*.json
 inventaire-clinique-retro-*.csv
+reparapid-sauvegarde-*.json
+reparapid-recuperation.*
+reparapid-brouillon*.json
+reparapid-ancienne-sauvegarde*.json
+inventaire-reparapid-*.csv
+ACCES_PRIVE.txt
 
 # Sous-projet indépendant du dossier source
 art-fadist/

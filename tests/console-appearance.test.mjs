@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {consoleAppearance} from '../src/console-appearance.ts';
+import {consoleAppearance, workshopConsoleArtItem} from '../src/console-appearance.ts';
+import {shopConsoleKind} from '../src/shop-console-kind.ts';
+import {INTAKE_MODELS} from '../src/repair-intake-domain.ts';
 
 test('Nintendo handheld revisions resolve to their own silhouette', () => {
   const models = {
@@ -114,4 +116,40 @@ test('Nintendo home consoles and their controllers preserve independent colours 
   assert.equal(controller.shell, consoleAppearance({model: 'GameCube', variant: 'Orange'}).shell);
   assert.notEqual(controller.kind, consoleAppearance({model: 'GameCube', variant: 'Orange'}).kind);
   assert.equal(consoleAppearance({model: 'Wii Remote', variant: 'Noire'}).colorLabel, 'Noir');
+});
+
+test('Every intake catalogue model uses the same product silhouette in the workshop and storefront', () => {
+  assert.equal(INTAKE_MODELS.length, 38);
+  for (const item of INTAKE_MODELS) {
+    const mapped = workshopConsoleArtItem(item);
+    assert.ok(mapped, item.id);
+    assert.equal(shopConsoleKind(mapped), shopConsoleKind(item), item.id);
+  }
+});
+
+test('Workshop model aliases resolve to storefront art without losing brand or variant', () => {
+  for (const [model, expected] of [
+    ['PS 5 Digital Edition', 'ps5-digital'], ['PS5 Slim', 'ps5-slim'], ['PlayStation 5 Pro', 'ps5-pro'],
+    ['PS4 Pro', 'ps4-pro'], ['PS2', 'ps2'], ['PS Vita', 'vita'], ['Sony PlayStation Portable', 'psp'],
+    ['Microsoft Xbox Series X', 'xbox-series-x'], ['Xbox Series S', 'xbox-series-s'], ['Xbox One S', 'xbox-one-s'],
+    ['Nintendo Switch OLED', 'switch-oled'], ['Switch 2', 'switch-2'], ['GameBoy Color', 'gameboy-color'],
+    ['GBA SP', 'advance-sp'], ['New Nintendo 2DS XL', '2ds-xl'], ['New 3DS LL', '3ds-xl'],
+    ['DS Lite', 'ds'], ['DSi XL', 'ds'], ['Super NES', 'snes'], ['Mega Drive II', 'megadrive'],
+  ]) {
+    const item = {model, brand: 'Marque saisie', variant: 'Édition saisie'};
+    const mapped = workshopConsoleArtItem(item);
+    assert.ok(mapped, model);
+    assert.equal(shopConsoleKind(mapped), expected, model);
+    assert.equal(mapped.brand, item.brand);
+    assert.equal(mapped.variant, item.variant);
+  }
+});
+
+test('Accessories, unsupported revisions and unknown models retain their existing workshop drawings', () => {
+  for (const model of [
+    'Manette Pro Nintendo Switch', 'Switch Pro', 'Joy-Con Switch gauche', 'Wii U GamePad', 'Télécommande Wii',
+    'Manette Xbox One', 'DualSense PS5', 'Game Boy Pocket', 'Game Boy Light', 'Game Boy Micro',
+    'Atari 2600', 'Prototype', 'Xbox originale',
+  ]) assert.equal(workshopConsoleArtItem({model, illustration: 'switch'}), null, model);
+  assert.equal(consoleAppearance({model: 'Atari 2600', illustration: 'megadrive'}).kind, 'megadrive');
 });
