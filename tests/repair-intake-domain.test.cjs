@@ -4,6 +4,7 @@ const d=require('./.compiled/domain.cjs');
 const intake=require('./.compiled/repair-intake-domain.cjs');
 
 const input=(overrides={})=>({requestId:'e2d4e5bc-a5df-40dd-9245-8f2872ac0d30',modelId:'ps5',customModel:'',selectedFaults:[intake.faultSuggestions('ps5')[0]],description:'',serial:'',accessories:'',...overrides});
+const repairPackage=(overrides={})=>({id:'synthetic-package',modelId:'ps5',fault:intake.faultSuggestions('ps5')[0],label:'Intervention fictive',amount:27.15,priceMode:'fixed',includes:'Pièces et intervention fictives, sous réserve du diagnostic.',published:true,...overrides});
 function customerStore(){const store=d.emptyStore();const client=d.createClient(store,{name:'Client fictif',email:'client@example.invalid',phone:'',address:'Adresse fictive',notes:'Note privée'});return {store,client};}
 
 test('Intake models have stable unique ids and fault suggestions fit handheld/digital equipment',()=>{
@@ -27,7 +28,7 @@ test('Intake validation canonicalizes text and repeated suggestions without inve
 });
 
 test('Intake rejects forged ownership, prices, lifecycle and unknown fields',()=>{
-  for(const [key,value] of Object.entries({clientId:'another-client',consoleId:'another-console',price:1,interventionCost:0,payment:{amount:0},stage:'terminee',priority:'urgente',diagnosis:'Réparation garantie',addressConfirmed:true})){
+  for(const [key,value] of Object.entries({clientId:'another-client',consoleId:'another-console',price:1,amount:0,serviceId:'synthetic-package',repairPackage:repairPackage(),interventionCost:0,payment:{amount:0},stage:'terminee',priority:'urgente',diagnosis:'Réparation garantie',addressConfirmed:true})){
     assert.throws(()=>intake.validateIntakeInput({...input(),[key]:value}),/champ non autorisé/);
   }
 });
@@ -41,6 +42,7 @@ test('Intake rejects malformed identifiers, empty faults, impossible selections 
 
 test('A public request atomically creates equipment and an unpriced unpaid dossier waiting for shipment',()=>{
   const {store,client}=customerStore(),revision=store.revision;
+  store.settings.publicRepairPackages=[repairPackage()];
   const created=intake.createPublicRepair(store,client.id,input({description:'Précisions du client',serial:'TEST-ONLY',accessories:'Manette de test'}));
   assert.equal(created.console.clientId,client.id);assert.equal(created.console.model,'PlayStation 5');
   assert.equal(created.console.state,'en-panne');assert.equal(created.console.location,'En attente d’envoi');
@@ -48,6 +50,7 @@ test('A public request atomically creates equipment and an unpriced unpaid dossi
   assert.equal(created.repair.publicRequestId,input().requestId);assert.equal(created.repair.stage,'attente-envoi');
   assert.equal(d.stageInfo(created.repair.stage).label,'En attente d’envoi');
   assert.equal(created.repair.interventionCost,null);assert.equal(created.repair.payment,null);
+  assert.equal(created.repair.diagnosis,'');assert.equal(Object.hasOwn(created.repair,'repairPackage'),false);
   assert.equal(created.repair.priority,'normale');assert.equal(created.repair.dueDate,'');assert.equal(created.repair.completedAt,'');
   assert.equal(created.repair.timerStartedAt,'');assert.equal(created.repair.parts.length,0);assert.equal(created.repair.worklogs.length,0);
   assert.equal(created.repair.tests.length,5);assert.ok(created.repair.tests.every(check=>check.result==='pending'));
@@ -55,6 +58,7 @@ test('A public request atomically creates equipment and an unpriced unpaid dossi
   assert.equal(store.revision,revision);assert.equal(store.consoles[0],created.console);assert.equal(store.repairs[0],created.repair);
   assert.equal(store.events[0].clientId,client.id);assert.equal(store.events[0].repairId,created.repair.id);assert.match(store.events[0].text,/attente d’envoi/);
   assert.equal(store.events[1].consoleId,created.console.id);assert.equal(store.events[1].clientId,client.id);
+  assert.deepEqual(store.settings.publicRepairPackages,[repairPackage()]);
   d.validateStore(store);
 });
 
@@ -129,6 +133,54 @@ test('Shipping defaults expose the verified public shop coordinates without priv
   assert.deepEqual(settings,{shopName:'RépaRapid · Maxxi Games',address:'30 bis, avenue de Fontainebleau',postalCode:'94270',city:'Le Kremlin-Bicêtre',phone:'01 58 46 82 51',email:'contact@reparapid.fr',addressConfirmed:true});
   assert.equal(Object.hasOwn(settings,'owner'),false);assert.equal(Object.hasOwn(settings,'hourlyRate'),false);assert.equal(JSON.stringify(store),before);
   settings.address='Changed locally';assert.notEqual(intake.publicIntakeSettings(store).address,settings.address);
+});
+
+test('Public packages default to an empty independent list and expose only published reference prices',()=>{
+  const store=d.emptyStore(),before=JSON.stringify(store);
+  const empty=intake.publicRepairPackages(store);assert.deepEqual(empty,[]);
+  empty.push(repairPackage());assert.deepEqual(intake.publicRepairPackages(store),[]);assert.equal(JSON.stringify(store),before);
+  store.settings.owner='PRIVATE_OWNER';store.settings.hourlyRate=999;
+  store.settings.publicRepairPackages=[repairPackage({id:'free-package',amount:0}),repairPackage({id:'from-package',amount:45.5,priceMode:'from'}),repairPackage({id:'hidden-package',label:'PRIVATE_DRAFT_PACKAGE',published:false})];
+  const configured=JSON.stringify(store),published=intake.publicRepairPackages(store);
+  assert.equal(published.length,2);assert.equal(published[0].amount,0);assert.equal(published[1].priceMode,'from');
+  assert.deepEqual(Object.keys(published[0]).sort(),['amount','fault','id','includes','label','modelId','priceMode']);
+  assert.ok(!JSON.stringify(published).includes('PRIVATE'));assert.ok(!JSON.stringify(published).includes('published'));
+  assert.notEqual(published[0],store.settings.publicRepairPackages[0]);assert.equal(JSON.stringify(store),configured);
+  published[0].label='Changed locally';assert.equal(intake.publicRepairPackages(store)[0].label,'Intervention fictive');
+});
+
+test('Package validation preserves stable ids, canonical text, zero and the maximum cent price',()=>{
+  const raw=[repairPackage({id:'  synthetic-package  ',modelId:' ps5 ',fault:' '+intake.faultSuggestions('ps5')[0]+' ',label:' Intervention fictive ',includes:' Inclus fictif ',amount:0}),repairPackage({id:'maximum',amount:100000,priceMode:'from',published:false}),repairPackage({id:'cent-price',amount:0.29}),repairPackage({id:'usual-price',amount:79.99})],before=structuredClone(raw);
+  const valid=d.validatePublicRepairPackages(raw);
+  assert.deepEqual(valid[0],repairPackage({amount:0,includes:'Inclus fictif'}));assert.equal(valid[1].amount,100000);assert.equal(valid[2].amount,0.29);assert.equal(valid[3].amount,79.99);
+  assert.deepEqual(raw,before);assert.notEqual(valid[0],raw[0]);
+  const store=d.emptyStore();store.settings.publicRepairPackages=raw;
+  assert.deepEqual(d.validateStore(store).settings.publicRepairPackages,valid);
+});
+
+test('Packages reject malformed grids, unknown fields, mismatched equipment, invalid precision and useless descriptions',()=>{
+  for(const raw of [null,{},'packages',[null],[[]],new Array(1),new Array(201).fill(repairPackage())])assert.throws(()=>d.validatePublicRepairPackages(raw));
+  const invalid=[{id:''},{id:'invalid id'},{id:'x'.repeat(121)},{modelId:'other'},{modelId:'missing'},
+    {modelId:'ps5-digital',fault:'Les disques ne sont plus lus'},{fault:intake.faultSuggestions('switch')[1]},
+    {amount:-1},{amount:100000.01},{amount:1.001},{amount:1.005},{amount:NaN},{amount:Infinity},{amount:'27.15'},
+    {priceMode:'estimated'},{published:'true'},{published:undefined},{label:' '},{label:'x'.repeat(161)},
+    {includes:''},{includes:'x'.repeat(1001)},{label:'Text\u0000invalid'},{includes:'Text\u0007invalid'},
+    {privateNotes:'Must not enter a public package'}];
+  for(const override of invalid){
+    const raw=[repairPackage(override)];assert.throws(()=>d.validatePublicRepairPackages(raw));
+    const store=d.emptyStore();store.settings.publicRepairPackages=raw;assert.throws(()=>d.validateStore(store),/Sauvegarde invalide/);
+  }
+  assert.throws(()=>d.validatePublicRepairPackages([repairPackage(),repairPackage({id:' synthetic-package '})]),/uniques/);
+});
+
+test('Backups retain configured packages and accept absent legacy or explicitly empty catalogues',()=>{
+  const store=d.emptyStore();store.settings.publicRepairPackages=[repairPackage(),repairPackage({id:'draft',published:false})];
+  const restored=d.validateStore(JSON.parse(JSON.stringify(store)));
+  assert.deepEqual(restored.settings.publicRepairPackages,store.settings.publicRepairPackages);
+  assert.notEqual(restored.settings.publicRepairPackages[0],store.settings.publicRepairPackages[0]);
+  delete store.settings.publicRepairPackages;
+  assert.equal(Object.hasOwn(d.validateStore(store).settings,'publicRepairPackages'),false);
+  store.settings.publicRepairPackages=[];assert.deepEqual(d.validateStore(store).settings.publicRepairPackages,[]);
 });
 
 test('Saved shipping coordinates can disable shipment and must be complete before confirmation',()=>{

@@ -58,14 +58,15 @@ export function repairIntakeSheet(store, clientId, repairId, publicIntakeSetting
 }
 
 // Older admin clients must not silently drop the key used for retry deduplication
-// or the shop's shipping destination. Explicit restore/reset and deletions keep
+// or the shop's shipping destination and configured packages. Explicit restore/reset and deletions keep
 // their existing semantics.
 export function assertIntakeMetadataPreserved(before, data, mode) {
   if (mode !== 'edit') return;
   const next = new Map(data.repairs.map(repair => [repair.id, repair]));
   if (before.repairs.some(repair => repair.publicRequestId && next.has(repair.id)
     && next.get(repair.id).publicRequestId !== repair.publicRequestId)
-    || (before.settings.publicIntake !== undefined && data.settings.publicIntake === undefined)) {
-    throw new RepairIntakeError(409, 'Votre version de l’atelier est ancienne. Rechargez la page avant de modifier les demandes en ligne et les coordonnées d’envoi.');
+    || (before.settings.publicIntake !== undefined && data.settings.publicIntake === undefined)
+    || (before.settings.publicRepairPackages !== undefined && data.settings.publicRepairPackages === undefined)) {
+    throw new RepairIntakeError(409, 'Votre version de l’atelier est ancienne. Rechargez la page avant de modifier les demandes en ligne, les forfaits et les coordonnées d’envoi.');
   }
 }

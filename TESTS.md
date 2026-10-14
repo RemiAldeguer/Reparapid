@@ -6,6 +6,20 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
+## Résultat courant : forfaits de réparation
+
+**531 tests réussis (486 Node/domaine/API + 45 Cloudflare)**, aucun échec, annulation ou test ignoré. TypeScript et build final réussis : **98 modules**, six sources publiques autorisées, **135 fichiers de build**, dont 123 pages de guides. Les nouveaux tests vérifient publication/masquage et projection explicite, modèles/symptômes et champs valides, zéro et décimales 0.29/79.99, rejet de 1.005, persistance et ancienne sauvegarde, omission d’un ancien éditeur, effacement explicite, isolation et refus des montants/références forgés dans les POST. La création reste sans coût, diagnostic ou paiement dérivé du forfait.
+
+Deux fixtures multi-atelier ont été ajustées après un premier passage à 484/486 : elles installaient leur grille avant un provisionnement qui exige un atelier initial vide. La grille fictive est désormais ajoutée après cette création ; la garde de production est conservée. La suite complète ci-dessus a été relancée ensuite.
+
+Recette Node en mémoire à **1280 px**, avec prix fictifs explicitement étiquetés : PS5 et port HDMI → offre précise ; surchauffe → prix « à partir de » ; deux pannes → offres individuelles sans total automatique ; PS5 Digital sans grille → montant à confirmer ; Switch et joystick → zéro explicite, maintenu à l’étape compte. Le forfait masqué et le tarif PS4 ne sont pas exposés à cette sélection. Aucun dossier client ou paiement créé par la recette.
+
+Compte administrateur fictif : masquage d’une offre, création/publication d’une nouvelle à 0.29 €, rechargement confirmant la persistance, changement de modèle vidant le symptôme et montant publié actualisé dans le formulaire. Les collections **clients, consoles, réparations et pièces restent inchangées** ; seule la grille fictive et son historique sont modifiés. Une deuxième base vide confirme montant/mode vides, publication désactivée et formulaire prêt. Aucun débordement horizontal observé ; les limites de viewport mobile du navigateur documentées précédemment restent applicables.
+
+**Grille commerciale manquante :** les pages du magasin consultées proposent des demandes de devis et aucun montant public chiffré. La grille réelle a été demandée ; la production ne reçoit aucun tarif fictif ou prix par défaut. Les montants seront renseignés par le magasin ou à réception de sa grille. Aucune migration SQL, import, reset de production ou modification de données clients.
+
+Publication à **100 % du trafic Cloudflare**, sans migration ni écriture D1 : sept assets principaux conformes au build, 123 pages HTML conformes et 140 contrôles SEO réussis. GET `/api/public/repair-intake` renvoie HTTP 200 avec exactement `shop` et `repairPackages` ; la grille publique est vide tant que les tarifs réels ne sont pas renseignés. Les cinq API privées contrôlées renvoient HTTP 401 sans données privées. Les deux serveurs de recette sont arrêtés et les onglets temporaires sont fermés.
+
 ## Dernier ajustement visuel : « par Maxxi Games »
 
 Le mot « par » précède le logo sur une même ligne, dans l’en-tête et le pied de page de l’accueil et des tutoriels. TypeScript et le build final réussissent : 94 modules, six sources publiques et 135 fichiers, dont 123 pages de guides. Recette Node en mémoire à 1280 px : texte placé avant l’image, logo chargé et aucun débordement, accueil et catalogue contrôlés. Serveur arrêté avec Store inchangé. La signature est aussi vérifiée sur l’accueil publié.

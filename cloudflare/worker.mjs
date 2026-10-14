@@ -1,7 +1,7 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient } from '../src/domain.ts';
-import {validateIntakeInput, createPublicRepair, publicIntakeSettings} from '../src/repair-intake-domain.ts';
+import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../src/repair-intake-domain.ts';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from '../server/client-part-availability.mjs';
@@ -268,7 +268,8 @@ async function handle(request, env, headers, url, secure, configured, context) {
   if (pathname.startsWith('/api/public/repair-intake')) {
     if (request.headers.get('X-Workshop-ID')) throw new HttpError(403, 'Origine de la demande invalide.');
     if (pathname === '/api/public/repair-intake' && request.method === 'GET') {
-      return json(headers, 200, {shop: publicIntakeSettings(await readWorkshop(db))});
+      const current = await readWorkshop(db);
+      return json(headers, 200, {shop: publicIntakeSettings(current), repairPackages: publicRepairPackages(current)});
     }
     if (pathname === '/api/public/repair-intake/register' && request.method === 'POST') {
       const ip = env.LOCAL_DEV !== 'true' && request.cf && typeof request.cf === 'object' ? request.headers.get('CF-Connecting-IP') || 'unknown' : 'unknown';

@@ -6,7 +6,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createApplication} from '../server/application.mjs';
 import {digest, token} from '../server/security.mjs';
 import {emptyStore, createClient, setRepairInterventionCost, moveRepair, repairTotalCost, deleteRepair} from '../tests/.compiled/domain.cjs';
-import {faultSuggestions, createPublicRepair, publicIntakeSettings} from '../tests/.compiled/repair-intake-domain.cjs';
+import {faultSuggestions, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {provisioningStatements, workshopPrefix} from '../server/workshop-scope.mjs';
 import {clientPortal} from '../server/client-portal.mjs';
 import worker from '../cloudflare/worker.mjs';
@@ -16,6 +16,14 @@ const customer = {name: 'Client fictif', email: 'intake@example.invalid', phone:
 const intake = (overrides = {}) => ({requestId: crypto.randomUUID(), modelId: 'ps5', customModel: '',
   selectedFaults: [faultSuggestions('ps5')[0]], description: 'Panne décrite par le client fictif.', serial: 'SYNTHETIC-SERIAL', accessories: 'Câble secteur', ...overrides});
 const registration = (overrides = {}) => ({customer: {...customer}, password, intake: intake(), ...overrides});
+const repairPackage = (overrides = {}) => ({id: 'synthetic-package', modelId: 'ps5', fault: faultSuggestions('ps5')[0],
+  label: 'Intervention fictive', amount: 79.99, priceMode: 'fixed', includes: 'Pièces et intervention fictives, sous réserve du diagnostic.', published: true, ...overrides});
+
+function adminSession(f, platform) {
+  const value = token(), csrf = token(), at = Date.now(), expires = at + 3600000;
+  f.sqlite.prepare('INSERT INTO sessions(token_hash,admin_id,csrf,expires_at,seen_at) VALUES(?,1,?,?,?)').run(digest(value), csrf, expires, at);
+  return {cookie: `${platform === 'node' ? 'clinique_session' : '__Host-clinique_session'}=${value}`, csrf};
+}
 
 async function fixture(t, platform, {store = emptyStore()} = {}) {
   const origin = platform === 'node' ? 'http://127.0.0.1:3041' : 'https://repair.example';
@@ -102,7 +110,7 @@ for (const platform of ['node', 'worker']) {
     const f = await fixture(t, platform, {store});
     const publicResponse = await f.request('/api/public/repair-intake');
     assert.equal(publicResponse.status, 200);
-    assert.deepEqual(publicResponse.data, {shop: publicIntakeSettings(store)});
+    assert.deepEqual(publicResponse.data, {shop: publicIntakeSettings(store), repairPackages: []});
     assert.ok(!JSON.stringify(publicResponse.data).includes('PRIVATE'));
     const input = registration(), result = await f.signup(input);
     assert.equal(result.status, 201, JSON.stringify(result.data));
@@ -147,6 +155,67 @@ for (const platform of ['node', 'worker']) {
     assert.equal(estimated.data.repairs.find(repair => repair.id === result.data.repairId).totalCost, 0);
     assert.equal(estimated.data.repairs.find(repair => repair.id === result.data.repairId).intakeSubmitted, true);
     assert.equal((await f.request(sheetPath, auth)).data.repair.stage, 'reception');
+  });
+
+  test(`${platform}: public packages expose only published root prices without quoting or paying the request`, async t => {
+    const store = emptyStore(); store.settings.owner = 'PRIVATE_OWNER'; store.settings.hourlyRate = 999;
+    store.settings.publicRepairPackages = [repairPackage({id: 'free-package', amount: 0}),
+      repairPackage({id: 'from-package', amount: 79.99, priceMode: 'from'}),
+      repairPackage({id: 'hidden-package', label: 'PRIVATE_DRAFT_PACKAGE', published: false})];
+    const f = await fixture(t, platform, {store}), response = await f.request('/api/public/repair-intake');
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.data, {shop: publicIntakeSettings(store), repairPackages: publicRepairPackages(store)});
+    assert.deepEqual(Object.keys(response.data).sort(), ['repairPackages', 'shop']);
+    assert.deepEqual(Object.keys(response.data.repairPackages[0]).sort(), ['amount', 'fault', 'id', 'includes', 'label', 'modelId', 'priceMode']);
+    assert.equal(response.data.repairPackages[0].amount, 0); assert.equal(response.data.repairPackages[1].priceMode, 'from');
+    assert.ok(!JSON.stringify(response.data).includes('PRIVATE')); assert.ok(!JSON.stringify(response.data).includes('published'));
+    assert.deepEqual(f.read(), store);
+    const result = await f.signup(); assert.equal(result.status, 201);
+    const saved = f.read(), repair = saved.repairs.find(item => item.id === result.data.repairId);
+    assert.equal(repair.interventionCost, null); assert.equal(repair.payment, null); assert.equal(repair.diagnosis, '');
+    assert.deepEqual(saved.settings.publicRepairPackages, store.settings.publicRepairPackages);
+    const portal = await f.request('/api/client/portal', result.auth);
+    assert.equal(portal.data.repairs[0].totalCost, null); assert.equal(Object.hasOwn(portal.data.repairs[0], 'repairPackages'), false);
+    const before = f.read();
+    for (const forged of [{price: 0}, {amount: 0}, {serviceId: 'free-package'}, {repairPackage: repairPackage()}]) {
+      const refused = await f.request('/api/client/repair-intake', {...result.auth, method: 'POST', body: {intake: intake(forged)}});
+      assert.equal(refused.status, 400); assert.deepEqual(f.read(), before);
+    }
+  });
+
+  test(`${platform}: package settings save canonically, survive reloads and support explicit clearing, restore and reset`, async t => {
+    const f = await fixture(t, platform), auth = adminSession(f, platform), original = f.read();
+    assert.deepEqual((await f.request('/api/public/repair-intake')).data.repairPackages, []);
+    assert.equal(Object.hasOwn(f.read().settings, 'publicRepairPackages'), false);
+    const configured = structuredClone(original);
+    configured.settings.publicRepairPackages = [repairPackage({id: ' cent-price ', amount: 0.29, label: ' Intervention fictive ', includes: ' Inclus fictif '}),
+      repairPackage({id: 'draft', published: false})];
+    const result = await f.request('/api/store', {...auth, method: 'PUT', body: {data: configured, revision: original.revision, mode: 'edit'}});
+    assert.equal(result.status, 200, JSON.stringify(result.data));
+    const saved = f.read(); assert.equal(saved.revision, original.revision + 1);
+    assert.deepEqual(saved.settings.publicRepairPackages, [repairPackage({id: 'cent-price', amount: 0.29, includes: 'Inclus fictif'}), repairPackage({id: 'draft', published: false})]);
+    assert.deepEqual((await f.request('/api/store', auth)).data.settings.publicRepairPackages, saved.settings.publicRepairPackages);
+    assert.deepEqual((await f.request('/api/public/repair-intake')).data.repairPackages, publicRepairPackages(saved));
+    for (const override of [{modelId: 'other'}, {modelId: 'ps5-digital', fault: 'Les disques ne sont plus lus'},
+      {fault: faultSuggestions('switch')[1]}, {amount: 1.005}, {published: 'true'}, {privateNotes: 'PRIVATE'}]) {
+      const invalid = structuredClone(saved); invalid.settings.publicRepairPackages = [repairPackage(override)];
+      const refused = await f.request('/api/store', {...auth, method: 'PUT', body: {data: invalid, revision: saved.revision, mode: 'edit'}});
+      assert.equal(refused.status, 400); assert.deepEqual(f.read(), saved);
+    }
+    const cleared = structuredClone(saved); cleared.settings.publicRepairPackages = [];
+    assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: cleared, revision: saved.revision, mode: 'edit'}})).status, 200);
+    const empty = f.read(); assert.deepEqual(empty.settings.publicRepairPackages, []);
+    assert.deepEqual((await f.request('/api/public/repair-intake')).data.repairPackages, []);
+    const oldBundle = structuredClone(empty); delete oldBundle.settings.publicRepairPackages;
+    assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: oldBundle, revision: empty.revision, mode: 'edit'}})).status, 409);
+    assert.deepEqual(f.read(), empty);
+    assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: oldBundle, revision: empty.revision, mode: 'restore'}})).status, 200);
+    assert.equal(Object.hasOwn(f.read().settings, 'publicRepairPackages'), false);
+    const restored = f.read(); restored.settings.publicRepairPackages = [repairPackage()];
+    assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: restored, revision: restored.revision, mode: 'edit'}})).status, 200);
+    assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: emptyStore(), revision: f.read().revision, mode: 'reset'}})).status, 200);
+    assert.equal(Object.hasOwn(f.read().settings, 'publicRepairPackages'), false);
+    assert.deepEqual((await f.request('/api/public/repair-intake')).data.repairPackages, []);
   });
 
   test(`${platform}: signup cannot reset an existing account, claim a reserved admin or introduce forged fields`, async t => {
@@ -301,6 +370,7 @@ for (const platform of ['node', 'worker']) {
     const tenantEmail = 'tenant-admin@example.invalid';
     for (const statement of provisioningStatements({id: tenantId, email: tenantEmail, password_hash: 'synthetic', workshop_name: 'PRIVATE_TENANT', name: 'Tenant admin'},
       {at: Date.now(), guard: {sql: '1=1', values: []}, store: tenantStore}, platform === 'node' ? 'node' : 'd1')) f.sqlite.prepare(statement.sql).run(...statement.values);
+    tenantStore.settings.publicRepairPackages = [repairPackage({id: 'tenant-package', label: 'PRIVATE_TENANT_PACKAGE'})];
     const prefix = workshopPrefix(tenantId), client = createClient(tenantStore, {...customer, name: 'Private tenant client', notes: 'PRIVATE_TENANT_NOTE'});
     const tenantRepair = createPublicRepair(tenantStore, client.id, intake());
     if (platform === 'node') f.sqlite.prepare(`UPDATE ${prefix}workshop SET data=? WHERE id=1`).run(JSON.stringify(tenantStore));
@@ -317,32 +387,31 @@ for (const platform of ['node', 'worker']) {
     assert.equal((await f.request('/api/client/repair-intake/session', auth)).status, 401);
     assert.equal((await f.request('/api/client/repair-intake', {...auth, method: 'POST', body: {intake: intake()}})).status, 404);
     assert.equal((await f.request(`/api/client/repair-intake/${tenantRepair.repair.id}/sheet`, auth)).status, 404);
-    assert.deepEqual((await f.request('/api/public/repair-intake', auth)).data, {shop: publicIntakeSettings(emptyStore())});
+    assert.deepEqual((await f.request('/api/public/repair-intake', auth)).data, {shop: publicIntakeSettings(emptyStore()), repairPackages: []});
     const registered = await f.signup(registration(), auth); assert.equal(registered.status, 201);
     assert.equal(f.read().clients.length, 1); assert.notEqual(registered.data.session.user.clientId, client.id);
     assert.equal(f.sqlite.prepare(`SELECT count(*) AS n FROM ${prefix}client_accounts`).get().n, 1);
   });
 
-  test(`${platform}: old admin editors cannot erase intake identifiers or shipping settings, while deletion and restore remain explicit`, async t => {
+  test(`${platform}: old admin editors cannot erase intake identifiers, shipping or package settings, while deletion and restore remain explicit`, async t => {
     const f = await fixture(t, platform), registered = await f.signup(); assert.equal(registered.status, 201);
     const current = f.read(); moveRepair(current, registered.data.repairId, 'reception');
-    current.settings.publicIntake = publicIntakeSettings(current); current.revision++; f.replace(current);
-    const value = token(), csrf = token(), expires = Date.now() + 3600000;
-    f.sqlite.prepare('INSERT INTO sessions(token_hash,admin_id,csrf,expires_at,seen_at) VALUES(?,1,?,?,?)').run(digest(value), csrf, expires, Date.now());
-    const auth = {cookie: `${platform === 'node' ? 'clinique_session' : '__Host-clinique_session'}=${value}`, csrf};
-    for (const field of ['requestId', 'changedRequestId', 'shipping']) {
+    current.settings.publicIntake = publicIntakeSettings(current); current.settings.publicRepairPackages = [repairPackage()]; current.revision++; f.replace(current);
+    const auth = adminSession(f, platform);
+    for (const field of ['requestId', 'changedRequestId', 'shipping', 'packages']) {
       const oldBundle = structuredClone(current);
       if (field === 'requestId') delete oldBundle.repairs[0].publicRequestId;
       if (field === 'changedRequestId') oldBundle.repairs[0].publicRequestId = crypto.randomUUID();
       if (field === 'shipping') delete oldBundle.settings.publicIntake;
+      if (field === 'packages') delete oldBundle.settings.publicRepairPackages;
       const response = await f.request('/api/store', {...auth, method: 'PUT', body: {data: oldBundle, revision: current.revision, mode: 'edit'}});
       assert.equal(response.status, 409); assert.deepEqual(f.read(), current);
     }
     const deleted = structuredClone(current); deleteRepair(deleted, registered.data.repairId);
     assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: deleted, revision: current.revision, mode: 'edit'}})).status, 200);
-    const legacyBackup = structuredClone(current); delete legacyBackup.repairs[0].publicRequestId; delete legacyBackup.settings.publicIntake;
+    const legacyBackup = structuredClone(current); delete legacyBackup.repairs[0].publicRequestId; delete legacyBackup.settings.publicIntake; delete legacyBackup.settings.publicRepairPackages;
     assert.equal((await f.request('/api/store', {...auth, method: 'PUT', body: {data: legacyBackup, revision: f.read().revision, mode: 'restore'}})).status, 200);
-    assert.equal(f.read().repairs[0].publicRequestId, undefined); assert.equal(f.read().settings.publicIntake, undefined);
+    assert.equal(f.read().repairs[0].publicRequestId, undefined); assert.equal(f.read().settings.publicIntake, undefined); assert.equal(f.read().settings.publicRepairPackages, undefined);
   });
 }
 

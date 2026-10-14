@@ -1,4 +1,6 @@
 /** Domain rules are independent from the UI and the storage mechanism. */
+import {INTAKE_MODELS, faultSuggestions} from './repair-intake-catalog.ts';
+
 export const SCHEMA = 1;
 export const STORAGE_KEY = 'la-clinique-retro:v1';
 export const STATES = {
@@ -63,9 +65,14 @@ export interface PublicIntakeSettings {
   shopName: string; address: string; postalCode: string; city: string; phone: string; email: string;
   addressConfirmed: boolean;
 }
+export interface RepairPackage {
+  id: string; modelId: string; fault: string; label: string; amount: number;
+  priceMode: 'fixed' | 'from'; includes: string; published: boolean;
+}
+export type PublishedRepairPackage = Omit<RepairPackage, 'published'>;
 export interface Store {
   schemaVersion: number; revision: number;
-  settings: { workshop: string; owner: string; hourlyRate: number; demo: boolean; lastExportAt: string; publicIntake?: PublicIntakeSettings; };
+  settings: { workshop: string; owner: string; hourlyRate: number; demo: boolean; lastExportAt: string; publicIntake?: PublicIntakeSettings; publicRepairPackages?: RepairPackage[]; };
   clients: Client[]; consoles: ConsoleItem[]; repairs: Repair[]; parts: Part[]; events: Activity[];
 }
 export const uid = () => globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -474,6 +481,30 @@ export function validatePublicIntakeSettings(raw: unknown): PublicIntakeSettings
   if(settings.addressConfirmed&&(!settings.address||!settings.postalCode||!settings.city))throw Error('Renseignez l’adresse complète de l’atelier avant de confirmer l’envoi.');
   return settings;
 }
+/** Reference prices describe published interventions, never a customer diagnosis or dossier quote. */
+export function validatePublicRepairPackages(raw: unknown): RepairPackage[] {
+  if(!Array.isArray(raw)||raw.length>200)throw Error('La grille de forfaits doit contenir au plus 200 forfaits.');
+  const fields=new Set(['id','modelId','fault','label','amount','priceMode','includes','published']),ids=new Set<string>();
+  return Array.from(raw,entry=>{
+    if(!entry||typeof entry!=='object'||Array.isArray(entry))throw Error('Forfait de réparation invalide.');
+    const value=entry as Record<string,unknown>;
+    if(Object.keys(value).some(key=>!fields.has(key)))throw Error('Le forfait contient un champ non autorisé.');
+    const text=(name: string,max: number):string=>{
+      const field=value[name];
+      if(typeof field!=='string'||field.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(field)||!field.trim())throw Error('Forfait : texte obligatoire manquant, invalide ou trop long.');
+      return field.trim();
+    };
+    const id=text('id',120),modelId=text('modelId',80),fault=text('fault',300);
+    if(!/^[A-Za-z0-9_-]+$/.test(id)||ids.has(id))throw Error('Les identifiants des forfaits doivent être valides et uniques.');
+    ids.add(id);
+    if(modelId==='other'||!INTAKE_MODELS.some(model=>model.id===modelId))throw Error('Choisissez un modèle exact pour le forfait.');
+    if(!faultSuggestions(modelId).includes(fault))throw Error('La panne du forfait ne correspond pas au modèle choisi.');
+    if(typeof value.amount!=='number'||!Number.isFinite(value.amount)||value.amount<0||value.amount>100000||cents(value.amount)!==value.amount)throw Error('Le montant du forfait doit être compris entre 0 et 100 000 €, avec deux décimales maximum.');
+    if(value.priceMode!=='fixed'&&value.priceMode!=='from')throw Error('Le mode de prix du forfait est invalide.');
+    if(typeof value.published!=='boolean')throw Error('La publication du forfait doit être indiquée explicitement.');
+    return {id,modelId,fault,label:text('label',160),amount:value.amount,priceMode:value.priceMode,includes:text('includes',1000),published:value.published};
+  });
+}
 /** Strict import validation: known fields only, bounds, foreign keys and lifecycle invariants. */
 export function validateStore(raw: unknown): Store {
   const fail=(label:string):never=>{throw Error(`Sauvegarde invalide : ${label}.`)};
@@ -509,6 +540,7 @@ export function validateStore(raw: unknown): Store {
   const settings=rec(v.settings);
   const s:Store={schemaVersion:SCHEMA,revision:num(v.revision,true),settings:{workshop:required(settings.workshop,120),owner:str(settings.owner,80),hourlyRate:num(settings.hourlyRate),demo:flag(settings.demo),lastExportAt:timestamp(settings.lastExportAt,true)},clients:[],consoles:[],repairs:[],parts:[],events:[]};
   if(settings.publicIntake!==undefined){try{s.settings.publicIntake=validatePublicIntakeSettings(settings.publicIntake);}catch(error){fail(error instanceof Error?error.message:'coordonnées d’envoi invalides');}}
+  if(settings.publicRepairPackages!==undefined){try{s.settings.publicRepairPackages=validatePublicRepairPackages(settings.publicRepairPackages);}catch(error){fail(error instanceof Error?error.message:'grille de forfaits invalide');}}
   s.clients=(v.clients===undefined?[]:arr(v.clients)).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),name:required(c.name,200),email:email(c.email),phone:str(c.phone,80),address:str(c.address,1000),notes:str(c.notes),createdAt:timestamp(c.createdAt)};});
   s.consoles=arr(v.consoles).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),clientId:optionalId(c.clientId),brand:required(c.brand,80),model:required(c.model,120),variant:str(c.variant,150),serial:str(c.serial,100),state:one(c.state,Object.keys(STATES) as ConsoleState[]),condition:str(c.condition,80),acquiredAt:day(c.acquiredAt),purchasePrice:num(c.purchasePrice),estimatedValue:num(c.estimatedValue),source:str(c.source,200),location:str(c.location,200),accessories:str(c.accessories),notes:str(c.notes),illustration:one(c.illustration,['gameboy','snes','playstation','megadrive','dreamcast','switch','gamegear'] as const),photos:photos(c.photos),archived:flag(c.archived),createdAt:timestamp(c.createdAt)};});
   s.parts=arr(v.parts).map(y=>{const p=rec(y);return{id:id(p.id),reference:required(p.reference,80),name:required(p.name,200),category:str(p.category,80),compatibility:str(p.compatibility,500),quantity:num(p.quantity,true),threshold:num(p.threshold,true),unitCost:num(p.unitCost),location:str(p.location,200),supplier:str(p.supplier,200)};});

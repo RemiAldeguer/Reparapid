@@ -7,11 +7,11 @@ catch { ts = require(process.env.TYPESCRIPT_PATH || 'typescript'); }
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'tests', '.compiled');
 fs.mkdirSync(output, { recursive: true });
-for (const name of ['domain', 'seed', 'finance-domain', 'invoice-domain', 'repair-intake-domain']) {
+for (const name of ['domain', 'seed', 'finance-domain', 'invoice-domain', 'repair-intake-catalog', 'repair-intake-domain']) {
   const result = ts.transpileModule(fs.readFileSync(path.join(root, 'src', name + '.ts'), 'utf8'), {
     fileName: name + '.ts', reportDiagnostics: true,
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   });
   if ((result.diagnostics || []).some(d => d.category === ts.DiagnosticCategory.Error)) throw new Error('Compilation métier impossible.');
-  fs.writeFileSync(path.join(output, name + '.cjs'), result.outputText.replaceAll('require("./domain")', 'require("./domain.cjs")').replaceAll('require("./domain.ts")', 'require("./domain.cjs")'));
+  fs.writeFileSync(path.join(output, name + '.cjs'), result.outputText.replaceAll('require("./domain")', 'require("./domain.cjs")').replaceAll('require("./domain.ts")', 'require("./domain.cjs")').replaceAll('require("./repair-intake-catalog.ts")', 'require("./repair-intake-catalog.cjs")'));
 }

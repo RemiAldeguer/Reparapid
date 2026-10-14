@@ -4,7 +4,7 @@ import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient } from '../tests/.compiled/domain.cjs';
-import {validateIntakeInput, createPublicRepair, publicIntakeSettings} from '../tests/.compiled/repair-intake-domain.cjs';
+import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from './client-part-availability.mjs';
@@ -170,7 +170,8 @@ export function createApplication({ databasePath, origin, distPath, production =
         if (workshopId) throw new HttpError(404, 'Route introuvable.');
         if (req.headers['x-workshop-id']) throw new HttpError(403, 'Origine de la demande invalide.');
         if (pathname === '/api/public/repair-intake' && req.method === 'GET') {
-          return json(res, 200, {shop: publicIntakeSettings(workshop())});
+          const current = workshop();
+          return json(res, 200, {shop: publicIntakeSettings(current), repairPackages: publicRepairPackages(current)});
         }
         if (pathname === '/api/public/repair-intake/register' && req.method === 'POST') {
           throttle('repair-signup-ip:' + digest(req.socket.remoteAddress || 'unknown'), 5, HOUR, res);
