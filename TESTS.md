@@ -6,7 +6,13 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat automatisé courant : 120 tutoriels et logo Maxxi Games
+## Dernier ajustement visuel : « par Maxxi Games »
+
+Le mot « par » précède le logo sur une même ligne, dans l’en-tête et le pied de page de l’accueil et des tutoriels. TypeScript et le build final réussissent : 94 modules, six sources publiques et 135 fichiers, dont 123 pages de guides. Recette Node en mémoire à 1280 px : texte placé avant l’image, logo chargé et aucun débordement, accueil et catalogue contrôlés. Serveur arrêté avec Store inchangé. La signature est aussi vérifiée sur l’accueil publié.
+
+Publication à 100 % du trafic Cloudflare : 123 pages conformes au build et 140 contrôles SEO réussis ; sept assets principaux conformes, API publique 200 et cinq API privées 401. Aucune modification D1. Cet ajustement de texte et CSS n’a pas relancé la suite métier ; les 523 tests ci-dessous restent le résultat de la reprise précédente.
+
+## Résultat de la reprise précédente : 120 tutoriels et logo Maxxi Games
 
 **523 tests réussis (478 Node/domaine/API + 45 Cloudflare)**, aucun échec, test annulé ou ignoré. Après les deux dernières précisions éditoriales Steam Deck, les **13 tests de guides** et TypeScript ont été réexécutés avec succès. Le build final de **94 modules** réussit en 1 min 26 s : **six sources publiques autorisées**, **135 fichiers de build**, dont **123 pages HTML de guides**, les deux ressources SEO et le petit script de recherche. Les dernières précisions sont présentes dans le HTML final ; le contrôle des espaces du diff est réussi.
 

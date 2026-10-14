@@ -10,7 +10,7 @@ import './public-home.css';
 import './reparapid-brand.css';
 
 export function ReparapidBrand() {
-  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><img className="rp-brand-image" src="/reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small className="rp-partner-brand"><img src="/maxxi-games-logo-original.png" width="500" height="500" alt="Maxxi Games"/><span>LE KREMLIN-BICÊTRE</span></small></span></a>;
+  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><img className="rp-brand-image" src="/reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small className="rp-partner-brand"><span className="rp-partner-signature"><span>par</span><img src="/maxxi-games-logo-original.png" width="500" height="500" alt="Maxxi Games"/></span><span>LE KREMLIN-BICÊTRE</span></small></span></a>;
 }
 function sectionLink(event: MouseEvent<HTMLAnchorElement>, id: string) {
   event.preventDefault(); const section = document.getElementById(id);
