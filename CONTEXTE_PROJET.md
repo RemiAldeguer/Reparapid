@@ -28,9 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : forfaits de réparation par modèle et panne
+## Dernière reprise : onglet Forfaits de réparation
 
-L’utilisateur demande l’affichage des forfaits quand une panne peut correspondre à une intervention identifiée. Les pages officielles de réparapid.fr consultées proposent des demandes de devis, sans grille chiffrée publiée ; la grille réelle (modèle, intervention, montant TTC et inclusions) a été demandée à l’utilisateur. **Aucun tarif réel ou tarif par défaut n’est initialisé.** Le magasin peut renseigner les montants dans **Réglages → Forfaits de réparation du site** ; les données fictives de recette ne sont jamais transférées en production.
+La gestion des forfaits est désormais une page dédiée **Forfaits de réparation** dans le menu principal du backoffice, à l’adresse `#/repair-packages`. Le titre, le fil d’Ariane et l’état actif du menu suivent cette route. Le panneau a été retiré de **Réglages & sauvegardes**. La page réutilise l’éditeur et le catalogue existants ; sur grand écran, le catalogue et le formulaire sont disposés côte à côte, puis empilés sur les écrans plus étroits.
+
+Menu, route et éditeur restent réservés à `super_admin` sans `workshopId`, soit le magasin principal. Un accès anonyme passe par la connexion administrateur et un atelier secondaire reçoit une page de refus. Aucun contrat d’API, tarif, donnée ou règle métier n’est modifié. Consulter TESTS.md pour la compilation, la recette et la publication de ce déplacement.
+
+TypeScript et build final de **99 modules** réussis, 135 fichiers publics. Recette à 1280 px en mémoire : navigation directe, catalogue et formulaire côte à côte, sauvegarde/rechargement, réglages sans forfaits et collections métier inchangées ; serveur arrêté, onglet fermé. Gardes relues indépendamment. Publication vérifiée à 100 % du trafic avec sept assets conformes, API publique 200 et cinq API privées 401, sans écriture D1. Les 531 tests restent le résultat de la reprise métier précédente.
+
+## Reprise précédente : forfaits de réparation par modèle et panne
+
+L’utilisateur demande l’affichage des forfaits quand une panne peut correspondre à une intervention identifiée. Les pages officielles de réparapid.fr consultées proposent des demandes de devis, sans grille chiffrée publiée ; la grille réelle (modèle, intervention, montant TTC et inclusions) a été demandée à l’utilisateur. **Aucun tarif réel ou tarif par défaut n’est initialisé.** Le magasin peut renseigner les montants dans l’onglet **Forfaits de réparation** ; les données fictives de recette ne sont jamais transférées en production.
 
 Le panneau du compte principal permet ajout/modification, prix fixe ou « à partir de », contenu du forfait et publication explicite. Un nouveau forfait démarre sans montant et non publié ; **Masquer du site** préserve sa fiche. Les montants sont en EUR TTC, y compris zéro. Le brouillon reste visible pendant la soumission ; le Provider confirme la sauvegarde serveur et gère les conflits. Changer le modèle vide le symptôme lié.
 

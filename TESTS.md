@@ -6,7 +6,17 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : forfaits de réparation
+## Résultat courant : onglet Forfaits de réparation
+
+Déplacement visuel vers `#/repair-packages`, ajout dans la navigation et retrait des réglages. Menu et accès direct réservés au magasin principal ; connexion administrateur conservée. L’éditeur, le contrat serveur et le domaine des forfaits sont réutilisés. La suite de 531 tests ci-dessous reste celle de l’évolution métier précédente ; ce déplacement ne la relance pas.
+
+TypeScript et build réussis : **99 modules**, six sources publiques autorisées et **135 fichiers de build**, dont 123 pages de guides. Une erreur d’import de `PageHeader` a été corrigée avant cette compilation finale.
+
+Recette Node en mémoire à **1280 px**, uniquement avec administrateur et forfaits fictifs : accès direct anonyme → connexion → onglet dédié, état actif/titre/fil d’Ariane, ajout et sauvegarde confirmée, rechargement retrouvant six forfaits, réouverture en modification, disposition côte à côte et absence de débordement horizontal. Le panneau n’apparaît plus dans les réglages. Les collections clients, consoles, réparations et pièces restent inchangées ; le serveur est arrêté et l’onglet temporaire fermé. Les gardes rôle/atelier ont été relues indépendamment ; aucune nouvelle recette d’un atelier secondaire ni vérification à 390/320 px n’est affirmée.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : les sept assets principaux sont identiques au build, l’API publique répond en HTTP 200 et les cinq API privées contrôlées refusent les accès anonymes en HTTP 401. Aucun tarif de recette, migration ou import D1.
+
+## Résultat précédent : forfaits de réparation
 
 **531 tests réussis (486 Node/domaine/API + 45 Cloudflare)**, aucun échec, annulation ou test ignoré. TypeScript et build final réussis : **98 modules**, six sources publiques autorisées, **135 fichiers de build**, dont 123 pages de guides. Les nouveaux tests vérifient publication/masquage et projection explicite, modèles/symptômes et champs valides, zéro et décimales 0.29/79.99, rejet de 1.005, persistance et ancienne sauvegarde, omission d’un ancien éditeur, effacement explicite, isolation et refus des montants/références forgés dans les POST. La création reste sans coût, diagnostic ou paiement dérivé du forfait.
 

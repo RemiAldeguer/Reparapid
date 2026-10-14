@@ -9,7 +9,6 @@ import { validateStore, STORAGE_KEY, emptyStore, addEvent, dateFmt } from './dom
 import { demoStore } from './seed';
 import { NotificationSettingsPanel } from './email-notifications';
 import { PublicIntakeSettingsPanel } from './public-intake-settings';
-import { PublicRepairPackageSettingsPanel } from './public-repair-package-settings';
 export function Settings() {
   const { data, transact, ask, notify, exportData, exportInventory, go } = useApp();
   const { user, signedOut } = useAuth();
@@ -51,7 +50,6 @@ export function Settings() {
   }
   return <><PageHeader eyebrow="ADMINISTRATION" title="Les réglages de RépaRapid" description="Votre compte, vos notifications et vos sauvegardes."/><div className="settings-grid">
     <PublicIntakeSettingsPanel/>
-    <PublicRepairPackageSettingsPanel/>
     <NotificationSettingsPanel/>
     <Panel title="Compte administrateur"><div className="panel-body"><p><strong>{user.email}</strong></p><p className="settings-text">Accès administrateur aux dossiers et aux réglages du magasin. Session limitée à 8 heures, expiration après 30 minutes sans requête d’activité.</p><form className="form-stack" onSubmit={changePassword}><Field label="Mot de passe actuel"><input type="password" name="currentPassword" autoComplete="current-password" required maxLength={128}/></Field><Field label="Nouvelle phrase de passe"><input type="password" name="newPassword" autoComplete="new-password" required minLength={15} maxLength={128}/></Field><Field label="Confirmation"><input type="password" name="confirmation" autoComplete="new-password" required minLength={15} maxLength={128}/></Field><p className="form-hint">15 à 128 caractères. La modification déconnecte tous les appareils.</p>{error && <p className="auth-error" role="alert">{error}</p>}<button className="btn primary" disabled={busy}>{busy ? 'Modification…' : 'Changer le mot de passe'}</button></form></div></Panel>
     <Panel title="Identité de l’atelier"><form onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); transact(s => { s.settings.workshop = String(f.get('workshop') || '').trim(); s.settings.owner = String(f.get('owner') || '').trim(); s.settings.hourlyRate = Number(f.get('hourlyRate')); if (!s.settings.workshop) throw new Error('Nom de l’atelier obligatoire.'); addEvent(s, 'Paramètres de l’atelier mis à jour.', 'system'); }, 'Paramètres enregistrés.'); }}><div className="panel-body form-stack"><Field label="Nom de l’atelier"><input name="workshop" required defaultValue={workshopDisplayName(data.settings.workshop)} maxLength={120}/></Field><Field label="Nom affiché"><input name="owner" defaultValue={data.settings.owner} maxLength={80}/></Field><Field label="Valorisation du temps (€/h)"><input name="hourlyRate" type="number" min="0" max="1000000000" step="0.01" required defaultValue={data.settings.hourlyRate}/></Field><button className="btn primary">Enregistrer</button></div></form></Panel>

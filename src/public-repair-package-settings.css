@@ -32,4 +32,7 @@
 .repair-package-preview h4{margin:0 0 3px;font-size:10px;line-height:1.5;letter-spacing:.4px;color:#a32720;font-family:'Oxanium',Arial,sans-serif}
 .repair-package-preview small{font-size:10px;line-height:1.6;color:#696969;overflow-wrap:anywhere}
 .repair-package-includes{white-space:pre-line}
+.repair-package-page{min-width:0}
+.repair-package-page .repair-package-list{max-height:600px}
+@media(min-width:1100px){.repair-package-page .repair-package-settings.has-draft{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.repair-package-page .has-draft>.panel-head{grid-column:1/-1}.repair-package-page .repair-package-form{border-top:0;border-left:1px solid #e5e5e5}}
 @media(max-width:480px){.repair-package-list>li{grid-template-columns:minmax(0,1fr)}.repair-package-actions{align-items:center;flex-direction:row;flex-wrap:wrap;gap:12px}.repair-package-price-fields{grid-template-columns:minmax(0,1fr)}.repair-package-form .panel-footer{align-items:stretch}.repair-package-form .panel-footer .btn{flex:1 1 150px}}

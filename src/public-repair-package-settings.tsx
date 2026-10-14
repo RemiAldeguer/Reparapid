@@ -33,7 +33,7 @@ export function PublicRepairPackageSettingsPanel() {
   const {user} = useAuth();
   const packages = data.settings.publicRepairPackages || [];
   const [draft, setDraft] = useState<PackageDraft | null>(() => packages.length ? null : emptyDraft());
-  if (user.role !== 'super_admin') return null;
+  if (user.role !== 'super_admin' || user.workshopId) return null;
 
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,7 +67,7 @@ export function PublicRepairPackageSettingsPanel() {
   }
 
   const preview = previewOf(draft), publishedCount = packages.filter(item => item.published).length;
-  return <Panel title="Forfaits de réparation du site" className="repair-package-settings" aside={
+  return <Panel title="Catalogue des forfaits" className={`repair-package-settings ${draft ? 'has-draft' : ''}`} aside={
     <button type="button" className="btn secondary small" disabled={!!draft || packages.length >= 200} onClick={() => setDraft(emptyDraft())}><Icon name="plus" size={15}/>Ajouter</button>
   }>
     <div className="panel-body repair-package-body">

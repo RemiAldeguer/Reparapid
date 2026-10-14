@@ -123,7 +123,7 @@ Cette reprise a passé **476 tests** et le build final TypeScript/Vite de **87 m
 
 ## Forfaits publics de réparation
 
-Dans **Réglages → Forfaits de réparation du site**, l’administrateur principal peut renseigner les tarifs du magasin : modèle exact, symptôme, intervention précise, montant EUR TTC, prix fixe ou « à partir de » et contenu inclus. Cocher **Afficher sur le site** puis enregistrer publie le forfait ; **Masquer du site** retire sa présentation publique et conserve la fiche. Un nouveau forfait n’a aucun montant par défaut et n’est pas publié. Le prix zéro est accepté comme valeur explicite.
+L’onglet **Forfaits de réparation** du menu principal (`#/repair-packages`) permet à l’administrateur du magasin principal de renseigner les tarifs : modèle exact, symptôme, intervention précise, montant EUR TTC, prix fixe ou « à partir de » et contenu inclus. Le catalogue et le formulaire sont affichés côte à côte sur grand écran. Cocher **Afficher sur le site** puis enregistrer publie le forfait ; **Masquer du site** retire sa présentation publique et conserve la fiche. Un nouveau forfait n’a aucun montant par défaut et n’est pas publié. Le prix zéro est accepté comme valeur explicite. Ce module ne figure plus dans les réglages.
 
 Le formulaire montre les offres du modèle et des symptômes choisis, avec confirmation par l’atelier après diagnostic. Une seule panne et un seul forfait peuvent afficher un prix principal ; plusieurs offres ou symptômes gardent le montant global à confirmer. Les prix ne sont pas additionnés automatiquement. La création d’un dossier, ses coûts, ses paiements et son montant dans le portail ne sont pas chiffrés à partir de cette grille.
 
@@ -131,7 +131,7 @@ Les [pages consoles du site d’origine](https://reparapid.fr/consoles/) propose
 
 Le champ optionnel `settings.publicRepairPackages` est validé dans `domain.ts` : 200 entrées maximum, modèles/symptômes cohérents, identifiants uniques et montants 0–100 000 € limités à deux décimales. GET `/api/public/repair-intake` expose `{shop, repairPackages}` avec les forfaits publiés seulement, dans le contexte du magasin principal. Les POST publics conservent leurs champs autorisés et refusent les prix forgés. Le catalogue modèle/symptôme est partagé par `repair-intake-catalog.ts`, avec réexports conservés dans `repair-intake-domain.ts` et compilation CJS adaptée. Une sauvegarde ordinaire d’un ancien éditeur ne peut omettre la grille ; restaurations et réinitialisations explicites gardent leurs règles.
 
-**531 tests réussis (486 + 45)**, TypeScript et build de 98 modules validés. Recette à 1280 px sur des bases en mémoire uniquement ; les détails et la publication figurent dans [TESTS.md](TESTS.md). Aucune migration SQL n’est nécessaire pour ce champ JSON optionnel.
+L’évolution métier des forfaits a validé **531 tests (486 + 45)**. Le déplacement vers l’onglet dédié valide TypeScript, un build de **99 modules** et une recette à 1280 px sur une base en mémoire uniquement ; les détails et la publication figurent dans [TESTS.md](TESTS.md). Aucune migration SQL n’est nécessaire pour ce champ JSON optionnel.
 
 ## Administrateur Cloudflare et nouvelle installation
 
