@@ -28,7 +28,15 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : onglet Forfaits de réparation
+## Dernière reprise : illustrations des consoles et accroche d’accueil
+
+Les SVG partagés par la vitrine, les guides et l’atelier conservent leurs silhouettes et leurs cadres. `shop-console-art.tsx` affine les dégradés de coques, ombres de contact, boutons/joysticks, relief des manettes, verre des écrans et couleurs des Joy-Con. Le nouveau `shop-console-details.tsx` ajoute ports, arêtes et petits détails dans les coordonnées et transformations des modèles existants. Chaque dégradé et clip conserve un identifiant issu de `useId` ; les écrans restent contenus dans leur propre zone. Les traits de châssis Xbox One et PS3 ont été raccourcis pour préserver les manettes au premier plan.
+
+L’accueil affiche désormais **« Une seconde vie pour votre console. »**. Classification des modèles, variantes, photographies prioritaires, interactions, coûts et données serveur restent inchangés. Les validations et la publication de cette retouche visuelle figurent dans TESTS.md.
+
+Validation : 14 tests de correspondance/apparence réussis, TypeScript et build final de 100 modules, 135 fichiers publics. Recette à 1280 px sur 38 consoles fictives : les 38 SVG de chaque vue formulaire/inventaire restent dans leurs cadres, sans identifiant dupliqué ni référence manquante ; Store inchangé, serveurs arrêtés et onglets fermés. La nouvelle accroche est aussi confirmée sur l’accueil publié. Publication à 100 % du trafic, sept assets conformes, 123 pages et 140 contrôles SEO réussis, API publique 200 et cinq API privées 401 ; aucune écriture D1. Les 531 tests métier/API restent le résultat de la reprise des forfaits.
+
+## Reprise précédente : onglet Forfaits de réparation
 
 La gestion des forfaits est désormais une page dédiée **Forfaits de réparation** dans le menu principal du backoffice, à l’adresse `#/repair-packages`. Le titre, le fil d’Ariane et l’état actif du menu suivent cette route. Le panneau a été retiré de **Réglages & sauvegardes**. La page réutilise l’éditeur et le catalogue existants ; sur grand écran, le catalogue et le formulaire sont disposés côte à côte, puis empilés sur les écrans plus étroits.
 

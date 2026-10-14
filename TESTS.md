@@ -6,7 +6,19 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : onglet Forfaits de réparation
+## Résultat courant : illustrations des consoles et accroche
+
+Retouche visuelle du SVG partagé : matériaux, reflets des écrans, relief des commandes, ombres de contact et détails de surfaces. Nouvelle accroche : **« Une seconde vie pour votre console. »**. Les **14 tests de correspondance et apparence des consoles** ont été réexécutés avec succès ; les 531 tests métier/API précédents ne sont pas relancés pour cette retouche. Aucun changement de contrat serveur ou migration D1.
+
+TypeScript et build final réussis : **100 modules**, six sources publiques autorisées, **135 fichiers de build**, dont 123 pages HTML de guides. La revue indépendante a signalé deux traits de châssis qui passaient sur les manettes Xbox One et PS3 ; ils ont été raccourcis avant ce build final. Deux builds intermédiaires ont été interrompus pour intégrer ces corrections.
+
+Recette Node à **1280 px** dans une base en mémoire contenant 38 consoles fictives : accroche d’accueil confirmée, nouvelles surfaces du hero et cartes Sony inspectées, **38 SVG du formulaire et 38 SVG partagés de l’inventaire contenus dans leurs cadres**, aucun débordement horizontal. Aucun identifiant SVG dupliqué ni référence de gradient/clip manquante sur ces deux vues. Le Store est strictement inchangé, le serveur arrêté et l’onglet temporaire fermé. Aucune nouvelle vérification à 390/320 px n’est affirmée ; les cadres et media queries restent inchangés.
+
+Le premier contrôle de fermeture de la fixture arrivait après la fermeture automatique de SQLite. La fixture a été corrigée avec une connexion explicitement fournie à l’application, puis la recette accueil/formulaire/inventaire répétée sur une nouvelle base fictive ; le contrôle final confirme le Store inchangé et le serveur fermé.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : sept assets principaux identiques au build, 123 pages de guides conformes et 140 contrôles SEO réussis, API publique 200 et cinq API privées 401. L’accueil en ligne confirme la nouvelle accroche, l’absence de l’ancienne et les nouveaux détails SVG. Aucun compte, tarif ou console fictive transféré en production ; aucune migration ou écriture D1.
+
+## Résultat précédent : onglet Forfaits de réparation
 
 Déplacement visuel vers `#/repair-packages`, ajout dans la navigation et retrait des réglages. Menu et accès direct réservés au magasin principal ; connexion administrateur conservée. L’éditeur, le contrat serveur et le domaine des forfaits sont réutilisés. La suite de 531 tests ci-dessous reste celle de l’évolution métier précédente ; ce déplacement ne la relance pas.
 

@@ -1,27 +1,76 @@
 import {useId, type ReactNode} from 'react';
 import {shopConsoleKind, type ShopConsoleItem} from './shop-console-kind';
+import {ConsoleSurfaceDetails} from './shop-console-details';
 import './shop-console-art.css';
 
 export {shopConsoleKind, type ShopConsoleItem} from './shop-console-kind';
 type Paint = {dark: string; light: string; screen: string; metal: string};
 const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function tint(color: string, amount: number) {
+  const target = amount < 0 ? 0 : 255, ratio = Math.abs(amount);
+  return '#' + [1, 3, 5].map(index => Math.round(parseInt(color.slice(index, index + 2), 16) * (1 - ratio) + target * ratio).toString(16).padStart(2, '0')).join('');
+}
 function Dpad({x, y, size = 8, color = '#30343d'}: {x: number; y: number; size?: number; color?: string}) {
-  return <g transform={`translate(${x} ${y})`}><path d={`M${-size / 2} ${-size * 1.5}h${size}v${size}h${size}v${size}h${-size}v${size}h${-size}v${-size}h${-size}v${-size}h${size}z`} fill={color} stroke="#101822" strokeOpacity=".2" strokeWidth="1"/><path d={`M${-size / 3} ${-size}h${size * .66}M${-size} ${-size / 3}v${size * .66}`} stroke="#fff" strokeOpacity=".18" strokeWidth="1"/></g>;
+  return <g transform={`translate(${x} ${y})`}>
+    <path d={`M${-size / 2} ${-size * 1.5}h${size}v${size}h${size}v${size}h${-size}v${size}h${-size}v${-size}h${-size}v${-size}h${size}z`} fill={color} stroke="#101822" strokeOpacity=".5" strokeWidth="1"/>
+    <path d={`M${-size / 3} ${-size}h${size * .66}M${-size} ${-size / 3}v${size * .66}`} stroke="#fff" strokeOpacity=".35" strokeWidth="1"/>
+    <circle r={size * .23} fill="#0d1420" opacity=".24"/>
+  </g>;
 }
 function Stick({x, y, r = 8, color = '#242a32'}: {x: number; y: number; r?: number; color?: string}) {
-  return <g><circle cx={x} cy={y} r={r + 2} fill="#080f18" opacity=".6"/><circle cx={x} cy={y} r={r} fill={color} stroke="#686e78" strokeWidth="1"/><path d={`M${x - r * .6} ${y - r * .35}q${r * .6} ${-r * .6} ${r * 1.2} 0`} fill="none" stroke="#b5b8bf" opacity=".45" strokeWidth="1"/></g>;
+  return <g>
+    <circle cx={x} cy={y + .7} r={r + 2.2} fill="#070d16" opacity=".65"/>
+    <circle cx={x} cy={y} r={r} fill={color} stroke="#79818d" strokeWidth=".8"/>
+    <circle cx={x} cy={y} r={r * .73} fill="none" stroke="#090f18" strokeOpacity=".42" strokeWidth=".8"/>
+    <path d={`M${x - r * .66} ${y - r * .38}q${r * .66} ${-r * .6} ${r * 1.32} 0`} fill="none" stroke="#d6dee6" opacity=".6" strokeWidth="1"/>
+  </g>;
 }
 function Buttons({x, y, r = 3, colors = ['#66778e', '#66778e', '#66778e', '#66778e']}: {x: number; y: number; r?: number; colors?: string[]}) {
-  return <g>{[[0, -r * 2.5], [r * 2.5, 0], [0, r * 2.5], [-r * 2.5, 0]].map(([dx, dy], index) => <circle key={index} cx={x + dx} cy={y + dy} r={r} fill={colors[index]} stroke="#0d1420" strokeOpacity=".3" strokeWidth=".7"/>)}</g>;
+  return <g>{[[0, -r * 2.5], [r * 2.5, 0], [0, r * 2.5], [-r * 2.5, 0]].map(([dx, dy], index) => <g key={index}>
+    <circle cx={x + dx} cy={y + dy + .7} r={r + .65} fill="#0b1320" opacity=".65"/>
+    <circle cx={x + dx} cy={y + dy} r={r} fill={colors[index]} stroke="#0d1420" strokeOpacity=".4" strokeWidth=".65"/>
+    <path d={`M${x + dx - r * .5} ${y + dy - r * .4}q${r * .5} ${-r * .35} ${r} 0`} fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth=".65" strokeLinecap="round"/>
+  </g>)}</g>;
 }
 function Controller({x = 49, y = 136, scale = .72, white = false, xbox = false}: {x?: number; y?: number; scale?: number; white?: boolean; xbox?: boolean}) {
-  return <g transform={`translate(${x} ${y}) scale(${scale})`}><path d="M18 18C25 7 45 5 52 13h28c7-8 26-6 34 5l17 44c6 19-10 27-21 12L94 55H38L23 74C12 89-4 80 2 62z" fill={white ? '#f7f7f5' : '#30353d'} stroke={white ? '#bec3ca' : '#171d25'} strokeWidth="2"/><path d="M43 13h45l-6 28H49z" fill={white ? '#333a46' : '#212934'} stroke="#3d4653" strokeWidth="1"/>{xbox ? <><Stick x={30} y={26} r={7}/><Dpad x={41} y={48} size={5}/><Stick x={83} y={48} r={7}/></> : <><Dpad x={28} y={29} size={6}/><Stick x={46} y={51} r={7}/><Stick x={86} y={51} r={7}/></>}<Buttons x={103} y={28} r={3} colors={xbox ? ['#d5b65e', '#bd6f67', '#7dba83', '#7794c1'] : ['#82918c', '#a4778d', '#7898aa', '#a1a6b4']}/><circle cx="65" cy="48" r="3" fill={white ? '#6e7887' : '#75808e'}/><path d="M12 52 9 64M116 52l4 12" stroke="#fff" opacity=".18" strokeWidth="2" strokeLinecap="round"/></g>;
+  const id = useId().replace(/:/g, '');
+  return <g transform={`translate(${x} ${y}) scale(${scale})`}>
+    <defs><linearGradient id={`${id}-controller`} x1="0" y1="0" x2=".4" y2="1"><stop stopColor={white ? '#fff' : '#5c6674'}/><stop offset=".38" stopColor={white ? '#f1f3f5' : '#353e4c'}/><stop offset="1" stopColor={white ? '#b7c3d1' : '#151e2a'}/></linearGradient></defs>
+    <path d="M23 13q10-10 23-5m40 0q15-5 22 5" fill="none" stroke="#202a37" strokeWidth="5" strokeLinecap="round"/>
+    <path d="M18 18C25 7 45 5 52 13h28c7-8 26-6 34 5l17 44c6 19-10 27-21 12L94 55H38L23 74C12 89-4 80 2 62z" fill={`url(#${id}-controller)`} stroke={white ? '#9fadb9' : '#101722'} strokeWidth="1.6"/>
+    <path d="M20 20q14-13 30-4h30q17-10 31 4" fill="none" stroke="#fff" strokeOpacity={white ? '.8' : '.3'} strokeWidth="1.3" strokeLinecap="round"/>
+    <path d="M43 13h45l-6 28H49z" fill={white ? '#283443' : '#1c2533'} stroke="#69788b" strokeOpacity=".6" strokeWidth=".8"/>
+    <path d="M47 17h37" stroke="#a5b4c8" strokeOpacity=".24"/>
+    {xbox ? <><Stick x={30} y={26} r={7}/><Dpad x={41} y={48} size={5}/><Stick x={83} y={48} r={7}/></> : <><Dpad x={28} y={29} size={6}/><Stick x={46} y={51} r={7}/><Stick x={86} y={51} r={7}/></>}
+    <Buttons x={103} y={28} r={3} colors={xbox ? ['#d5b65e', '#bd6f67', '#7dba83', '#7794c1'] : ['#82918c', '#a4778d', '#7898aa', '#a1a6b4']}/>
+    <circle cx="65" cy="48" r="3" fill={white ? '#6e7887' : '#a7b7c9'}/>
+    <path d="M57 43h16M58 46h14" stroke={white ? '#8f9cac' : '#6b7c91'} strokeWidth=".75" opacity=".55"/>
+    <path d="M12 52 9 64M116 52l4 12" stroke="#fff" opacity={white ? '.45' : '.25'} strokeWidth="2" strokeLinecap="round"/>
+    <path d="M11 74q4 4 10-2m91 0q7 7 12 0" fill="none" stroke="#080e18" strokeOpacity=".28" strokeWidth="1.5"/>
+  </g>;
 }
 function Vent({x, y, width, rows = 7, step = 4, color = '#69717c'}: {x: number; y: number; width: number; rows?: number; step?: number; color?: string}) {
   return <g>{Array.from({length: rows}, (_, index) => <path key={index} d={`M${x} ${y + index * step}h${width}`} stroke={color} strokeWidth="1.5" strokeLinecap="round"/>)}</g>;
 }
 function Display({x, y, width, height, paint, old = false}: {x: number; y: number; width: number; height: number; paint: Paint; old?: boolean}) {
-  return <g><rect x={x} y={y} width={width} height={height} rx="3" fill={old ? '#a4b77d' : paint.screen}/>{old ? <><path d={`M${x + 8} ${y + height * .75}h${width - 16}`} stroke="#7d9360" strokeWidth="2"/><path d={`M${x + width * .2} ${y + height * .6}v${-height * .28}h${width * .2}v${height * .28}m${width * .15} 0v${-height * .46}h${width * .22}v${height * .46}`} fill="#829a66"/></> : <><path d={`M${x + 1} ${y + height - 1} ${x + width * .38} ${y + height * .35} ${x + width * .64} ${y + height * .72} ${x + width - 1} ${y + height * .21}v${height * .78}z`} fill="#51788b" opacity=".32"/><path d={`M${x + 1} ${y + 1}h${width * .48}L${x + 1} ${y + height * .55}z`} fill="#fff" opacity=".09"/><circle cx={x + width * .78} cy={y + height * .23} r={height * .09} fill="#b7e0e2" opacity=".28"/></>}</g>;
+  const id = useId().replace(/:/g, '');
+  return <g>
+    <defs>
+      <clipPath id={`${id}-glass-clip`}><rect x={x} y={y} width={width} height={height} rx="3"/></clipPath>
+      <linearGradient id={`${id}-glass`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff" stopOpacity=".22"/><stop offset=".45" stopColor="#fff" stopOpacity=".04"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></linearGradient>
+      <linearGradient id={`${id}-lcd`} x1="0" y1="0" x2=".3" y2="1"><stop stopColor="#c3d09a"/><stop offset="1" stopColor="#8b9e6b"/></linearGradient>
+    </defs>
+    <rect x={x} y={y} width={width} height={height} rx="3" fill={old ? `url(#${id}-lcd)` : paint.screen} stroke="#070d14" strokeOpacity=".45" strokeWidth=".7"/>
+    <g clipPath={`url(#${id}-glass-clip)`}>
+      {old ? <><path d={`M${x + 8} ${y + height * .75}h${width - 16}`} stroke="#69834f" strokeWidth="2"/><path d={`M${x + width * .2} ${y + height * .6}v${-height * .28}h${width * .2}v${height * .28}m${width * .15} 0v${-height * .46}h${width * .22}v${height * .46}`} fill="#738d58"/></> : <>
+        <path d={`M${x} ${y + height}L${x + width * .36} ${y + height * .34}l${width * .25} ${height * .35}L${x + width} ${y + height * .2}v${height}z`} fill="#5a8a9f" opacity=".35"/>
+        <path d={`M${x} ${y + height}l${width * .55} ${-height * .42} ${width * .45} ${height * .31}v${height}z`} fill="#203c54" opacity=".7"/>
+        <circle cx={x + width * .78} cy={y + height * .23} r={height * .09} fill="#c8e7ec" opacity=".38"/>
+      </>}
+      <path d={`M${x} ${y}h${width * .72}L${x + width * .18} ${y + height}H${x}z`} fill={`url(#${id}-glass)`} opacity={old ? '.4' : '1'}/>
+      <path d={`M${x + 3} ${y + 2}h${width - 6}`} stroke="#d0e8f4" strokeOpacity={old ? '.2' : '.25'} strokeWidth=".8"/>
+    </g>
+  </g>;
 }
 function PS5({kind, paint}: {kind: string; paint: Paint}) {
   const slim = kind === 'ps5-slim', pro = kind === 'ps5-pro', disc = kind !== 'ps5-digital' && !pro;
@@ -40,11 +89,12 @@ function SonyPortable({vita, paint}: {vita: boolean; paint: Paint}) {
   return <g transform="rotate(-5 160 110)"><path d={vita ? 'M64 50c-20 0-29 27-29 58s9 63 29 65h192c20-2 29-32 29-65s-9-58-29-58z' : 'M63 51q-27 0-29 50v21q3 49 29 49h194q25-2 28-49v-21q-3-48-28-50z'} fill={paint.dark} stroke="#697481" strokeWidth="2"/><path d="M53 68q25-10 214-3" stroke="#748595" strokeWidth="2" opacity=".6" fill="none"/><rect x="82" y="64" width="156" height="91" rx={vita ? 9 : 3} fill="#050d18" stroke="#414e5e" strokeWidth="1.4"/><Display x={89} y={71} width={142} height={77} paint={paint}/><Dpad x={57} y={vita ? 93 : 102} size={8} color="#768394"/><Buttons x={260} y={vita ? 92 : 103} r={4} colors={['#6e99a1','#b57e9c','#7796b7','#bbb3c4']}/><Stick x={vita ? 58 : 60} y={vita ? 137 : 146} r={vita ? 9 : 6}/>{vita && <Stick x={262} y={137} r={9}/>}<path d="M106 162h10m32 0h20m27 0h12" stroke="#8b97a7" strokeWidth="2" strokeLinecap="round"/><circle cx="160" cy="60" r="2" fill="#5c7188"/>{vita ? <g>{[0,1,2].map(index => <path key={index} d={`M${72 + index * 4} 113v10m${168 + index * 4} 0v-10`} stroke="#1a2330" strokeWidth="1.5"/>)}</g> : <Vent x={251} y={143} width={20} rows={3} color="#131d2b"/>}</g>;
 }
 function SwitchConsole({kind, paint, variant = ''}: {kind: string; paint: Paint; variant?: string}) {
+  const id = useId().replace(/:/g, '');
   const lite = kind === 'switch-lite', oled = kind === 'switch-oled', next = kind === 'switch-2';
   const namedColor = /jaune|yellow/.test(normalized(variant)) ? '#e6c34c' : /corail|rose|pink/.test(normalized(variant)) ? '#de7e86' : /bleu|blue/.test(normalized(variant)) ? '#689cc2' : '#55acb7';
   const left = lite ? namedColor : oled ? '#eceeec' : next ? '#343b45' : '#438dce';
   const right = lite ? namedColor : oled ? '#eceeec' : next ? '#343b45' : '#d95654';
-  return <g transform="rotate(-5 160 110)"><rect x="39" y="48" width="242" height="128" rx={lite ? 28 : 23} fill={lite ? namedColor : '#1d2736'} stroke="#233246" strokeWidth="1.6"/><rect x={lite ? 77 : 76} y="57" width={168} height="111" rx="7" fill="#080f1b"/><Display x={oled || next ? 80 : 86} y={oled || next ? 61 : 67} width={oled || next ? 161 : 148} height={oled || next ? 103 : 92} paint={paint}/>{!lite && <><path d="M64 48H58q-20 2-20 24v80q0 24 21 24h15V48z" fill={left}/><path d="M246 48h16q21 2 21 24v80q0 24-21 24h-16z" fill={right}/><path d="M74 50v124m171-124v124" stroke={next ? '#4dc1d4' : '#ffffff'} strokeOpacity={next ? '.8' : '.18'} strokeWidth={next ? 3 : 1.5}/>{next && <path d="M245 50v124" stroke="#e47964" strokeWidth="3"/>}</>}<Stick x={lite ? 57 : 56} y={79} r={9} color={lite ? '#f5f5ed' : '#253546'}/>{lite ? <Dpad x={57} y={127} size={7} color="#ecf2eb"/> : <Buttons x={56} y={126} r={3.4} colors={['#213345','#213345','#213345','#213345']}/>}<Buttons x={263} y={80} r={lite ? 3.8 : 3.4} colors={Array(4).fill(lite || oled ? '#9aa5aa' : '#223143')}/><Stick x={263} y={126} r={9} color={lite ? '#f5f5ed' : '#253546'}/><path d="M54 58h6m203 1h6m-3-3v6" stroke={oled || lite ? '#8c969d' : '#233242'} strokeWidth="2"/><rect x="51" y="150" width="9" height="7" rx="2" fill={lite || oled ? '#a7b5b5' : '#25425a'}/><circle cx="263" cy="151" r="4" fill={lite || oled ? '#a7b5b5' : '#2d4155'}/><path d="M90 170h12m106 0h12" stroke="#687383" strokeWidth="1.5"/></g>;
+  return <g transform="rotate(-5 160 110)"><defs>{[['left', left], ['right', right]].map(([side, color]) => <linearGradient key={side} id={`${id}-${side}`} x1="0" y1="0" x2="1" y2=".9"><stop stopColor={tint(color, .3)}/><stop offset=".22" stopColor={color}/><stop offset=".7" stopColor={tint(color, -.08)}/><stop offset="1" stopColor={tint(color, -.35)}/></linearGradient>)}</defs><rect x="39" y="48" width="242" height="128" rx={lite ? 28 : 23} fill={lite ? `url(#${id}-left)` : '#1d2736'} stroke="#233246" strokeWidth="1.6"/><rect x={lite ? 77 : 76} y="57" width={168} height="111" rx="7" fill="#080f1b"/><Display x={oled || next ? 80 : 86} y={oled || next ? 61 : 67} width={oled || next ? 161 : 148} height={oled || next ? 103 : 92} paint={paint}/>{!lite && <><path d="M64 48H58q-20 2-20 24v80q0 24 21 24h15V48z" fill={`url(#${id}-left)`}/><path d="M246 48h16q21 2 21 24v80q0 24-21 24h-16z" fill={`url(#${id}-right)`}/><path d="M74 50v124m171-124v124" stroke={next ? '#4dc1d4' : '#ffffff'} strokeOpacity={next ? '.8' : '.18'} strokeWidth={next ? 3 : 1.5}/>{next && <path d="M245 50v124" stroke="#e47964" strokeWidth="3"/>}</>}<Stick x={lite ? 57 : 56} y={79} r={9} color={lite ? '#f5f5ed' : '#253546'}/>{lite ? <Dpad x={57} y={127} size={7} color="#ecf2eb"/> : <Buttons x={56} y={126} r={3.4} colors={['#213345','#213345','#213345','#213345']}/>}<Buttons x={263} y={80} r={lite ? 3.8 : 3.4} colors={Array(4).fill(lite || oled ? '#9aa5aa' : '#223143')}/><Stick x={263} y={126} r={9} color={lite ? '#f5f5ed' : '#253546'}/><path d="M54 58h6m203 1h6m-3-3v6" stroke={oled || lite ? '#8c969d' : '#233242'} strokeWidth="2"/><rect x="51" y="150" width="9" height="7" rx="2" fill={lite || oled ? '#a7b5b5' : '#25425a'}/><circle cx="263" cy="151" r="4" fill={lite || oled ? '#a7b5b5' : '#2d4155'}/><path d="M90 170h12m106 0h12" stroke="#687383" strokeWidth="1.5"/></g>;
 }
 function NintendoDualScreen({kind, paint}: {kind: string; paint: Paint}) {
   const ds = kind === 'ds', xl = kind === '3ds-xl' || kind === '2ds-xl', wedge = kind === '2ds';
@@ -102,7 +152,7 @@ export function ShopConsoleArt({item, small = false, className = '', label}: {it
   else if (['megadrive', 'dreamcast', 'gamegear'].includes(kind)) art = <SegaConsole kind={kind} paint={paint}/>;
   else art = <OtherConsole paint={paint}/>;
   return <svg className={`console-art rp-console-svg shop-console-art${small ? ' small' : ''}${className ? ` ${className}` : ''}`} width="320" height="220" viewBox="0 0 320 220" aria-hidden={label ? undefined : true} aria-label={label} role={label ? 'img' : undefined} focusable="false" data-console-kind={kind}>
-    <defs><linearGradient id={`${id}-dark`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#46566a"/><stop offset=".52" stopColor="#293747"/><stop offset="1" stopColor="#111f30"/></linearGradient><linearGradient id={`${id}-light`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff"/><stop offset=".48" stopColor="#edf1f4"/><stop offset="1" stopColor="#cbd5df"/></linearGradient><linearGradient id={`${id}-screen`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1a344e"/><stop offset="1" stopColor="#071322"/></linearGradient><linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="0"><stop stopColor="#9fafbe"/><stop offset=".35" stopColor="#eef3f7"/><stop offset=".65" stopColor="#d4dde5"/><stop offset="1" stopColor="#8d9dab"/></linearGradient></defs>
-    <ellipse cx="161" cy="202" rx={['ps5', 'ps5-pro', 'ps5-slim', 'ps5-digital', 'ps2', 'wii'].includes(kind) ? 95 : 115} ry="9" fill="#33495c" opacity=".13"/>{art}
+    <defs><linearGradient id={`${id}-dark`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#657184"/><stop offset=".2" stopColor="#424e61"/><stop offset=".58" stopColor="#283345"/><stop offset="1" stopColor="#0d1727"/></linearGradient><linearGradient id={`${id}-light`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff"/><stop offset=".3" stopColor="#f7fafc"/><stop offset=".65" stopColor="#e1e7ed"/><stop offset="1" stopColor="#adbccb"/></linearGradient><linearGradient id={`${id}-screen`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#244c68"/><stop offset=".52" stopColor="#122c47"/><stop offset="1" stopColor="#060e1c"/></linearGradient><linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="0"><stop stopColor="#9fafbe"/><stop offset=".35" stopColor="#eef3f7"/><stop offset=".65" stopColor="#d4dde5"/><stop offset="1" stopColor="#8d9dab"/></linearGradient><radialGradient id={`${id}-shadow`}><stop stopColor="#18263a" stopOpacity=".3"/><stop offset=".55" stopColor="#334b66" stopOpacity=".15"/><stop offset="1" stopColor="#334b66" stopOpacity="0"/></radialGradient></defs>
+    <ellipse cx="161" cy="203" rx={['ps5', 'ps5-pro', 'ps5-slim', 'ps5-digital', 'ps2', 'wii'].includes(kind) ? 95 : 115} ry="9" fill={`url(#${id}-shadow)`}/><ellipse cx="164" cy="202" rx="58" ry="3" fill="#18283d" opacity=".1"/>{art}<ConsoleSurfaceDetails kind={kind}/>
   </svg>;
 }
