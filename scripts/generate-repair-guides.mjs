@@ -1,9 +1,10 @@
 import {build} from 'esbuild';
+import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {guideCatalog, guideManifest, GUIDE_ORIGIN, GUIDE_PUBLISHED_DATE} from '../src/repair-guides-manifest.mjs';
+import {guideCatalog, guideManifest, guideCollections, GUIDE_ORIGIN, GUIDE_PUBLISHED_DATE} from '../src/repair-guides-manifest.mjs';
 import {publicAsset} from '../server/public-assets.mjs';
 import {verifyPublicAssets} from './verify-public-assets.mjs';
 
@@ -54,7 +55,7 @@ export function guideStylesheets(indexHtml) {
 }
 
 export function guideSitemap() {
-  const pages = [{pathname: '/', lastmod: null}, {pathname: guideCatalog.pathname, lastmod: GUIDE_PUBLISHED_DATE}, ...guideManifest.map(page => ({pathname: page.pathname, lastmod: GUIDE_PUBLISHED_DATE}))];
+  const pages = [{pathname: '/', lastmod: null}, ...[guideCatalog, ...guideCollections, ...guideManifest].map(page => ({pathname: page.pathname, lastmod: GUIDE_PUBLISHED_DATE}))];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map(page => `  <url><loc>${xmlEscape(GUIDE_ORIGIN + page.pathname)}</loc>${page.lastmod ? `<lastmod>${page.lastmod}</lastmod>` : ''}</url>`).join('\n')}\n</urlset>\n`;
 }
 
@@ -66,15 +67,21 @@ export async function generateRepairGuides(distPath = path.join(projectRoot, 'di
   const stylesheets = guideStylesheets(await readFile(path.join(root, 'index.html'), 'utf8'));
   for (const stylesheet of stylesheets) if (!existing.includes(stylesheet.slice(1))) throw new Error(`Feuille de style absente du build : ${stylesheet}`);
   const renderer = await loadGuideRenderer();
-  for (const page of [guideCatalog, ...guideManifest]) {
+  const search = await build({absWorkingDir: projectRoot, entryPoints: ['src/guide-catalog-search.ts'], bundle: true, write: false, format: 'iife', platform: 'browser', target: 'es2020', minify: true, logLevel: 'silent'});
+  const searchCode = search.outputFiles[0].contents;
+  const searchFilename = `guide-search-${createHash('sha256').update(searchCode).digest('hex').slice(0, 8)}.js`;
+  await mkdir(path.join(root, 'assets'), {recursive: true});
+  await writeFile(path.join(root, 'assets', searchFilename), searchCode);
+  const scripts = ['/assets/' + searchFilename];
+  for (const page of [guideCatalog, ...guideCollections, ...guideManifest]) {
     const filename = path.join(root, page.filename);
     await mkdir(path.dirname(filename), {recursive: true});
-    await writeFile(filename, renderer.renderGuideDocument({slug: page.slug, stylesheets}), 'utf8');
+    await writeFile(filename, renderer.renderGuideDocument({slug: page.slug, collection: page.collection, stylesheets, scripts}), 'utf8');
   }
   await writeFile(path.join(root, 'sitemap.xml'), guideSitemap(), 'utf8');
   await writeFile(path.join(root, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${GUIDE_ORIGIN}/sitemap.xml\n`, 'utf8');
   await verifyPublicAssets(root, {guides: true});
-  return {pages: guideManifest.length + 1, stylesheets};
+  return {pages: guideManifest.length + guideCollections.length + 1, stylesheets, scripts};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

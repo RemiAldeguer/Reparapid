@@ -1,6 +1,9 @@
+import {extraConsoleGuides} from './repair-guides-consoles-extra';
+import {iphoneGuides} from './repair-guides-iphone';
+import {androidGuides} from './repair-guides-android';
 import type {RepairGuide} from './repair-guides-types';
 
-export const repairGuides: RepairGuide[] = [
+const initialRepairGuides: RepairGuide[] = [
   {
     slug: 'ps5-bruit-ventilateur-nettoyage',
     title: 'PS5 bruyante : nettoyer les aérations et vérifier son installation',
@@ -651,3 +654,5 @@ export const repairGuides: RepairGuide[] = [
     sources: [{title: 'Valve · Utilisation et dépannage Steam Deck LCD et OLED', url: 'https://help.steampowered.com/en/faqs/view/69E3-14AF-9764-4C28'}],
   },
 ];
+
+export const repairGuides: RepairGuide[] = [...initialRepairGuides, ...extraConsoleGuides, ...iphoneGuides, ...androidGuides];

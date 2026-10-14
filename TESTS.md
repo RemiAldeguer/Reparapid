@@ -6,7 +6,23 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat automatisé courant
+## Résultat automatisé courant : 120 tutoriels et logo Maxxi Games
+
+**523 tests réussis (478 Node/domaine/API + 45 Cloudflare)**, aucun échec, test annulé ou ignoré. Après les deux dernières précisions éditoriales Steam Deck, les **13 tests de guides** et TypeScript ont été réexécutés avec succès. Le build final de **94 modules** réussit en 1 min 26 s : **six sources publiques autorisées**, **135 fichiers de build**, dont **123 pages HTML de guides**, les deux ressources SEO et le petit script de recherche. Les dernières précisions sont présentes dans le HTML final ; le contrôle des espaces du diff est réussi.
+
+Recette sur un serveur Node temporaire en mémoire : catalogue de 120 cartes/SVG, catégorie consoles de 72 articles et catégorie smartphones de 48 ; aucun débordement horizontal ni SVG hors cadre à la largeur effectivement observée de **1280 px**. Aucun identifiant de gradient dupliqué. Recherche Samsung : 10 résultats ; « écran » et « ecran » : 18 chacun ; « iPhone batterie » : 5 ; requête sans résultat : zéro et message visible. Effacer rétablit 120 cartes et le focus sur le champ. Le lien de famille iPhone efface le filtre et rejoint la bonne ancre. Articles iPhone 13 et Pixel 7 : deux FAQ, CTA contact, aucun script externe ni débordement ; retour au contact de l’accueil fonctionnel. Accueil : logo Maxxi Games chargé, trois teasers et compteur de 120 guides. Aucun formulaire de contact envoyé.
+
+Les réglages du viewport du navigateur intégré ont été demandés à 390 et 320 px, mais la surface de recette est restée à 1280 × 720. **Cette reprise ne revendique donc pas une nouvelle recette réelle à ces largeurs mobiles** ; les vérifications mobiles documentées pour la version précédente restent historiques. Les styles conservent leurs règles responsive, mais ce constat n’équivaut pas à une validation visuelle sur téléphone. Cette recette vérifie les pages ; elle n’a pas réalisé les réparations physiques décrites.
+
+Onglets temporaires fermés, viewport rétabli et serveur arrêté avec **Store strictement inchangé**. Aucun compte, dossier, paiement, e-mail, import, export, reset ou écriture de données de production.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : **123 pages HTML** et les fichiers robots/sitemap identiques au build par SHA-256, ainsi que le script de recherche. **140 contrôles SEO réussis** : pages/canonical, articles sans bundle applicatif, script sur les trois catalogues seulement, huit alias connus 308, cinq chemins inconnus/de sources 404, HEAD 200 sans corps et hash du script. Les **sept assets principaux**, incluant le nouveau logo Maxxi Games, sont conformes ; API publique 200 et cinq API privées 401. Contrôle complémentaire : quatre API privées 401 avec `no-store`, et 18 GET/HEAD privés 404 avec `no-store`. Aucune migration, écriture D1 ou modification DNS.
+
+Périmètre : 96 nouveaux articles, 120 au total (72 consoles/manettes, 48 smartphones), deux catégories, recherche progressive autonome et logo Maxxi Games dans la signature publique. Aucun changement de règle métier ou de schéma D1. Les tests utilisent des bases temporaires et des coordonnées fictives.
+
+La suite contrôle l’égalité des 120 slugs avec les articles, leurs métadonnées et sections, les 240 exemples/FAQ, le rendu sans bundle applicatif, les catégories de 72/48 articles, le petit script autonome et les 124 URL du sitemap. Les tests Node/Worker vérifient GET/HEAD, alias 308, chemins inconnus refusés, frontières entre fichiers sources et générés, liens symboliques et disponibilité du nouveau PNG de marque.
+
+## Résultat de la première version : 24 tutoriels et retrait du Journal
 
 Le **13 octobre 2026**, la reprise **24 tutoriels DIY et retrait du Journal d’activité** a passé la suite intégrée : **522 tests réussis (477 Node/domaine/API + 45 Cloudflare)**, aucun échec, test annulé ou ignoré. Le contrôle des espaces du diff est réussi. TypeScript et le build Vite final ont réussi avec **88 modules**, cinq sources publiques autorisées et **35 fichiers de build**, dont les 25 pages HTML des guides, `robots.txt` et `sitemap.xml`. La recette locale finale est réussie. La publication est **vérifiée sur 100 % du trafic Cloudflare**, avec 25 pages et fichiers SEO conformes au build et **37 contrôles SEO réussis** ; les détails figurent ci-dessous.
 

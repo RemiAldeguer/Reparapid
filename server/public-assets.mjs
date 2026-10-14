@@ -1,17 +1,18 @@
-import {guideCatalog, guideManifest} from '../src/repair-guides-manifest.mjs';
+import {guideCatalog, guideManifest, guideCollections} from '../src/repair-guides-manifest.mjs';
 
 // Only the interface build is public. A file placed beside it must never become
 // downloadable merely because its extension happens to be browser-readable.
 const fixedAssets = new Map([
   ['/index.html', 'text/html; charset=utf-8'],
   ['/reparapid-logo-original.webp', 'image/webp'],
+  ['/maxxi-games-logo-original.png', 'image/png'],
   ['/favicon-reparapid.png', 'image/png'],
   ['/logo-clinique-retro.svg', 'image/svg+xml'],
   ['/fonts/oxanium.ttf', 'font/ttf'],
   ['/fonts/oxanium-OFL.txt', 'text/plain; charset=utf-8'],
 ]);
 const bundledAsset = /^\/assets\/[A-Za-z0-9][A-Za-z0-9_-]*-[A-Za-z0-9_-]{8}\.(js|css)$/;
-const guidePages = [guideCatalog, ...guideManifest];
+const guidePages = [guideCatalog, ...guideCollections, ...guideManifest];
 const generatedAssets = new Map([
   ['/robots.txt', 'text/plain; charset=utf-8'],
   ['/sitemap.xml', 'application/xml; charset=utf-8'],
@@ -23,7 +24,7 @@ const pageAliases = new Map(guidePages.flatMap(page => [
   ['/' + page.filename, page.pathname],
 ]));
 
-export const publicAssetDirectories = Object.freeze(['assets', 'fonts', 'guides', ...guideManifest.map(page => `guides/${page.slug}`)]);
+export const publicAssetDirectories = Object.freeze(['assets', 'fonts', 'guides', ...[...guideCollections, ...guideManifest].map(page => page.filename.slice(0, -11))]);
 export const publicSourceDirectories = Object.freeze(['fonts']);
 export const generatedPublicFiles = Object.freeze([...generatedAssets.keys()].map(name => name.slice(1)));
 

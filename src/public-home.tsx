@@ -1,13 +1,16 @@
 import {useEffect, useState, type MouseEvent, type ReactNode, type FormEvent} from 'react';
 import {Icon} from './ui';
 import {ShopConsoleArt} from './shop-console-art';
+import {GuideDeviceArt} from './guide-device-art';
+import {guideManifest} from './repair-guides-manifest.mjs';
+import type {RepairGuideFamily} from './repair-guides-types';
 export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
 import './public-home.css';
 import './reparapid-brand.css';
 
 export function ReparapidBrand() {
-  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><img className="rp-brand-image" src="./reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small>PAR MAXXI GAMES · LE KREMLIN-BICÊTRE</small></span></a>;
+  return <a className="rp-brand" href="#/accueil" aria-label="RépaRapid, accueil"><img className="rp-brand-image" src="/reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small className="rp-partner-brand"><img src="/maxxi-games-logo-original.png" width="500" height="500" alt="Maxxi Games"/><span>LE KREMLIN-BICÊTRE</span></small></span></a>;
 }
 function sectionLink(event: MouseEvent<HTMLAnchorElement>, id: string) {
   event.preventDefault(); const section = document.getElementById(id);
@@ -90,10 +93,10 @@ function StoreContact({shop}: {shop: IntakeShop | null}) {
 const featuredGuides = [
   {slug: 'switch-ne-sallume-plus', brand: 'Nintendo', model: 'Nintendo Switch', title: 'Ma Switch ne s’allume plus', note: 'Blocage ou batterie vide ? Les premiers contrôles, sans démontage.'},
   {slug: 'ps5-bruit-ventilateur-nettoyage', brand: 'Sony', model: 'PlayStation 5', title: 'Ma PS5 fait du bruit', note: 'Aérations, poussière et installation : vérifier avant d’ouvrir.'},
-  {slug: 'game-boy-cartouche-ne-demarre-pas', brand: 'Nintendo', model: 'Game Boy', title: 'Ma cartouche ne démarre plus', note: 'Identifier un problème de contact et nettoyer avec le bon matériel.'},
+  {slug: 'iphone-16-charge-usb-c', brand: 'Apple', family: 'iPhone', model: 'iPhone 16', title: 'Mon iPhone ne charge plus', note: 'Câble, alimentation et port : les contrôles avant de remplacer une pièce.'},
 ];
 function HomeRepairGuides() {
-  return <section className="rp-home-guides rp-shell" aria-labelledby="rp-home-guides-title"><div className="rp-section-heading"><div><span className="rp-eyebrow">LES BONS GESTES, AVANT L’ATELIER</span><h2 id="rp-home-guides-title">Comprendre la panne.<br/>Essayer, pas à pas.</h2></div><p>24 tutoriels pour les consoles actuelles et rétro.<br/>Des contrôles simples aux démontages expliqués.</p></div><div className="rp-home-guide-grid">{featuredGuides.map(guide => <a className="rp-home-guide-card" href={`/guides/${guide.slug}/`} key={guide.slug}><div className="rp-home-guide-art"><ShopConsoleArt item={guide}/></div><div className="rp-home-guide-copy"><span>{guide.model}</span><h3>{guide.title}</h3><p>{guide.note}</p><strong>Lire le tutoriel<Icon name="arrow" size={16}/></strong></div></a>)}</div><a className="rp-button rp-outline" href="/guides/">Tous les tutoriels de réparation<Icon name="arrow" size={17}/></a></section>;
+  return <section className="rp-home-guides rp-shell" aria-labelledby="rp-home-guides-title"><div className="rp-section-heading"><div><span className="rp-eyebrow">LES BONS GESTES, AVANT L’ATELIER</span><h2 id="rp-home-guides-title">Comprendre la panne.<br/>Essayer, pas à pas.</h2></div><p>{guideManifest.length} tutoriels pour les consoles et smartphones.<br/>Des contrôles simples aux démontages expliqués.</p></div><div className="rp-home-guide-grid">{featuredGuides.map(guide => <a className="rp-home-guide-card" href={`/guides/${guide.slug}/`} key={guide.slug}><div className="rp-home-guide-art"><GuideDeviceArt device={{family: (guide.family || (guide.brand === 'Sony' ? 'PlayStation' : 'Nintendo')) as RepairGuideFamily, model: guide.model}}/></div><div className="rp-home-guide-copy"><span>{guide.model}</span><h3>{guide.title}</h3><p>{guide.note}</p><strong>Lire le tutoriel<Icon name="arrow" size={16}/></strong></div></a>)}</div><a className="rp-button rp-outline" href="/guides/">Tous les tutoriels de réparation<Icon name="arrow" size={17}/></a></section>;
 }
 export function PublicHome() {
   const [shop, setShop] = useState<IntakeShop | null>(null);

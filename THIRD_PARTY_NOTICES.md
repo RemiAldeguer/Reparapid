@@ -32,4 +32,10 @@ TypeScript, Vite, the React Vite plugin, esbuild and TypeScript definitions are 
 
 ## Assets
 
-The illustrations and icons are generic inline SVG components in `src/ui.tsx`. No external photographs or font files are bundled. System fonts are used. Product and manufacturer names identify fictional example records; no affiliation or endorsement is implied.
+Console, controller and smartphone illustrations and interface icons are native SVG components created for the application in `src/ui.tsx`, `src/shop-console-art.tsx` and `src/guide-device-art.tsx`.
+
+The RépaRapid logo and favicon come from the public [RépaRapid website](https://reparapid.fr/). The Maxxi Games logo is the unmodified PNG from the [Maxxi Games inSiti listing](https://www.insiti.com/search/enseignes/maxxi-games-jeux-video), available at [its public asset URL](https://s3.eu-west-3.amazonaws.com/insiti.com/logos/5064/big_square/168541.png). These brand assets are included to present the requested RépaRapid / Maxxi Games service; the application's MIT licence does not grant rights to these logos or trademarks.
+
+Oxanium is self-hosted in `public/fonts/oxanium.ttf`, from the [Google Fonts repository](https://github.com/google/fonts/tree/main/ofl/oxanium). Its SIL Open Font License is retained in `public/fonts/oxanium-OFL.txt`.
+
+Tutorial prose is original French editorial content with links to the relevant manufacturer documentation and iFixit procedures. Upstream photographs and article bodies are not bundled. Manufacturer and product names identify the devices discussed; no manufacturer affiliation or endorsement is implied.

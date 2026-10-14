@@ -1,0 +1,29 @@
+import {useId} from 'react';
+import {ShopConsoleArt} from './shop-console-art';
+import {guideFamilies} from './repair-guide-families';
+import type {RepairGuide} from './repair-guides-types';
+
+type Device = Pick<RepairGuide, 'family' | 'model' | 'deviceType'>;
+function PhoneArt({device, label}: {device: Device; label?: string}) {
+  const id = useId().replace(/:/g, ''), apple = device.family === 'iPhone', pixel = device.family === 'Google Pixel';
+  const model = device.model.split('·')[0];
+  const home = apple && /\b(?:SE|7|8)\b/i.test(model), island = apple && /(?:15|16|17)|14\s*Pro/i.test(model);
+  const appleCameras = home || /\bXR\b/.test(model) ? [[179,40]] : /Pro/.test(model) ? [[179,40],[197,53],[179,66]] : [[179,40],[197,66]];
+  const pixelGeneration = Number(/Pixel\s*(\d)/i.exec(model)?.[1]);
+  const pixelBar = pixel && pixelGeneration >= 6;
+  return <svg className="rp-console-svg guide-device-art" width="320" height="220" viewBox="0 0 320 220" aria-hidden={label ? undefined : true} role={label ? 'img' : undefined} aria-label={label} data-guide-device="smartphone" focusable="false">
+    <defs><linearGradient id={`${id}-case`} x1="0" y1="0" x2="1" y2="1"><stop stopColor={apple ? '#b9c6d4' : pixel ? '#a4c7c4' : '#899cc1'}/><stop offset="1" stopColor={apple ? '#687f98' : pixel ? '#51818a' : '#4e628f'}/></linearGradient><linearGradient id={`${id}-screen`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#1c3f60"/><stop offset="1" stopColor="#091523"/></linearGradient></defs>
+    <ellipse cx="163" cy="202" rx="90" ry="8" fill="#33495c" opacity=".13"/>
+    <g transform="rotate(8 200 109)"><rect x="161" y="20" width="91" height="174" rx="15" fill={`url(#${id}-case)`} stroke="#4d667e" strokeWidth="1.7"/>{pixelBar ? <><rect x="161" y="43" width="91" height="26" fill="#536978"/><rect x="169" y="47" width="65" height="18" rx="9" fill="#162a3b"/>{(/Pro/.test(model) ? [180,199,218] : [180,199]).map(x=><circle key={x} cx={x} cy="56" r="6" fill="#0b1725" stroke="#71899c"/>)}<circle cx="241" cy="56" r="3" fill="#e7e2cf"/></> : <><rect x="168" y="28" width={apple ? 40 : 26} height={apple ? 43 : 65} rx="9" fill={apple ? '#9aacbd' : '#627797'}/>{(apple ? appleCameras : pixel ? pixelGeneration === 4 ? [[179,40]] : [[179,40],[197,60]] : /Flip/i.test(model) ? [[181,40],[181,62]] : [[181,40],[181,62],[181,84]]).map(([x,y])=><g key={y}><circle cx={x} cy={y} r="7" fill="#182a3a" stroke="#bdccd8" strokeWidth="1.4"/><circle cx={x} cy={y} r="3" fill="#416279"/></g>)}<circle cx={apple ? 197 : 210} cy={apple ? 34 : 41} r="3" fill="#e4e5d7"/></>}<path d="M199 119h13m-6-6v13" stroke="#fff" strokeOpacity=".16" strokeWidth="3" strokeLinecap="round"/></g>
+    <g transform="rotate(-8 119 113)"><rect x="77" y="20" width="96" height="180" rx="17" fill="#2b3b4a" stroke="#9caebe" strokeWidth="2"/><rect x="82" y={home ? 40 : 25} width="86" height={home ? 138 : 170} rx={home ? 2 : 12} fill={`url(#${id}-screen)`}/><path d="M84 142 166 69v89l-48 35H84z" fill="#42748a" opacity=".45"/><path d="M85 66 163 29v24L85 127z" fill="#699eaa" opacity=".22"/>{home ? <><path d="M112 30h24" stroke="#748697" strokeWidth="3" strokeLinecap="round"/><circle cx="125" cy="189" r="7" fill="#142536" stroke="#7b8da1"/></> : island ? <rect x="112" y="30" width="29" height="8" rx="4" fill="#08121e"/> : apple ? <path d="M104 25h43v8q0 7-7 7h-29q-7 0-7-7z" fill="#1c2c3a"/> : <circle cx="125" cy="31" r="3" fill="#091523"/>}<path d="M80 47v21m0 8v15m91-30v24" stroke="#adbdca" strokeWidth="2" strokeLinecap="round"/>{!home && <path d="M114 189h23" stroke="#dde7ed" strokeWidth="2.5" strokeLinecap="round"/>}</g>
+  </svg>;
+}
+function ControllerArt({device, label}: {device: Device; label?: string}) {
+  const joy = /joy.con/i.test(device.model);
+  return <svg className="rp-console-svg guide-device-art" width="320" height="220" viewBox="0 0 320 220" aria-hidden={label ? undefined : true} role={label ? 'img' : undefined} aria-label={label} data-guide-device="console" focusable="false"><ellipse cx="160" cy="197" rx="102" ry="9" fill="#33495c" opacity=".13"/>{joy ? <g transform="rotate(-8 160 109)"><rect x="87" y="34" width="66" height="151" rx="24" fill="#4799c4" stroke="#285570" strokeWidth="2"/><rect x="168" y="34" width="66" height="151" rx="24" fill="#ce6467" stroke="#85464a" strokeWidth="2"/><circle cx="120" cy="74" r="14" fill="#233c51"/><circle cx="201" cy="133" r="14" fill="#323344"/>{[[120,120],[106,135],[134,135],[120,149],[201,64],[187,79],[215,79],[201,93]].map(([x,y])=><circle key={`${x}-${y}`} cx={x} cy={y} r="4" fill="#263d4f"/>)}<path d="M143 50v117m36-117v117" stroke="#fff" strokeOpacity=".2"/><circle cx="120" cy="170" r="4" fill="#243e53"/><circle cx="201" cy="170" r="4" fill="#243e53"/></g> : <g transform="rotate(-5 160 112)"><path d="M80 57q-17 0-29 21L29 148q-9 30 16 37 14 2 36-30l21-17h116l21 17q22 32 36 30 25-7 16-37l-22-70q-12-21-29-21z" fill={device.family === 'PlayStation' ? '#edf0f3' : '#34485e'} stroke="#9aaab9" strokeWidth="2"/><path d="M117 66h86v46h-86z" fill="#26394c"/><path d="M64 92h12V80h12v12h12v12H88v12H76v-12H64z" fill="#334b62"/><circle cx="114" cy="130" r="14" fill="#21384d" stroke="#7a8fa3" strokeWidth="2"/><circle cx="207" cy="130" r="14" fill="#21384d" stroke="#7a8fa3" strokeWidth="2"/>{[[244,82],[230,96],[258,96],[244,110]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="5" fill={['#879dab','#ba7388','#86aa95','#89a0bb'][i]}/>)}<circle cx="160" cy="128" r="4" fill="#8199ae"/></g>}</svg>;
+}
+export function GuideDeviceArt({device, label}: {device: Device; label?: string}) {
+  if (guideFamilies[device.family].deviceType === 'smartphone') return <PhoneArt device={device} label={label}/>;
+  if (/joy.con|dualshock|dualsense|controller|manette|wii remote/i.test(device.model)) return <ControllerArt device={device} label={label}/>;
+  return <ShopConsoleArt item={{brand:guideFamilies[device.family].brand,model:device.model}} label={label}/>;
+}

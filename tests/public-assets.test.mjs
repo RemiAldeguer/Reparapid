@@ -14,6 +14,7 @@ import {build} from 'vite';
 const publicFiles = [
   ['index.html', 'text/html; charset=utf-8'],
   ['reparapid-logo-original.webp', 'image/webp'],
+  ['maxxi-games-logo-original.png', 'image/png'],
   ['favicon-reparapid.png', 'image/png'],
   ['logo-clinique-retro.svg', 'image/svg+xml'],
   ['fonts/oxanium.ttf', 'font/ttf'],

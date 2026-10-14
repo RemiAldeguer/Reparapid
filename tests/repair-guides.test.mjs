@@ -4,7 +4,7 @@ import {once} from 'node:events';
 import {mkdtemp, mkdir, readFile, rm, symlink, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {guideCatalog, guideManifest, GUIDE_ORIGIN, GUIDE_PUBLISHED_DATE} from '../src/repair-guides-manifest.mjs';
+import {guideCatalog, guideManifest, guideCollections, GUIDE_ORIGIN, GUIDE_PUBLISHED_DATE} from '../src/repair-guides-manifest.mjs';
 import {publicAsset, publicSourceAsset, publicPageRedirect, generatedPublicFiles} from '../server/public-assets.mjs';
 import {verifyPublicAssets} from '../scripts/verify-public-assets.mjs';
 import {generateRepairGuides, guideStylesheets, guideSitemap, loadGuideRenderer} from '../scripts/generate-repair-guides.mjs';
@@ -20,13 +20,16 @@ async function populate(root, filename, body = 'SYNTHETIC_GUIDE') {
   await mkdir(path.dirname(path.join(root, filename)), {recursive: true});
   await writeFile(path.join(root, filename), body);
 }
-const pages = [guideCatalog, ...guideManifest];
+const pages = [guideCatalog, ...guideCollections, ...guideManifest];
 const escapedText = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#x27;');
 const unknownPaths = ['/guides/inconnu/', '/guides/inconnu/index.html', '/guides/backup.html', '/guides/PS5/', '/guides//', '/guides/index.html.bak', '/guides/' + guideManifest[0].slug + '/secret.html'];
 
-test('public guide manifest declares exactly 24 distinct slugs and only known page aliases', () => {
-  assert.equal(guideManifest.length, 24);
-  assert.equal(new Set(guideManifest.map(page => page.slug)).size, 24);
+test('public guide manifest declares 120 distinct slugs, category pages and only known page aliases', () => {
+  assert.equal(guideManifest.length, 120);
+  assert.equal(new Set(guideManifest.map(page => page.slug)).size, 120);
+  assert.equal(new Set(pages.map(page => page.pathname)).size, pages.length);
+  assert.equal(new Set(pages.map(page => page.filename)).size, pages.length);
+  assert.ok(guideManifest.every(page => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page.slug)));
   for (const page of pages) {
     const expected = {pathname: '/' + page.filename, filename: page.filename, contentType: 'text/html; charset=utf-8'};
     for (const target of [page.pathname, page.pathname + '?source=fixture', GUIDE_ORIGIN + page.pathname]) assert.deepEqual(publicAsset(target), expected);
@@ -164,8 +167,8 @@ test('guide sitemap contains only the real canonical public pages and stable edi
   const xml = guideSitemap();
   const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
   assert.deepEqual(urls, [GUIDE_ORIGIN + '/', ...pages.map(page => GUIDE_ORIGIN + page.pathname)]);
-  assert.equal(new Set(urls).size, 26);
-  assert.equal([...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].length, 25);
+  assert.equal(new Set(urls).size, 124);
+  assert.equal([...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].length, 123);
   assert.ok(xml.includes(`<lastmod>${GUIDE_PUBLISHED_DATE}</lastmod>`));
   assert.ok(urls.every(url => !url.includes('#') && !url.includes('/api/') && !url.includes('reparapid.fr')));
 });
@@ -186,10 +189,11 @@ test('guide renderer emits complete indexable articles, honest metadata, visible
     assert.ok(html.includes(`rel="canonical" href="${GUIDE_ORIGIN + page.pathname}"`));
     assert.ok(html.includes('name="description"'));
     assert.ok(html.includes('name="robots" content="index,follow"'));
-    assert.ok(html.includes('data-console-kind='));
+    assert.ok(html.includes('data-console-kind=') || html.includes('data-guide-device='));
     assert.ok(html.includes(`dateTime="${GUIDE_PUBLISHED_DATE}"`) || html.includes(`datetime="${GUIDE_PUBLISHED_DATE}"`));
     assert.ok(html.includes('13 octobre 2026'));
-    assert.ok(html.includes('href="/#/demande-reparation'));
+    if (guide.deviceType === 'smartphone') assert.ok(html.includes('href="/#/accueil?section=rp-contact"'));
+    else assert.ok(html.includes('href="/#/demande-reparation'));
     assert.ok(html.includes('href="/guides/"'));
     assert.ok(!/<script[^>]+(?:src=|type="module")/.test(html));
     assert.ok(!html.includes('href="#/'));
@@ -219,12 +223,22 @@ test('guide generation uses a disposable build, supplies every exact public outp
   await populate(root, 'index.html', '<!doctype html><link rel="stylesheet" crossorigin href="./assets/index-Abcd1234.css">');
   await populate(root, 'assets/index-Abcd1234.css', '/* synthetic CSS */');
   const result = await generateRepairGuides(root);
-  assert.equal(result.pages, 25);
-  assert.equal((await verifyPublicAssets(root, {guides: true})).length, generatedPublicFiles.length + 2);
+  assert.equal(result.pages, 123);
+  assert.equal(result.scripts.length, 1);
+  const searchScript = result.scripts[0];
+  assert.match(searchScript, /^\/assets\/guide-search-[a-f0-9]{8}\.js$/);
+  assert.equal(publicAsset(searchScript).contentType, 'text/javascript; charset=utf-8');
+  assert.equal(publicSourceAsset(searchScript), null);
+  const searchSource = await readFile(path.join(root, searchScript.slice(1)), 'utf8');
+  assert.ok(searchSource.length < 8000, 'public filtering does not load the administrative application');
+  assert.ok(!/fetch\(|localStorage|sessionStorage|\/api\//.test(searchSource), 'search stays within the displayed public catalog');
+  assert.equal((await verifyPublicAssets(root, {guides: true})).length, generatedPublicFiles.length + 3);
   for (const page of pages) {
     const html = await readFile(path.join(root, page.filename), 'utf8');
     assert.ok(html.includes(`rel="canonical" href="${GUIDE_ORIGIN + page.pathname}"`));
     assert.ok(html.includes('href="/assets/index-Abcd1234.css"'));
+    const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1]);
+    assert.deepEqual(scripts, page.slug ? [] : [searchScript], 'only catalogs receive their independent search script');
   }
   assert.equal(await readFile(path.join(root, 'sitemap.xml'), 'utf8'), guideSitemap());
   const robots = await readFile(path.join(root, 'robots.txt'), 'utf8');
@@ -236,4 +250,25 @@ test('guide generation uses a disposable build, supplies every exact public outp
   await symlink(path.join(outside, 'private.txt'), path.join(root, 'robots.txt'));
   await assert.rejects(generateRepairGuides(root), /Lien symbolique/);
   assert.equal(await readFile(path.join(outside, 'private.txt'), 'utf8'), 'SYNTHETIC_PRIVATE_EXPORT');
+});
+
+test('console and smartphone catalogs contain the right articles and distinct canonical metadata', async () => {
+  const renderer = await loadGuideRenderer();
+  const guides = renderer.repairGuides;
+  const phones = guides.filter(guide => guide.deviceType === 'smartphone');
+  const consoles = guides.filter(guide => guide.deviceType !== 'smartphone');
+  assert.equal(phones.length, 48);
+  assert.equal(consoles.length, 72);
+  for (const page of guideCollections) {
+    const html = renderer.renderGuideDocument({collection: page.collection, stylesheets: ['/assets/index-Abcd1234.css']});
+    const wanted = page.collection === 'smartphones' ? phones : consoles;
+    const excluded = page.collection === 'smartphones' ? consoles : phones;
+    assert.ok(html.includes(`rel="canonical" href="${GUIDE_ORIGIN + page.pathname}"`));
+    assert.equal((html.match(/data-guide-card="true"/g) || []).length, wanted.length);
+    for (const guide of wanted) assert.ok(html.includes(`href="/guides/${guide.slug}/"`));
+    for (const guide of excluded) assert.ok(!html.includes(`href="/guides/${guide.slug}/"`));
+    const json = JSON.parse(/<script type="application\/ld\+json">([\s\S]+?)<\/script>/.exec(html)[1]);
+    assert.equal(json['@graph'].find(item => item['@type'] === 'CollectionPage').mainEntity.itemListElement.length, wanted.length);
+    assert.ok(html.includes('data-guide-search-form="true" hidden=""'));
+  }
 });

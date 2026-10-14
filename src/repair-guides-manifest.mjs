@@ -1,3 +1,6 @@
+import {consoleGuideSlugs} from './repair-guide-slugs-consoles.mjs';
+import {iphoneGuideSlugs} from './repair-guide-slugs-iphone.mjs';
+import {androidGuideSlugs} from './repair-guide-slugs-android.mjs';
 // Public URLs only. Article text is never bundled into the API Worker.
 export const GUIDE_ORIGIN = 'https://reparapid.aldeguer-remi.workers.dev';
 export const GUIDE_PUBLISHED_DATE = '2026-10-13';
@@ -27,9 +30,14 @@ const slugs = [
   'nes-voyant-clignotant-cartouche',
   'steam-deck-bloque-charge-redemarrage',
 ];
-export const guideManifest = Object.freeze(slugs.map(slug => Object.freeze({
+export const guideManifest = Object.freeze([...slugs, ...consoleGuideSlugs, ...iphoneGuideSlugs, ...androidGuideSlugs].map(slug => Object.freeze({
   slug,
   pathname: `/guides/${slug}/`,
   filename: `guides/${slug}/index.html`,
 })));
 export const guideCatalog = Object.freeze({pathname: '/guides/', filename: 'guides/index.html'});
+
+export const guideCollections = Object.freeze([
+  Object.freeze({collection: 'consoles', pathname: '/guides/consoles/', filename: 'guides/consoles/index.html'}),
+  Object.freeze({collection: 'smartphones', pathname: '/guides/smartphones/', filename: 'guides/smartphones/index.html'}),
+]);
