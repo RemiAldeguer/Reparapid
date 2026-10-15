@@ -123,7 +123,7 @@ Cette reprise a passé **476 tests** et le build final TypeScript/Vite de **87 m
 
 ## Demande express et suivi client
 
-L’accueil propose directement le choix de marque et de modèle, avec les logos des marques et les illustrations des consoles dans les menus. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
+L’accueil propose un seul champ **Votre console**, avec les 38 choix illustrés directement accessibles, sans devoir connaître la marque. Les noms explicites et la recherche au clavier aident à reconnaître le modèle. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
 
 L’espace client affiche la réparation à gauche et les étapes/actions à droite, avec empilement sur mobile. Les filtres, tris et changements de vue ont été retirés ; les dossiers se choisissent par référence lorsqu’il y en a plusieurs. Le montant provient du dossier de l’atelier, avec distinction entre zéro et montant à confirmer.
 

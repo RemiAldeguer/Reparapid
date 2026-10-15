@@ -28,7 +28,15 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : menus illustrés et schéma d’envoi
+## Dernière reprise : frise du suivi et choix direct de la console — 15 octobre 2026
+
+Le suivi du dossier sélectionné commence par une frise horizontale pleine largeur, avant les panneaux console et consignes. Les étapes sont reliées ; les étapes passées sont cochées, l’étape actuelle est mise en évidence et conserve `aria-current="step"`. Sur petit écran, seule la frise défile horizontalement, au clavier ou au toucher. Un `ResizeObserver` recentre l’étape actuelle lors d’un redimensionnement. Les variantes restent conservées : envoi pour les demandes en ligne, attente de pièces seulement lorsqu’elle est actuelle, cinq étapes pour un dossier classique et message de clôture pour les dossiers irréparables ou abandonnés.
+
+Sur l’accueil, un seul champ **Votre console** donne directement accès aux 38 choix illustrés, sans choix de marque préalable. Les noms Nintendo, Sega et PlayStation portables sont explicites ; la recherche clavier accepte aussi le nom court comme Switch. Le choix rejoint directement les pannes du modèle ; **Autre console** conserve la saisie libre dans le formulaire complet. Les illustrations partagées, identifiants de modèles et contrats serveur ne changent pas.
+
+TypeScript et build final réussis : 111 modules, six sources publiques autorisées et 135 fichiers. Recette finale en mémoire sur neuf dossiers fictifs, à 1280, 390 et 320 px : étapes/états, position de la frise, absence de débordement du document et recentrage de la dernière étape après redimensionnement. Accueil : 38 illustrations, un seul champ actif, validation/focus, sélection Switch, recherche clavier, accès direct aux pannes et repli Autre vérifiés. Détails dans TESTS.md. Publication confirmée sur 100 % du trafic Cloudflare : sept assets identiques au build, API publique 200 et cinq API privées 401. L’accueil publié confirme un seul champ et ses 38 illustrations. Aucun changement de données D1 ; le serveur et les onglets de recette sont fermés.
+
+## Reprise précédente : menus illustrés et schéma d’envoi
 
 Le suivi client utilise un schéma dédié dans `shipping-process-diagram.tsx/.css` : quatre étapes numérotées avec illustrations plus grandes, texte HTML lisible et destinations **CHEZ VOUS** / **DANS LE COLIS**. Il distingue impression, découpe sur les pointillés, conservation du talon et placement de toute la fiche atelier à l’intérieur du colis avec la console protégée. Le document imprimable et ses styles restent identiques à la reprise précédente.
 

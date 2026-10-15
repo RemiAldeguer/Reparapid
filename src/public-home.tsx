@@ -7,7 +7,7 @@ import type {RepairGuideFamily} from './repair-guides-types';
 export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
 import {INTAKE_MODELS} from './repair-intake-catalog';
-import {ConsoleBrandLogo, HomeConsoleSelect} from './home-console-select';
+import {HomeConsoleSelect} from './home-console-select';
 import './public-home.css';
 import './reparapid-brand.css';
 
@@ -101,26 +101,23 @@ function HomeRepairGuides() {
   return <section className="rp-home-guides rp-shell" aria-labelledby="rp-home-guides-title"><div className="rp-section-heading"><div><span className="rp-eyebrow">LES BONS GESTES, AVANT L’ATELIER</span><h2 id="rp-home-guides-title">Comprendre la panne.<br/>Essayer, pas à pas.</h2></div><p>{guideManifest.length} tutoriels pour les consoles et smartphones.<br/>Des contrôles simples aux démontages expliqués.</p></div><div className="rp-home-guide-grid">{featuredGuides.map(guide => <a className="rp-home-guide-card" href={`/guides/${guide.slug}/`} key={guide.slug}><div className="rp-home-guide-art"><GuideDeviceArt device={{family: (guide.family || (guide.brand === 'Sony' ? 'PlayStation' : 'Nintendo')) as RepairGuideFamily, model: guide.model}}/></div><div className="rp-home-guide-copy"><span>{guide.model}</span><h3>{guide.title}</h3><p>{guide.note}</p><strong>Lire le tutoriel<Icon name="arrow" size={16}/></strong></div></a>)}</div><a className="rp-button rp-outline" href="/guides/">Tous les tutoriels de réparation<Icon name="arrow" size={17}/></a></section>;
 }
 function HomeConsolePicker() {
-  const [brand, setBrand] = useState(''), [modelId, setModelId] = useState('');
-  const [validation, setValidation] = useState<'brand' | 'model' | null>(null);
-  const brandRef = useRef<HTMLButtonElement>(null), modelRef = useRef<HTMLButtonElement>(null), errorId = useId();
-  const brands = [...new Set(INTAKE_MODELS.map(item => item.brand))];
-  const models = INTAKE_MODELS.filter(item => item.brand === brand);
-  const model = models.find(item => item.id === modelId);
+  const [modelId, setModelId] = useState(''), [validation, setValidation] = useState(false);
+  const modelRef = useRef<HTMLButtonElement>(null), errorId = useId(), helpId = useId();
+  const model = INTAKE_MODELS.find(item => item.id === modelId);
+  const modelLabel = (item: typeof INTAKE_MODELS[number]) => item.id === 'psp' ? 'PlayStation Portable (PSP)' : item.id === 'ps-vita' ? 'PlayStation Vita (PS Vita)' : ['Nintendo', 'Sega'].includes(item.brand) && !item.model.toLocaleLowerCase('fr').includes(item.brand.toLocaleLowerCase('fr')) ? `${item.brand} ${item.model}` : item.model;
   function chooseConsole(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!brand) {setValidation('brand'); brandRef.current?.focus(); return;}
-    if (!model) {setValidation('model'); modelRef.current?.focus(); return;}
+    if (!model) {setValidation(true); modelRef.current?.focus(); return;}
     window.location.hash = `/demande-reparation?modele=${encodeURIComponent(model.id)}`;
   }
   return <form className="rp-home-picker" aria-labelledby="rp-home-picker-title" onSubmit={chooseConsole}>
     <div className="rp-home-picker-heading"><span aria-hidden="true">01</span><div><span>ON COMMENCE ICI</span><h2 id="rp-home-picker-title">Quelle console réparer ?</h2></div></div>
-    <div className="rp-home-picker-preview"><span className="rp-home-picker-orbit" aria-hidden="true"/><div className="rp-home-picker-console" aria-hidden="true"><ShopConsoleArt item={model || {brand: '', model: ''}}/></div><p aria-live="polite">{model ? model.id === 'other' ? 'Un autre modèle ? On le prend en note.' : model.model : 'Votre console, votre prochaine partie.'}</p></div>
+    <div className="rp-home-picker-preview"><span className="rp-home-picker-orbit" aria-hidden="true"/><div className="rp-home-picker-console" aria-hidden="true"><ShopConsoleArt item={model || {brand: '', model: ''}}/></div><p aria-live="polite">{model ? model.id === 'other' ? 'Un autre modèle ? On le prend en note.' : modelLabel(model) : 'Votre console, votre prochaine partie.'}</p></div>
+    <p id={helpId} className="rp-home-picker-help">Reconnaissez votre console grâce aux images. Pas besoin de connaître sa marque.</p>
     <div className="rp-home-picker-fields">
-      <HomeConsoleSelect label="Marque" kind="brand" placeholder="Choisir la marque" value={brand} buttonRef={brandRef} invalid={validation === 'brand'} errorId={errorId} options={brands.map(item => ({value:item,label:item,visual:<ConsoleBrandLogo brand={item}/>}))} onChange={value => {setBrand(value); setModelId(''); setValidation(null);}}/>
-      <HomeConsoleSelect key={brand} label="Modèle exact" kind="model" placeholder={brand ? 'Choisir le modèle' : 'Choisissez d’abord la marque'} disabled={!brand} value={modelId} buttonRef={modelRef} invalid={validation === 'model'} errorId={errorId} options={models.map(item => ({value:item.id,label:item.model,visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(null);}}/>
+      <HomeConsoleSelect label="Votre console" kind="model" placeholder="Choisir dans les consoles illustrées" value={modelId} buttonRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={INTAKE_MODELS.map(item => ({value:item.id,label:modelLabel(item),searchLabel:item.model,visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}}/>
     </div>
-    {validation && <p id={errorId} className="rp-home-picker-validation" role="alert">{validation === 'brand' ? 'Choisissez la marque de votre console.' : 'Choisissez le modèle exact de votre console.'}</p>}
+    {validation && <p id={errorId} className="rp-home-picker-validation" role="alert">Choisissez votre console dans la liste, ou « Autre console ».</p>}
     <button type="submit" className="rp-button rp-primary rp-home-picker-submit">Choisir la panne<Icon name="arrow" size={18}/></button>
     <p className="rp-home-picker-note"><Icon name="info" size={14}/>{model?.id === 'other' ? 'Précisez votre modèle à l’étape suivante, puis décrivez sa panne.' : 'Retrouvez ensuite les pannes proposées pour votre modèle.'}</p>
   </form>;

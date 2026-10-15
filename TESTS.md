@@ -6,7 +6,23 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **15 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : menus illustrés et schéma d’envoi
+## Résultat courant : frise horizontale et choix direct de console — 15 octobre 2026
+
+Retouche de présentation dans `client-portal.*`, `public-home.*` et `home-console-select.*`. La frise pleine largeur précède les deux panneaux du dossier. L’accueil propose directement les 38 consoles illustrées dans un seul sélecteur, sans marque obligatoire. Aucun contrat API, règle métier, document imprimable ou stockage ne change.
+
+`npm run typecheck`, `npm run build` et `git diff --check` réussis. Le build final transforme **111 modules** et valide six sources publiques puis **135 fichiers** (dont les 123 pages de guides). Le warning de bundle supérieur à 500 kB demeure. La suite métier/API n’a pas été relancée pour ces changements de présentation ; les résultats antérieurs restent datés ci-dessous.
+
+Recette finale répétée sur SQLite **en mémoire**, avec un compte et neuf dossiers fictifs, notifications désactivées : les neuf états, dont l’attente de pièces (sept jalons), prêt à récupérer, irréparable, abandonné et vérifications d’un dossier classique (cinq jalons). Une seule frise précède les panneaux ; aucun doublon ne reste dans les consignes. Les clôtures affichent un message sans fausse progression. `aria-current`, étapes passées/futures et zéro/absence de montant sont conservés.
+
+**1280, 390 et 320 px effectivement contrôlés** sur le suivi : document sans débordement horizontal, frise seule défilable, dernier jalon visible à l’ouverture et après passage de 1280 à 390 puis 320 px. Le dernier contrôle de redimensionnement a été répété après rechargement du bundle final, avec une position de défilement de 600 px à 320 px et le jalon actuel entièrement visible.
+
+Accueil : champ unique actif dès l’ouverture, **38 choix et 38 illustrations**, validation vide ramenant le focus au sélecteur, sélection Switch ouvrant directement les pannes, End/Entrée vers Autre console puis saisie libre. La recherche clavier « switch » sélectionne Nintendo Switch. Menu contenu à 320 px et sélection illustrée lisible à 390 px ; aucun débordement du document. Les captures ne contiennent que des données fictives.
+
+Compte fictif déconnecté, panneaux privés retirés, viewport réinitialisé, onglets de recette fermés et serveur temporaire arrêté. Les dix dossiers existants, les clients et les pièces de la base en mémoire restent inchangés.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : sept assets conformes au build, API publique 200 et cinq API privées 401. Recette publique de l’accueil : un seul champ « Votre console », 38 choix et 38 illustrations, sélection Switch conservée avec aperçu. Aucune migration ni écriture D1.
+
+## Résultat précédent : menus illustrés et schéma d’envoi
 
 Évolution de présentation uniquement : schéma en quatre étapes dans le suivi client, logos dans le choix de marque, miniatures partagées des consoles dans le choix du modèle et chevrons des listes natives espacés de 15 px du bord. Le document imprimable, les contrats API, le domaine et les données ne changent pas ; les 129 tests ci-dessous restent rattachés à la reprise précédente, sans nouvelle exécution métier pour cette retouche.
 

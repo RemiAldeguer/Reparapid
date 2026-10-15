@@ -22,7 +22,9 @@
 .home-console-select-option-label{display:block;min-width:0;font:12px/1.5 Arial,sans-serif;overflow-wrap:anywhere}
 .home-console-select-check{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;color:#a32720}
 .home-console-select-brand .home-console-select-options{width:230px;max-width:calc(100vw - 64px);right:auto}
-.home-console-select-model .home-console-select-options{left:auto;width:300px;max-width:calc(100vw - 64px)}
+.home-console-select-model .home-console-select-options{left:0;right:0;width:auto;max-width:100%}
+.home-console-select-model .home-console-select-option{min-height:72px}
+.home-console-select-model .home-console-select-option>.home-console-select-visual{flex-basis:78px;height:55px}
 .home-console-select-brand .home-console-select-option>.home-console-select-visual{flex-basis:83px}
 .rp-home-picker-validation{font-size:11px;line-height:1.7;color:#a32720;margin-top:10px}
 @media(max-width:680px){.home-console-select>label{font-size:11px}.home-console-select-trigger{min-height:57px}.home-console-select-option-label{font-size:13px}.home-console-select-options{max-height:min(330px,42dvh)}}

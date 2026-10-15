@@ -18,15 +18,15 @@ export function ConsoleBrandLogo({brand}: {brand: string}) {
   return src ? <img src={src} alt="" draggable={false}/> : <Icon name="gamepad" size={28}/>;
 }
 
-export type HomeConsoleChoice = {value: string; label: string; visual: ReactNode};
+export type HomeConsoleChoice = {value: string; label: string; searchLabel?: string; visual: ReactNode};
 type Props = {
   label: string; placeholder: string; value: string; options: HomeConsoleChoice[];
   onChange: (value: string) => void; kind: 'brand' | 'model'; disabled?: boolean;
-  invalid?: boolean; errorId?: string; buttonRef: RefObject<HTMLButtonElement | null>;
+  invalid?: boolean; errorId?: string; descriptionId?: string; buttonRef: RefObject<HTMLButtonElement | null>;
 };
 
 /** Select-only combobox: focus stays on the trigger while its active option changes. */
-export function HomeConsoleSelect({label, placeholder, value, options, onChange, kind, disabled = false, invalid = false, errorId, buttonRef}: Props) {
+export function HomeConsoleSelect({label, placeholder, value, options, onChange, kind, disabled = false, invalid = false, errorId, descriptionId, buttonRef}: Props) {
   const id = useId(), rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false), [active, setActive] = useState(0);
   const searchRef = useRef({text: '', time: 0});
@@ -87,7 +87,7 @@ export function HomeConsoleSelect({label, placeholder, value, options, onChange,
       searchRef.current = {text, time: now};
       const start = isOpen ? active + 1 : 0;
       const indexes = options.map((_, index) => (start + index) % options.length);
-      const index = indexes.find(index => options[index].label.toLocaleLowerCase('fr').startsWith(text));
+      const index = indexes.find(index => [options[index].label, options[index].searchLabel].some(label => label?.toLocaleLowerCase('fr').startsWith(text)));
       if (index !== undefined) {setActive(index); setOpen(true);}
     }
   }
@@ -96,7 +96,7 @@ export function HomeConsoleSelect({label, placeholder, value, options, onChange,
     <button ref={buttonRef} id={`${id}-trigger`} type="button" role="combobox" aria-labelledby={labelId}
       aria-expanded={isOpen} aria-haspopup="listbox" aria-controls={isOpen ? listId : undefined}
       aria-activedescendant={isOpen && options[active] ? `${id}-option-${active}` : undefined}
-      aria-required="true" aria-invalid={invalid || undefined} aria-describedby={invalid ? errorId : undefined}
+      aria-required="true" aria-invalid={invalid || undefined} aria-describedby={[descriptionId, invalid ? errorId : undefined].filter(Boolean).join(' ') || undefined}
       disabled={disabled} className={`home-console-select-trigger${selected ? ' has-value' : ''}`}
       onClick={() => isOpen ? setOpen(false) : show()} onKeyDown={keyDown}>
       {selected && <span className="home-console-select-visual" aria-hidden="true">{selected.visual}</span>}
