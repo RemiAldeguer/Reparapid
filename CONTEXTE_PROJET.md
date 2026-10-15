@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **13 octobre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **15 octobre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -28,7 +28,19 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : illustrations des consoles et accroche d’accueil
+## Dernière reprise : sélection d’accueil, suivi client et fiche à découper
+
+Le hero de l’accueil contient un formulaire marque/modèle exact issu de `INTAKE_MODELS`, avec aperçu SVG et aucune valeur choisie par défaut. **Choisir la panne** ouvre `#/demande-reparation?modele=<id>` directement à l’étape panne pour un modèle reconnu. « Autre console » reste à la saisie du modèle ; un identifiant inconnu revient au choix normal. Les anciens liens `?marque=` et l’accès au formulaire complet sont conservés. Le parcours d’envoi de l’accueil et la confirmation du formulaire expliquent désormais la découpe.
+
+L’espace client présente le dossier sélectionné à gauche (console, symptômes, références, accessoires et montant réel) et le process à droite (statut courant, action attendue, étapes et fiche d’envoi). Filtres, tris, recherche et bascule mosaïque/détails sont retirés. Plusieurs dossiers se choisissent par référence ; `?demande=<repairId>` sélectionne le dossier qui vient d’être créé, puis le choix reste stable à l’actualisation. Un seul dossier apparaît sans sélecteur supplémentaire ; les comptes vides et les consoles sans dossier restent pris en charge. Les états irréparable/abandonné restent fermés et les montants zéro/absents sont distincts. Les pièces clients des ateliers secondaires conservent leurs actions, sans filtres ; le magasin principal ne les affiche pas.
+
+`client-shipping-sheet.tsx/.css` fournit le document partagé et `ShippingPreparationDiagram`. La fiche comprend un **talon à conserver**, une ligne pointillée avec ciseaux et la **fiche atelier à mettre dans le colis avec la console protégée**. Le schéma explique impression, découpe et destinations. Le transport se prévoit séparément ; les champs longs ne sont pas tronqués et toutes les pages de la partie atelier doivent accompagner le colis. La mise en page d’impression demande A4. L’adresse non confirmée bloque l’impression et indique de contacter l’atelier.
+
+Contrats Node/Worker, projections, contrôle du propriétaire, sessions/CSRF/epochs et revalidation avant impression restent inchangés. Les données de recette sont fictives et restent dans SQLite en mémoire. Validation et limites d’impression : voir TESTS.md.
+
+Validation : **129 tests ciblés**, TypeScript et build final de **102 modules** réussis ; 135 fichiers publics. Recette du parcours complet, multi-dossiers et dossier unique, compte vide, zéro/absence, clôtures, confidentialité à la déconnexion et champs longs. Le suivi est effectivement vérifié à **1280, 390 et 320 px**, sans débordement, et l’accueil à 1280/320 px. La fiche a été vérifiée à l’écran et l’impression déclenchée ; le contrôle natif de l’application est refusé par l’outil, donc aucun PDF n’a été exporté ni rendu et aucun nombre de pages imprimées n’est certifié. Trois bases éphémères, serveurs arrêtés, onglets fermés et viewport réinitialisé. Publication à 100 % du trafic, sept assets conformes, API publique 200 et cinq API privées 401, 123 pages et 140 contrôles SEO réussis ; aucune écriture D1.
+
+## Reprise précédente : illustrations des consoles et accroche d’accueil
 
 Les SVG partagés par la vitrine, les guides et l’atelier conservent leurs silhouettes et leurs cadres. `shop-console-art.tsx` affine les dégradés de coques, ombres de contact, boutons/joysticks, relief des manettes, verre des écrans et couleurs des Joy-Con. Le nouveau `shop-console-details.tsx` ajoute ports, arêtes et petits détails dans les coordonnées et transformations des modèles existants. Chaque dégradé et clip conserve un identifiant issu de `useId` ; les écrans restent contenus dans leur propre zone. Les traits de châssis Xbox One et PS3 ont été raccourcis pour préserver les manettes au premier plan.
 

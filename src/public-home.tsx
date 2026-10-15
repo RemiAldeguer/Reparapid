@@ -6,6 +6,7 @@ import {guideManifest} from './repair-guides-manifest.mjs';
 import type {RepairGuideFamily} from './repair-guides-types';
 export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
+import {INTAKE_MODELS} from './repair-intake-catalog';
 import './public-home.css';
 import './reparapid-brand.css';
 
@@ -34,7 +35,7 @@ const googleReviewExcerpts = [
 const repairJourneySteps = [
   {number: '01', role: 'VOUS · EN LIGNE', icon: 'gamepad', title: 'Décrivez la panne', text: 'Choisissez votre modèle, sélectionnez les symptômes proposés et ajoutez vos précisions. Indiquez aussi les accessoires que vous comptez joindre.', result: 'Modèle et symptômes renseignés'},
   {number: '02', role: 'VOUS · VOTRE COMPTE', icon: 'user', title: 'Enregistrez votre demande', text: 'Créez votre compte ou connectez-vous à votre compte existant. Votre dossier et sa référence apparaissent dans votre espace client.', result: 'Statut : En attente d’envoi'},
-  {number: '03', role: 'VOUS · VOTRE COLIS', icon: 'package', title: 'Envoyez votre console', text: 'Depuis votre compte, imprimez la fiche récapitulative et glissez-la dans le colis. Envoyez votre console à Maxxi Games, au Kremlin-Bicêtre, à l’adresse confirmée sur la fiche.', result: 'Fiche jointe, console expédiée'},
+  {number: '03', role: 'VOUS · VOTRE COLIS', icon: 'package', title: 'Envoyez votre console', text: 'Depuis votre compte, imprimez la fiche d’envoi. Découpez le talon à conserver et glissez la partie atelier dans le colis. Envoyez votre console à Maxxi Games, au Kremlin-Bicêtre, à l’adresse confirmée sur la fiche.', result: 'Talon conservé, fiche jointe au colis'},
   {number: '04', role: 'RÉPARAPID · À L’ATELIER', icon: 'wrench', title: 'Suivez, puis récupérez', text: 'À réception, l’atelier diagnostique et prend en charge la console. Suivez les étapes et le montant dans votre compte. Une fois prête, contactez le magasin pour organiser son retrait ou son retour.', result: 'Statut : Prête à récupérer'},
 ];
 function GoogleStars() {
@@ -98,6 +99,27 @@ const featuredGuides = [
 function HomeRepairGuides() {
   return <section className="rp-home-guides rp-shell" aria-labelledby="rp-home-guides-title"><div className="rp-section-heading"><div><span className="rp-eyebrow">LES BONS GESTES, AVANT L’ATELIER</span><h2 id="rp-home-guides-title">Comprendre la panne.<br/>Essayer, pas à pas.</h2></div><p>{guideManifest.length} tutoriels pour les consoles et smartphones.<br/>Des contrôles simples aux démontages expliqués.</p></div><div className="rp-home-guide-grid">{featuredGuides.map(guide => <a className="rp-home-guide-card" href={`/guides/${guide.slug}/`} key={guide.slug}><div className="rp-home-guide-art"><GuideDeviceArt device={{family: (guide.family || (guide.brand === 'Sony' ? 'PlayStation' : 'Nintendo')) as RepairGuideFamily, model: guide.model}}/></div><div className="rp-home-guide-copy"><span>{guide.model}</span><h3>{guide.title}</h3><p>{guide.note}</p><strong>Lire le tutoriel<Icon name="arrow" size={16}/></strong></div></a>)}</div><a className="rp-button rp-outline" href="/guides/">Tous les tutoriels de réparation<Icon name="arrow" size={17}/></a></section>;
 }
+function HomeConsolePicker() {
+  const [brand, setBrand] = useState(''), [modelId, setModelId] = useState('');
+  const brands = [...new Set(INTAKE_MODELS.map(item => item.brand))];
+  const models = INTAKE_MODELS.filter(item => item.brand === brand);
+  const model = models.find(item => item.id === modelId);
+  function chooseConsole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!model) return;
+    window.location.hash = `/demande-reparation?modele=${encodeURIComponent(model.id)}`;
+  }
+  return <form className="rp-home-picker" aria-labelledby="rp-home-picker-title" onSubmit={chooseConsole}>
+    <div className="rp-home-picker-heading"><span aria-hidden="true">01</span><div><span>ON COMMENCE ICI</span><h2 id="rp-home-picker-title">Quelle console réparer ?</h2></div></div>
+    <div className="rp-home-picker-preview"><span className="rp-home-picker-orbit" aria-hidden="true"/><div className="rp-home-picker-console" aria-hidden="true"><ShopConsoleArt item={model || {brand: '', model: ''}}/></div><p aria-live="polite">{model ? model.id === 'other' ? 'Un autre modèle ? On le prend en note.' : model.model : 'Votre console, votre prochaine partie.'}</p></div>
+    <div className="rp-home-picker-fields">
+      <label><span>Marque</span><select name="consoleBrand" required value={brand} onChange={event => {setBrand(event.target.value); setModelId('');}}><option value="" disabled>Choisir la marque</option>{brands.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+      <label><span>Modèle exact</span><select name="consoleModel" required disabled={!brand} value={modelId} onChange={event => setModelId(event.target.value)}><option value="" disabled>{brand ? 'Choisir le modèle' : 'Choisissez d’abord la marque'}</option>{models.map(item => <option key={item.id} value={item.id}>{item.model}</option>)}</select></label>
+    </div>
+    <button type="submit" className="rp-button rp-primary rp-home-picker-submit">Choisir la panne<Icon name="arrow" size={18}/></button>
+    <p className="rp-home-picker-note"><Icon name="info" size={14}/>{model?.id === 'other' ? 'Précisez votre modèle à l’étape suivante, puis décrivez sa panne.' : 'Retrouvez ensuite les pannes proposées pour votre modèle.'}</p>
+  </form>;
+}
 export function PublicHome() {
   const [shop, setShop] = useState<IntakeShop | null>(null);
   useEffect(() => {
@@ -118,7 +140,7 @@ export function PublicHome() {
   }, []);
   useEffect(() => {document.title = 'RépaRapid · Réparation de consoles au Kremlin-Bicêtre'; const abort = new AbortController(); void clientApi<{shop: IntakeShop}>('/api/public/repair-intake', {signal: abort.signal, rootWorkshop: true}).then(value => setShop(value.shop)).catch(() => {}); return () => abort.abort();}, []);
   return <StorefrontShell><main id="rp-main" tabIndex={-1}>
-    <section className="rp-hero rp-shell"><div className="rp-hero-copy"><span className="rp-eyebrow"><i/>UNE PANNE NE TERMINE PAS LA PARTIE.</span><h1>Une seconde vie<br/>pour votre <em>console.</em></h1><p>Un écran noir, un joystick qui dérive, une console qui ne démarre plus ? Décrivez la panne. Notre atelier prend le relais.</p><div className="rp-hero-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Demander une réparation<Icon name="arrow" size={19}/></a><a className="rp-text-link" href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche<Icon name="down" size={16}/></a></div><p className="rp-hero-note"><Icon name="info" size={16}/>Le montant de l’intervention est confirmé après diagnostic.</p></div><div className="rp-hero-art" aria-hidden="true"><span className="rp-art-cross cross-one">+</span><span className="rp-art-cross cross-two">+</span><div className="rp-art-orbit"/><div className="rp-hero-console"><ShopConsoleArt item={{brand: 'Nintendo', model: 'Nintendo Switch', variant: 'Néon'}}/></div><div className="rp-art-status"><span><Icon name="wrench" size={19}/></span><div><small>ON S’OCCUPE DE LA SUITE</small><strong>Réparer. Rejouer.</strong></div><Icon name="check" size={18}/></div><span className="rp-art-label">PLAYER 1 · READY TO REPAIR</span></div></section>
+    <section className="rp-hero rp-shell"><div className="rp-hero-copy"><span className="rp-eyebrow"><i/>UNE PANNE NE TERMINE PAS LA PARTIE.</span><h1>Une seconde vie<br/>pour votre <em>console.</em></h1><p>Commencez par choisir votre console. Décrivez ensuite la panne et retrouvez votre dossier dans votre compte. Notre atelier prend le relais.</p><div className="rp-hero-actions"><a className="rp-text-link" href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche<Icon name="down" size={16}/></a><a className="rp-text-link rp-home-full-form" href="#/demande-reparation">Ouvrir le formulaire complet<Icon name="arrow" size={16}/></a></div><p className="rp-hero-note"><Icon name="info" size={16}/>Le montant de l’intervention est confirmé après diagnostic.</p></div><HomeConsolePicker/></section>
     <div className="rp-trust-strip"><div className="rp-shell"><span><Icon name="gamepad" size={20}/>Consoles de salon & portables</span><span><Icon name="wrench" size={20}/>Diagnostic à l’atelier</span><span><Icon name="user" size={20}/>Suivi dans votre compte</span></div></div>
     <section className="rp-devices rp-shell" id="rp-devices" tabIndex={-1}><div className="rp-section-heading"><div><span className="rp-eyebrow">ON COMMENCE PAR VOTRE CONSOLE</span><h2>À chaque console,<br/>sa prochaine partie.</h2></div><p>Choisissez le modèle dans le formulaire.<br/>Les pannes proposées s’adaptent à votre console.</p></div><div className="rp-device-grid">{consoleFamilies.map(item => <a href={`#/demande-reparation?marque=${encodeURIComponent(item.brand)}`} className={`rp-device-card ${item.theme}`} key={item.brand}><span className="rp-device-art"><ShopConsoleArt item={item}/></span><span className="rp-device-copy"><span><strong>{item.label}</strong><small>{item.note}</small></span><span className="rp-circle-arrow"><Icon name="arrow" size={20}/></span></span></a>)}</div><p className="rp-model-note">Votre modèle n’est pas dans la liste ? Vous pouvez le renseigner librement.</p></section>
     <StoreCommitments/>

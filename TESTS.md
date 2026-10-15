@@ -4,9 +4,25 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-Documentation mise à jour le **13 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **15 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : illustrations des consoles et accroche
+## Résultat courant : sélection d’accueil, suivi client et fiche à découper
+
+**129 tests ciblés réussis**, sans échec ni test ignoré : domaine/demandes de réparation, API Node/Worker, accès client et sessions. TypeScript et build final réussis : **102 modules**, six sources publiques autorisées, **135 fichiers**, dont 123 pages de guides. Une seconde compilation finale prend en compte la cohérence des instructions de découpe sur l’accueil et à la confirmation. Les 531 tests complets plus anciens restent rattachés à la reprise des forfaits.
+
+Recette sur SQLite en mémoire : accueil sans marque/modèle par défaut, validation des champs requis, sélection Switch puis accès direct aux pannes, retour au modèle, compte client existant et création de REP-011. Le dossier créé est automatiquement sélectionné et reste sans montant supposé. Les neuf autres dossiers du client vérifient choix par référence, actualisation gardant la sélection, zéro explicite, tarif réel saisi, prêt à récupérer et clôture irréparable. Aucun filtre/recherche/tri/bascule mosaïque ; réparation à gauche et process à droite à 1280 px. Les marqueurs internes et le dossier de l’autre propriétaire restent absents.
+
+**390 et 320 px effectivement observés** : les deux panneaux sont empilés, sans débordement horizontal ; le formulaire d’accueil est également vérifié à 320 px. « Autre console » demande le modèle libre ; une query modèle invalide ne présélectionne rien ; l’ancien filtre de marque Sony garde ses douze modèles. Le compte sans dossier affiche son action de première demande. Après déconnexion, aucun panneau privé, fiche ou nom client ne reste affiché.
+
+Fiche : talon et partie atelier identifiés, schéma lisible, ligne de découpe, absence de données internes et pas de copie d’impression hors impression. Une deuxième base avec adresse non confirmée et champs longs vérifie avertissement, bouton d’impression désactivé, présence de la totalité des symptômes/accessoires/adresse et défilement jusqu’au pied du document sans débordement. La première base ne change que par l’ajout attendu d’une console/demande ; les dossiers et clients préexistants et le stock restent inchangés. La deuxième base reste inchangée.
+
+**Limite de recette PDF :** l’impression native a été déclenchée après revalidation. L’accès à l’application Codex est refusé par l’outil de contrôle natif ; aucun PDF n’a été enregistré ni rendu en PNG. Le dialogue d’impression a bloqué l’exécution JavaScript de l’onglet de recette ; l’onglet créé pour ce test a été fermé et la recette reprise dans un nouvel onglet. Le document et ses champs longs sont vérifiés à l’écran ; ne pas affirmer un nombre de pages A4 ou un export PDF visuellement validé.
+
+Le cas courant d’un client avec un seul dossier a aussi été vérifié : pas de sélecteur supplémentaire, split direct et aucune écriture métier. Les trois serveurs temporaires sont arrêtés, les onglets créés sont fermés et le viewport du navigateur est réinitialisé.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : sept assets principaux identiques au build, API publique 200 et cinq API privées 401, 123 pages de guides conformes et 140 contrôles SEO réussis. L’accueil publié confirme les champs initialement vides, le choix Sony/PS5 et les instructions de découpe actualisées. Aucun client, console, compte ou tarif fictif transféré en production ; aucune migration ni écriture D1.
+
+## Résultat précédent : illustrations des consoles et accroche
 
 Retouche visuelle du SVG partagé : matériaux, reflets des écrans, relief des commandes, ombres de contact et détails de surfaces. Nouvelle accroche : **« Une seconde vie pour votre console. »**. Les **14 tests de correspondance et apparence des consoles** ont été réexécutés avec succès ; les 531 tests métier/API précédents ne sont pas relancés pour cette retouche. Aucun changement de contrat serveur ou migration D1.
 

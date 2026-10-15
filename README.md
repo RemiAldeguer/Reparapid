@@ -121,6 +121,14 @@ Le formulaire demande **Prénom**, **Nom**, **E-mail** et **Message**. **Ouvrir 
 
 Cette reprise a passé **476 tests** et le build final TypeScript/Vite de **87 modules**. Les parcours du magasin et du client ainsi que le contact ont été contrôlés sur une base temporaire, sans modifier la production. La publication est vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données.
 
+## Demande express et suivi client
+
+L’accueil propose directement le choix de marque et de modèle. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
+
+L’espace client affiche la réparation à gauche et les étapes/actions à droite, avec empilement sur mobile. Les filtres, tris et changements de vue ont été retirés ; les dossiers se choisissent par référence lorsqu’il y en a plusieurs. Le montant provient du dossier de l’atelier, avec distinction entre zéro et montant à confirmer.
+
+La **fiche d’envoi à découper** comprend un talon à garder et une partie atelier à glisser dans le colis avec la console protégée. Un schéma explique les gestes. L’impression recharge la fiche et vérifie la session ; une adresse d’atelier non confirmée bloque l’impression. La fiche n’achète pas de transport et les pages supplémentaires éventuelles doivent toutes accompagner la partie atelier. Les contrôles et limites de recette figurent dans [TESTS.md](TESTS.md).
+
 ## Forfaits publics de réparation
 
 L’onglet **Forfaits de réparation** du menu principal (`#/repair-packages`) permet à l’administrateur du magasin principal de renseigner les tarifs : modèle exact, symptôme, intervention précise, montant EUR TTC, prix fixe ou « à partir de » et contenu inclus. Le catalogue et le formulaire sont affichés côte à côte sur grand écran. Cocher **Afficher sur le site** puis enregistrer publie le forfait ; **Masquer du site** retire sa présentation publique et conserve la fiche. Un nouveau forfait n’a aucun montant par défaut et n’est pas publié. Le prix zéro est accepté comme valeur explicite. Ce module ne figure plus dans les réglages.
