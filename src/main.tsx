@@ -11,6 +11,7 @@ import {AuthGate} from './auth';
 import {ClientPortal} from './client-portal';
 import {PublicHome} from './public-home';
 import {RepairIntake} from './repair-intake';
+import './select-controls.css';
 const root=document.getElementById('root');
 if(!root)throw new Error('Élément racine introuvable.');
 function RouteGate() {

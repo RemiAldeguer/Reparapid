@@ -1,0 +1,30 @@
+.home-console-select{position:relative;min-width:0;display:flex;flex-direction:column;gap:6px}
+.home-console-select>label{font-size:10px;font-weight:700;color:#4d4240}
+.home-console-select-trigger{position:relative;display:flex;align-items:center;gap:9px;min-height:56px;width:100%;min-width:0;max-width:100%;padding:8px 42px 8px 11px;border:1px solid #d7cecc;border-radius:7px;background:#fff;color:#302725;font:12px/1.45 Arial,sans-serif;text-align:left;cursor:pointer}
+.home-console-select-trigger:hover:not(:disabled){border-color:#a32720;background:#fffdfc}
+.home-console-select-trigger:disabled{background:#f3f0ef;color:#8c8280;cursor:default}
+.home-console-select-trigger[aria-invalid=true]{border-color:#b21414}
+.home-console-select-trigger:focus-visible,.home-console-select.is-open>.home-console-select-trigger{outline:2px solid #b21414;outline-offset:3px;border-color:#b21414}
+.home-console-select-value{display:block;min-width:0;overflow-wrap:anywhere}
+.home-console-select-chevron{position:absolute;right:15px;top:50%;transform:translateY(-50%);display:flex;color:#796966;pointer-events:none}
+.home-console-select.is-open .home-console-select-chevron{transform:translateY(-50%) rotate(180deg)}
+.home-console-select-visual{display:flex;align-items:center;justify-content:center;flex:0 0 60px;min-width:0;height:38px;overflow:hidden}
+.home-console-select-visual>img{display:block;max-width:100%;max-height:26px;width:100%;object-fit:contain}
+.home-console-select-visual>.console-art{display:block;width:100%;height:100%;max-width:100%;max-height:100%;min-width:0;min-height:0;overflow:hidden}
+.home-console-select-brand .home-console-select-trigger>.home-console-select-visual{flex:0 1 91px;height:28px}
+.home-console-select-brand-name{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.home-console-select-model .home-console-select-trigger.has-value{padding-left:7px;gap:5px}
+.home-console-select-model .home-console-select-trigger>.home-console-select-visual{flex-basis:51px}
+.home-console-select-options{position:absolute;z-index:30;top:calc(100% + 9px);left:0;right:0;max-height:min(335px,45dvh);min-width:0;overflow-y:auto;overscroll-behavior:contain;list-style:none;margin:0;padding:5px;border:1px solid #d7cecc;border-radius:9px;background:#fff;box-shadow:0 15px 35px #36141028;scrollbar-gutter:stable;isolation:isolate}
+.home-console-select-option{position:relative;display:flex;align-items:center;gap:10px;min-height:57px;padding:7px 22px 7px 7px;border:1px solid transparent;border-radius:5px;color:#302725;cursor:pointer}
+.home-console-select-option.is-active{background:#fbefeb;border-color:#eed4cc}
+.home-console-select-option.is-selected{color:#971d17}
+.home-console-select-option-label{display:block;min-width:0;font:12px/1.5 Arial,sans-serif;overflow-wrap:anywhere}
+.home-console-select-check{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;color:#a32720}
+.home-console-select-brand .home-console-select-options{width:230px;max-width:calc(100vw - 64px);right:auto}
+.home-console-select-model .home-console-select-options{left:auto;width:300px;max-width:calc(100vw - 64px)}
+.home-console-select-brand .home-console-select-option>.home-console-select-visual{flex-basis:83px}
+.rp-home-picker-validation{font-size:11px;line-height:1.7;color:#a32720;margin-top:10px}
+@media(max-width:680px){.home-console-select>label{font-size:11px}.home-console-select-trigger{min-height:57px}.home-console-select-option-label{font-size:13px}.home-console-select-options{max-height:min(330px,42dvh)}}
+@media(max-width:420px){.home-console-select-options,.home-console-select-brand .home-console-select-options,.home-console-select-model .home-console-select-options{left:0;right:0;width:auto;max-width:100%}.home-console-select-model .home-console-select-trigger>.home-console-select-visual{flex-basis:60px}.home-console-select-options{max-height:min(315px,40dvh)}}
+@media(forced-colors:active){.home-console-select-option.is-active{outline:1px solid Highlight}.home-console-select-option.is-selected{color:Highlight}.home-console-select-trigger,.home-console-select-options{border-color:ButtonText}}

@@ -28,7 +28,19 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : sélection d’accueil, suivi client et fiche à découper
+## Dernière reprise : menus illustrés et schéma d’envoi
+
+Le suivi client utilise un schéma dédié dans `shipping-process-diagram.tsx/.css` : quatre étapes numérotées avec illustrations plus grandes, texte HTML lisible et destinations **CHEZ VOUS** / **DANS LE COLIS**. Il distingue impression, découpe sur les pointillés, conservation du talon et placement de toute la fiche atelier à l’intérieur du colis avec la console protégée. Le document imprimable et ses styles restent identiques à la reprise précédente.
+
+Le choix de marque/modèle de l’accueil utilise des menus illustrés : logos de marque auto-hébergés dans les sources et SVG des consoles partagés avec le site. Les choix initiaux restent vides, le changement de marque remet le modèle à zéro et le bouton transmet toujours l’identifiant exact au formulaire. La navigation clavier, la fermeture des menus et la validation des deux choix font partie de la recette visuelle.
+
+Les listes déroulantes natives à choix unique ont un chevron placé à 15 px du bord droit et une réserve de 42 px pour le texte via `select-controls.css`. Les listes multiples et les listes visibles de plusieurs lignes gardent leur rendu natif ; les couleurs forcées rétablissent également le chevron système.
+
+Validation : TypeScript et build de **111 modules**, 135 fichiers publics ; menus, clavier, 38 modèles et quatre logos contrôlés dans une base éphémère. Suivi et menus vérifiés à **1280, 390 et 320 px**, inventaire natif à 1280/320 px. Document imprimable inchangé. Les 129 tests métier restent le résultat de la reprise précédente. Détails dans TESTS.md.
+
+Publication confirmée à 100 % du trafic, sept assets identiques au build, API publique 200 et cinq API privées 401. Les menus illustrés sont contrôlés sur l’accueil publié. Aucune migration ni écriture D1.
+
+## Reprise précédente : sélection d’accueil, suivi client et fiche à découper
 
 Le hero de l’accueil contient un formulaire marque/modèle exact issu de `INTAKE_MODELS`, avec aperçu SVG et aucune valeur choisie par défaut. **Choisir la panne** ouvre `#/demande-reparation?modele=<id>` directement à l’étape panne pour un modèle reconnu. « Autre console » reste à la saisie du modèle ; un identifiant inconnu revient au choix normal. Les anciens liens `?marque=` et l’accès au formulaire complet sont conservés. Le parcours d’envoi de l’accueil et la confirmation du formulaire expliquent désormais la découpe.
 

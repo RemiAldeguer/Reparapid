@@ -6,7 +6,21 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **15 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : sélection d’accueil, suivi client et fiche à découper
+## Résultat courant : menus illustrés et schéma d’envoi
+
+Évolution de présentation uniquement : schéma en quatre étapes dans le suivi client, logos dans le choix de marque, miniatures partagées des consoles dans le choix du modèle et chevrons des listes natives espacés de 15 px du bord. Le document imprimable, les contrats API, le domaine et les données ne changent pas ; les 129 tests ci-dessous restent rattachés à la reprise précédente, sans nouvelle exécution métier pour cette retouche.
+
+TypeScript et build réussis : **111 modules**, six sources publiques autorisées et **135 fichiers**, dont 123 pages HTML de guides. Les quatre logos proviennent des sites officiels ; les imports Vite `?inline` les intègrent au bundle sans nouvel accès externe ni extension de la liste d’assets publics.
+
+Recette sur SQLite en mémoire, uniquement avec comptes/dossiers fictifs : cinq marques et **38 modèles illustrés** (Sony 12, Nintendo 16, Microsoft 6, Sega 3, Autre 1), quatre logos chargés, champs initialement vides et modèle désactivé avant la marque. Les erreurs requises placent le focus sur le choix manquant ; changer de marque efface le modèle. Flèches, Home/End, Entrée, Échap, Tab, recherche par lettre et fermeture extérieure vérifiés. Le menu Sony défile jusqu’à PS Vita ; ses SVG restent dans leur cadre, sans identifiant dupliqué. Switch ouvre directement l’étape panne ; Autre ouvre le choix/saisie du modèle.
+
+**1280, 390 et 320 px effectivement observés** : menus et suivi sans débordement horizontal, quatre cartes du schéma contenues avec texte lisible et destinations distinctes. À 320 px, le dernier modèle du menu est visible après ouverture et défilement au clavier. Inventaire du magasin vérifié à 1280 et 320 px : ses quatre listes ont un chevron à 15 px et une réserve texte de 42 px. Après déconnexion, nom client et panneaux privés disparaissent. Le document imprimable et son CSS sont strictement inchangés ; aucune nouvelle ouverture du dialogue d’impression.
+
+La recette ne crée ni demande ni donnée métier ; les clients, dossiers et pièces de la base en mémoire restent inchangés. Sessions fictives déconnectées, serveur arrêté et viewport réinitialisé.
+
+Publication confirmée à **100 % du trafic Cloudflare** : sept assets identiques au build, API publique 200 et cinq API privées 401. L’accueil publié charge les quatre logos intégrés et les douze miniatures Sony. Le premier contrôle HTML a précédé la propagation ; le contrôle complet est réussi après confirmation de la nouvelle version servie. Aucune migration ni écriture D1.
+
+## Résultat précédent : sélection d’accueil, suivi client et fiche à découper
 
 **129 tests ciblés réussis**, sans échec ni test ignoré : domaine/demandes de réparation, API Node/Worker, accès client et sessions. TypeScript et build final réussis : **102 modules**, six sources publiques autorisées, **135 fichiers**, dont 123 pages de guides. Une seconde compilation finale prend en compte la cohérence des instructions de découpe sur l’accueil et à la confirmation. Les 531 tests complets plus anciens restent rattachés à la reprise des forfaits.
 

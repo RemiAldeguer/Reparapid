@@ -1,4 +1,4 @@
-import {useEffect, useState, type MouseEvent, type ReactNode, type FormEvent} from 'react';
+import {useEffect, useId, useRef, useState, type MouseEvent, type ReactNode, type FormEvent} from 'react';
 import {Icon} from './ui';
 import {ShopConsoleArt} from './shop-console-art';
 import {GuideDeviceArt} from './guide-device-art';
@@ -7,6 +7,7 @@ import type {RepairGuideFamily} from './repair-guides-types';
 export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
 import {INTAKE_MODELS} from './repair-intake-catalog';
+import {ConsoleBrandLogo, HomeConsoleSelect} from './home-console-select';
 import './public-home.css';
 import './reparapid-brand.css';
 
@@ -101,21 +102,25 @@ function HomeRepairGuides() {
 }
 function HomeConsolePicker() {
   const [brand, setBrand] = useState(''), [modelId, setModelId] = useState('');
+  const [validation, setValidation] = useState<'brand' | 'model' | null>(null);
+  const brandRef = useRef<HTMLButtonElement>(null), modelRef = useRef<HTMLButtonElement>(null), errorId = useId();
   const brands = [...new Set(INTAKE_MODELS.map(item => item.brand))];
   const models = INTAKE_MODELS.filter(item => item.brand === brand);
   const model = models.find(item => item.id === modelId);
   function chooseConsole(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!model) return;
+    if (!brand) {setValidation('brand'); brandRef.current?.focus(); return;}
+    if (!model) {setValidation('model'); modelRef.current?.focus(); return;}
     window.location.hash = `/demande-reparation?modele=${encodeURIComponent(model.id)}`;
   }
   return <form className="rp-home-picker" aria-labelledby="rp-home-picker-title" onSubmit={chooseConsole}>
     <div className="rp-home-picker-heading"><span aria-hidden="true">01</span><div><span>ON COMMENCE ICI</span><h2 id="rp-home-picker-title">Quelle console réparer ?</h2></div></div>
     <div className="rp-home-picker-preview"><span className="rp-home-picker-orbit" aria-hidden="true"/><div className="rp-home-picker-console" aria-hidden="true"><ShopConsoleArt item={model || {brand: '', model: ''}}/></div><p aria-live="polite">{model ? model.id === 'other' ? 'Un autre modèle ? On le prend en note.' : model.model : 'Votre console, votre prochaine partie.'}</p></div>
     <div className="rp-home-picker-fields">
-      <label><span>Marque</span><select name="consoleBrand" required value={brand} onChange={event => {setBrand(event.target.value); setModelId('');}}><option value="" disabled>Choisir la marque</option>{brands.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
-      <label><span>Modèle exact</span><select name="consoleModel" required disabled={!brand} value={modelId} onChange={event => setModelId(event.target.value)}><option value="" disabled>{brand ? 'Choisir le modèle' : 'Choisissez d’abord la marque'}</option>{models.map(item => <option key={item.id} value={item.id}>{item.model}</option>)}</select></label>
+      <HomeConsoleSelect label="Marque" kind="brand" placeholder="Choisir la marque" value={brand} buttonRef={brandRef} invalid={validation === 'brand'} errorId={errorId} options={brands.map(item => ({value:item,label:item,visual:<ConsoleBrandLogo brand={item}/>}))} onChange={value => {setBrand(value); setModelId(''); setValidation(null);}}/>
+      <HomeConsoleSelect key={brand} label="Modèle exact" kind="model" placeholder={brand ? 'Choisir le modèle' : 'Choisissez d’abord la marque'} disabled={!brand} value={modelId} buttonRef={modelRef} invalid={validation === 'model'} errorId={errorId} options={models.map(item => ({value:item.id,label:item.model,visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(null);}}/>
     </div>
+    {validation && <p id={errorId} className="rp-home-picker-validation" role="alert">{validation === 'brand' ? 'Choisissez la marque de votre console.' : 'Choisissez le modèle exact de votre console.'}</p>}
     <button type="submit" className="rp-button rp-primary rp-home-picker-submit">Choisir la panne<Icon name="arrow" size={18}/></button>
     <p className="rp-home-picker-note"><Icon name="info" size={14}/>{model?.id === 'other' ? 'Précisez votre modèle à l’étape suivante, puis décrivez sa panne.' : 'Retrouvez ensuite les pannes proposées pour votre modèle.'}</p>
   </form>;

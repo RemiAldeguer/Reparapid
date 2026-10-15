@@ -123,11 +123,11 @@ Cette reprise a passé **476 tests** et le build final TypeScript/Vite de **87 m
 
 ## Demande express et suivi client
 
-L’accueil propose directement le choix de marque et de modèle. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
+L’accueil propose directement le choix de marque et de modèle, avec les logos des marques et les illustrations des consoles dans les menus. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
 
 L’espace client affiche la réparation à gauche et les étapes/actions à droite, avec empilement sur mobile. Les filtres, tris et changements de vue ont été retirés ; les dossiers se choisissent par référence lorsqu’il y en a plusieurs. Le montant provient du dossier de l’atelier, avec distinction entre zéro et montant à confirmer.
 
-La **fiche d’envoi à découper** comprend un talon à garder et une partie atelier à glisser dans le colis avec la console protégée. Un schéma explique les gestes. L’impression recharge la fiche et vérifie la session ; une adresse d’atelier non confirmée bloque l’impression. La fiche n’achète pas de transport et les pages supplémentaires éventuelles doivent toutes accompagner la partie atelier. Les contrôles et limites de recette figurent dans [TESTS.md](TESTS.md).
+La **fiche d’envoi à découper** comprend un talon à garder et une partie atelier à glisser dans le colis avec la console protégée. Le suivi présente quatre étapes illustrées : imprimer, découper, garder le talon chez soi et placer toute la fiche atelier dans le colis. L’impression recharge la fiche et vérifie la session ; une adresse d’atelier non confirmée bloque l’impression. La fiche n’achète pas de transport et les pages supplémentaires éventuelles doivent toutes accompagner la partie atelier. Les contrôles et limites de recette figurent dans [TESTS.md](TESTS.md).
 
 ## Forfaits publics de réparation
 
