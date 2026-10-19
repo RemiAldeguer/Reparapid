@@ -15,6 +15,8 @@ const publicFiles = [
   ['index.html', 'text/html; charset=utf-8'],
   ['reparapid-logo-original.webp', 'image/webp'],
   ['maxxi-games-logo-original.png', 'image/png'],
+  ['maxxi-games-devanture.jpg', 'image/jpeg'],
+  ['maxxi-games-atelier.jpg', 'image/jpeg'],
   ['favicon-reparapid.png', 'image/png'],
   ['logo-clinique-retro.svg', 'image/svg+xml'],
   ['fonts/oxanium.ttf', 'font/ttf'],
@@ -25,7 +27,7 @@ const publicFiles = [
 const privateFiles = [
   '.env', '.env.production', 'clients.json', 'workshop.sqlite', 'workshop.db',
   'export.sql', 'backup.html', 'index.html.bak', 'internal.js', 'internal.css',
-  'assets/index-Abcd1234.js.map', 'assets/clients.json', 'fonts/notes.txt',
+  'assets/index-Abcd1234.js.map', 'assets/clients.json', 'fonts/notes.txt', 'unlisted-photo.jpg',
 ];
 const aliases = [
   '/%69ndex.html', '/%2findex.html', '/%252findex.html', '/index.html%00',
@@ -178,7 +180,7 @@ async function staticFixture(t, platform) {
 }
 
 for (const platform of ['node', 'worker']) {
-  test(`${platform}: actual logo, font, license, document and bundles stay available in GET and HEAD`, async t => {
+  test(`${platform}: declared photos, logos, font, license, document and bundles stay available in GET and HEAD`, async t => {
     const f = await staticFixture(t, platform);
     for (const [filename, contentType] of [...publicFiles, ['', 'text/html; charset=utf-8']]) {
       for (const method of ['GET', 'HEAD']) {

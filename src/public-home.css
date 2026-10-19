@@ -18,7 +18,7 @@
 .rp-header>nav>a:not(.rp-button):hover{color:#f3bab7}
 .rp-header>nav{letter-spacing:.1px;font-weight:600}
 .rp-hero{position:relative;isolation:isolate;color:#fff}
-.rp-hero:before{content:'';position:absolute;inset:0 calc((100% - 100vw)/2);z-index:-1;background-color:#a32720;background-image:linear-gradient(135deg,transparent 0 63%,#ffffff03 63% 79%,transparent 79%),linear-gradient(45deg,transparent 0 38%,#00000006 38% 56%,transparent 56%),repeating-linear-gradient(135deg,transparent 0 105px,#ffffff02 105px 106px,transparent 106px 211px)}
+.rp-hero:before{content:'';position:absolute;inset:0 calc((100% - 100vw)/2);z-index:-1;background-color:#a32720;background-image:linear-gradient(90deg,#741a16e8 0%,#8c211cd1 52%,#8c211cc9 100%),url('/maxxi-games-devanture.jpg');background-size:cover;background-position:center 43%;background-repeat:no-repeat}
 .rp-hero h1{font-weight:700;letter-spacing:-2.3px;line-height:1.1}
 .rp-hero h1 em{color:#fff}
 .rp-hero h1 em:after{background:#df6a62;height:3px}
@@ -186,3 +186,26 @@
 @media(max-width:1000px){.rp-home-picker{padding:21px}.rp-home-picker-heading h2{font-size:19px}.rp-home-picker-fields{grid-template-columns:minmax(0,1fr)}.rp-home-picker-fields{gap:10px}}
 @media(max-width:680px){.rp-hero{gap:25px}.rp-home-picker{max-width:470px;justify-self:center;padding:22px}.rp-home-picker-heading h2{font-size:22px}.rp-home-picker-fields{grid-template-columns:minmax(0,1fr);gap:11px}.rp-home-picker-fields select{font-size:16px;height:48px}.rp-home-picker-fields>label>span{font-size:11px}.rp-home-picker-note{font-size:10px}.rp-hero .rp-home-picker .rp-primary{font-size:12px;min-height:48px}.rp-hero-actions{gap:8px 20px}}
 @media(max-width:420px){.rp-home-picker{padding:19px}.rp-home-picker-fields{grid-template-columns:minmax(0,1fr)}.rp-home-picker-heading h2{font-size:20px}.rp-home-picker-heading>span{width:35px;height:35px}.rp-home-picker-fields select{padding:0 10px}}
+
+/* Maxxi Games is the shop and team behind the public repair service. */
+.rp-hero-photo-credit{position:absolute;left:0;bottom:14px;color:#f8dfdc;font-size:9px;line-height:1.5;text-underline-offset:3px}
+.rp-hero-photo-credit:hover{text-decoration:underline;color:#fff}
+.rp-hero-operator{display:inline-flex;flex-direction:column;align-items:flex-start;gap:11px;padding:16px 19px;background:#1b0809b8;border:1px solid #ffffff25;border-radius:9px}
+.rp-hero-operator>span{font-size:9px;font-weight:700;letter-spacing:1.6px;color:#f8dfdc}
+.rp-hero-operator>img{display:block;width:218px;height:22px;max-width:100%;object-fit:cover;object-position:50% 50.5%}
+.rp-hero-copy>.rp-hero-intro{margin-bottom:17px}
+.rp-hero-intro strong{color:#fff;font-weight:700}
+.rp-shop-photo{position:relative;align-self:stretch;min-height:420px;margin:0;overflow:hidden;border-radius:12px;background:#262322}
+.rp-shop-photo>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.rp-shop-photo:after{content:'';position:absolute;inset:35% 0 0;background:linear-gradient(transparent,#160c0be8);pointer-events:none}
+.rp-shop-photo>figcaption{position:absolute;z-index:1;inset:auto 28px 28px;color:#fff}
+.rp-shop-photo figcaption>span{display:block;margin-bottom:9px;font-size:9px;font-weight:700;letter-spacing:1.6px;color:#f8d8d2}
+.rp-shop-photo figcaption>strong{display:block;max-width:300px;font-family:'Oxanium',Arial,sans-serif;font-size:27px;line-height:1.25;font-weight:600}
+.rp-shop-copy>p>strong{color:#292323}
+.rp-shop-services{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;grid-column:1/-1;padding-top:30px;border-top:1px solid #e7dfdc;margin-top:-35px}
+.rp-shop-services>article{min-width:0}
+.rp-shop-service-icon{display:grid;place-items:center;width:43px;height:43px;background:#f7e8e5;border-radius:9px;color:#a32720;margin-bottom:17px}
+.rp-shop-services h3{font-family:'Oxanium',Arial,sans-serif;font-size:17px;line-height:1.45;font-weight:650}
+.rp-shop-services p{font-size:12px;line-height:1.9;color:#6c6260;margin-top:10px}
+@media(max-width:1000px){.rp-hero-operator>img{width:196px;height:20px}.rp-shop-photo{min-height:430px}.rp-shop-services{margin-top:-10px;gap:22px}.rp-shop-services h3{font-size:16px}}
+@media(max-width:680px){.rp-hero:before{background-image:linear-gradient(180deg,#741a16e0,#8b211ce6 620px,#8b211c 780px),url('/maxxi-games-devanture.jpg');background-position:0 0,42% 0;background-size:100% 100%,auto 780px;background-color:#8b211c}.rp-hero-operator{padding:13px 15px;gap:9px}.rp-hero-operator>span{font-size:8px;letter-spacing:1.25px}.rp-hero-operator>img{width:196px;height:20px}.rp-shop-photo{min-height:0;aspect-ratio:4/3}.rp-shop-photo>figcaption{inset:auto 22px 22px}.rp-shop-photo figcaption>strong{font-size:24px;max-width:240px}.rp-shop-services{grid-template-columns:1fr;margin-top:0;padding-top:24px;gap:24px}.rp-shop-services>article{display:grid;grid-template-columns:43px minmax(0,1fr);column-gap:16px}.rp-shop-service-icon{grid-row:1/3;margin-bottom:0}.rp-shop-services h3{font-size:17px}.rp-shop-services p{margin-top:7px}}

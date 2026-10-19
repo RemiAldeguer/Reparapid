@@ -6,7 +6,17 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : recherche écrite et grille de consoles sur l’accueil — 19 octobre 2026
+## Résultat courant : identité Maxxi Games et photographies — 19 octobre 2026
+
+L’accroche présente l’atelier de Maxxi Games avec son logo et la devanture en fond rouge transparent. La section **Votre console, notre établi** comprend la photo réelle du comptoir, l’identité du magasin et trois points sur le contact, la prise en charge et le suivi. Deux nouveaux JPEG sont autorisés par leur chemin exact, sans ouvrir les autres images.
+
+**32 tests ciblés réussis** dans `tests/public-assets.test.mjs` : liste publique, garde des sources/build, réponses GET/HEAD Node et Worker, refus des fichiers inconnus et liens symboliques. Les deux photos sont incluses dans les cas permis et un JPEG non déclaré dans les refus. TypeScript et la compilation finale passent : **111 modules**, huit sources publiques et **137 fichiers**, dont 123 pages de guides. La suite métier complète n’est pas relancée pour cette présentation. Le warning de bundle supérieur à 500 kB demeure.
+
+Recette finale sur SQLite **en mémoire**, sans écriture métier : **1280, 390 et 320 px** contrôlés. Logo Maxxi Games, voile de la devanture et fondu mobile, photo du comptoir chargée, trois points de service et crédit vérifiés. Aucun débordement horizontal ; les cartes restent contenues à 320 px. Le bouton de contact fait défiler jusqu’à la rubrique et lui donne le focus. La recherche Switch OLED puis le choix explicite ouvrent directement les pannes du bon modèle. Les 38 choix restent présents sans recherche.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build (dont les deux photos), API publique 200 et cinq API privées 401. L’accueil et la section magasin publiés ont été vérifiés. La base de recette reste inchangée, le serveur est arrêté, l’onglet créé est fermé et le viewport réinitialisé. Aucune migration ni écriture D1.
+
+## Résultat précédent : recherche écrite et grille de consoles sur l’accueil — 19 octobre 2026
 
 Le grand aperçu est retiré. Le choix des consoles est une grille toujours visible avec recherche texte et radios natifs ; les 38 identifiants du catalogue et le parcours vers les pannes restent inchangés. Aucun contrat API ni règle métier ne change ; la suite métier/API n’est pas relancée pour cette présentation.
 

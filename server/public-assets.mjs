@@ -6,6 +6,8 @@ const fixedAssets = new Map([
   ['/index.html', 'text/html; charset=utf-8'],
   ['/reparapid-logo-original.webp', 'image/webp'],
   ['/maxxi-games-logo-original.png', 'image/png'],
+  ['/maxxi-games-devanture.jpg', 'image/jpeg'],
+  ['/maxxi-games-atelier.jpg', 'image/jpeg'],
   ['/favicon-reparapid.png', 'image/png'],
   ['/logo-clinique-retro.svg', 'image/svg+xml'],
   ['/fonts/oxanium.ttf', 'font/ttf'],
@@ -28,7 +30,7 @@ export const publicAssetDirectories = Object.freeze(['assets', 'fonts', 'guides'
 export const publicSourceDirectories = Object.freeze(['fonts']);
 export const generatedPublicFiles = Object.freeze([...generatedAssets.keys()].map(name => name.slice(1)));
 
-// Files copied from public/ are fixed brand assets only. Bundles are produced
+// Files copied from public/ are explicitly declared brand and shop assets only. Bundles are produced
 // by Vite from source; a copied export must not impersonate a hashed bundle.
 export function publicSourceAsset(pathname) {
   return pathname !== '/index.html' && fixedAssets.has(pathname) ? publicAsset(pathname) : null;

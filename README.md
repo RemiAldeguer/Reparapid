@@ -47,9 +47,20 @@ Une publication utilise la configuration privée `.wrangler/reparapid.production
 
 ## Identité visuelle RépaRapid
 
-Le logo original du [site RépaRapid](https://reparapid.fr/) est repris sans retouche dans `public/reparapid-logo-original.webp`. Il apparaît sur la vitrine, le portail client principal, la fiche récapitulative et le favicon. Le favicon utilise le PNG original `public/favicon-reparapid.png`. La direction visuelle reprend les en-têtes et pieds de page noirs, un accueil rouge `#a32720` avec motifs géométriques CSS et des accents `#b21414`.
+Le logo original du [site RépaRapid](https://reparapid.fr/) est repris sans retouche dans `public/reparapid-logo-original.webp`. Il apparaît sur la vitrine, le portail client principal, la fiche récapitulative et le favicon. Le favicon utilise le PNG original `public/favicon-reparapid.png`. La direction visuelle reprend les en-têtes et pieds de page noirs, un accueil rouge `#a32720` et des accents `#b21414`.
 
 La signature « par Maxxi Games » associe le mot « par » au logo rouge et jaune sur une même ligne dans l’en-tête et le pied de page publics, ainsi que dans les tutoriels. Le fichier PNG est auto-hébergé, sans retouche, dans `public/maxxi-games-logo-original.png` ; le cadrage CSS présente son bandeau central. Source : [logo de la fiche Maxxi Games inSiti](https://www.insiti.com/search/enseignes/maxxi-games-jeux-video), [fichier public](https://s3.eu-west-3.amazonaws.com/insiti.com/logos/5064/big_square/168541.png). SHA-256 : `53bd6208fff112eea9de9520551c87a944a7d80fd17a5088eb076bc71f976461`. Il est déclaré explicitement dans la liste des assets fixes partagée par Node et Worker.
+
+Depuis le **19 octobre 2026**, l’accroche présente explicitement **l’atelier de réparation de Maxxi Games**, avec son logo. La section **Votre console, notre établi** détaille le rôle du magasin, le diagnostic, les étapes et le suivi client. L’adresse reste soumise à la confirmation configurée par le magasin. Cette identité est confirmée sur l’[accueil RépaRapid](https://reparapid.fr/), consulté à cette date.
+
+Deux photographies authentiques sont auto-hébergées sans retouche du fichier. Le fond de l’accroche montre la devanture avec un voile rouge CSS ; la section magasin présente le comptoir atelier. Aucun appel d’image externe n’est nécessaire à l’affichage.
+
+| Fichier public | Source et dimensions | SHA-256 |
+| --- | --- | --- |
+| `maxxi-games-devanture.jpg` | [Photo de la fiche exacte du magasin sur Gamepedia](https://www.gamepedia.fr/poipics/cjhccaffbcfhddjhbij.jpg), 408 × 306 px, crédit **Google User Content** lié depuis l’accueil | `00f7b732d7a6d3cd88e5c4a23affbac555266445ada4fac94d007b74bc63df81` |
+| `maxxi-games-atelier.jpg` | [Photo du site RépaRapid](https://reparapid.fr/wp-content/uploads/2023/05/atelier-1536x1154.jpg), 1536 × 1154 px | `19b163ca7d0542caa35275e39a1e97cddaf798d23f6afaf6e70b07f6c424de18` |
+
+Les photos sont déclarées par leur nom exact dans `server/public-assets.mjs`, partagé par Node et Worker ; les autres fichiers JPEG restent interdits. Le fond est décoratif, la photo d’atelier a un texte alternatif et son chargement différé. Le sélecteur de consoles reste lisible sur fond blanc.
 
 Les titres et la navigation utilisent **Oxanium**, auto-hébergée dans `public/fonts/oxanium.ttf`, avec sa licence `public/fonts/oxanium-OFL.txt`. La source est le [répertoire officiel Google Fonts](https://github.com/google/fonts/tree/main/ofl/oxanium). Cette reprise concerne la présentation ; le parcours, les règles métier et les API restent identiques. TypeScript et le build Vite sont validés ; les assets HTML/JS/CSS, le logo et la police de la version publiée sont identiques au build validé.
 
@@ -282,7 +293,7 @@ Ce socle ne remplace pas un audit de sécurité. Il ne comprend pas de MFA, de c
 
 ### Protection des fichiers publics — validée le 13 octobre
 
-Le backend Node/SQLite et Worker/D1 garde les données sur le serveur et contrôle leur diffusion par session, propriétaire et atelier. Les fichiers servis sont désormais restreints à une liste explicite d’assets publics et aux bundles JavaScript/CSS Vite portant leur hash. Le module partagé `server/public-assets.mjs` refuse les fichiers non autorisés sur les deux hôtes, même s’ils ont été copiés dans `dist/`. `scripts/verify-public-assets.mjs` contrôle d’abord `public/`, **avant Vite**, qui peut déréférencer un lien symbolique : seules les images de marque, le favicon, la police et sa licence déclarés sont autorisés, sans HTML ni JavaScript/CSS copié pouvant imiter un bundle. Le contrôle de `dist/` après Vite refuse aussi liens symboliques, exports, configurations, source maps et fichiers inconnus. Les exports JSON/CSV et brouillons Reparapid sont exclus de Git.
+Le backend Node/SQLite et Worker/D1 garde les données sur le serveur et contrôle leur diffusion par session, propriétaire et atelier. Les fichiers servis sont désormais restreints à une liste explicite d’assets publics et aux bundles JavaScript/CSS Vite portant leur hash. Le module partagé `server/public-assets.mjs` refuse les fichiers non autorisés sur les deux hôtes, même s’ils ont été copiés dans `dist/`. `scripts/verify-public-assets.mjs` contrôle d’abord `public/`, **avant Vite**, qui peut déréférencer un lien symbolique : seuls les logos, les deux photos du magasin, le favicon, la police et sa licence déclarés sont autorisés, sans HTML ni JavaScript/CSS copié pouvant imiter un bundle. Le contrôle de `dist/` après Vite refuse aussi liens symboliques, exports, configurations, source maps et fichiers inconnus. Les exports JSON/CSV et brouillons Reparapid sont exclus de Git.
 
 **Réglages → Supprimer la copie locale** retire l’ancienne sauvegarde de ce navigateur après confirmation, sans purge automatique ni changement de l’atelier serveur. Une copie modifiée depuis sa lecture est conservée et doit être relue avant une nouvelle confirmation. Cette protection a été vérifiée sur des données fictives, avec le Store serveur strictement inchangé.
 

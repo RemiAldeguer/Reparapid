@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : recherche écrite et choix visuel sur l’accueil — 19 octobre 2026
+## Dernière reprise : Maxxi Games et photographies du magasin — 19 octobre 2026
+
+L’accueil identifie explicitement RépaRapid comme **l’atelier de réparation de Maxxi Games** : logo dans l’accroche, équipe et magasin du Kremlin-Bicêtre nommés. La vraie devanture apparaît derrière le texte avec un voile rouge CSS ; le formulaire garde son fond blanc et sa grille de recherche. La section **Votre console, notre établi** présente une photo authentique du comptoir, le rôle de l’équipe, le diagnostic et trois points de service : contact, étapes de prise en charge et suivi dans le compte.
+
+Les photos `public/maxxi-games-devanture.jpg` et `public/maxxi-games-atelier.jpg` sont auto-hébergées sans retouche. La devanture provient de la fiche exacte Gamepedia, crédit **Google User Content** lié dans l’accroche ; le comptoir provient du site officiel RépaRapid. Sources, dimensions et empreintes sont dans README.md. Les deux noms précis sont ajoutés à la liste d’assets partagée par Node et Worker ; les autres JPEG restent refusés. Aucun contrat d’API, règle métier ou stockage ne change ; l’adresse d’envoi reste conditionnée à sa confirmation.
+
+Validation : **32 tests ciblés** des assets publics Node/Worker réussis, TypeScript et build final de **111 modules**, huit sources publiques et **137 fichiers**. Revue indépendante et recette en mémoire à **1280, 390 et 320 px** : photos, lisibilité, trois services, absence de débordement, contact et accès direct aux pannes Switch OLED vérifiés. Voir TESTS.md.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build (dont les deux photos), API publique 200 et cinq API privées 401. L’accueil et la section magasin publiés ont été vérifiés. La base de recette reste inchangée, le serveur est arrêté, l’onglet créé est fermé et le viewport réinitialisé. Aucune migration ni écriture D1.
+
+## Reprise précédente : recherche écrite et choix visuel sur l’accueil — 19 octobre 2026
 
 Le bloc **Quelle console réparer ?** retire le grand aperçu de console et donne sa place à une sélection agrandie toujours visible. `ConsolePickerSearch`, dans `home-console-select.tsx/.css`, fournit une recherche écrite, les illustrations et un choix explicite par boutons radio natifs. Le catalogue et les identifiants du formulaire restent les mêmes ; aucune présélection ni modification du contrat serveur.
 
