@@ -6,7 +6,15 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : trois étapes illustrées sous le bloc principal — 19 octobre 2026
+## Résultat courant : parcours simplifié — 19 octobre 2026
+
+Textes et présentation de `HomeRepairJourney` allégés : trois schémas, numéro/titre réunis, un paragraphe par carte, seules les destinations talon/colis légendées, liens courts et une note commune. La section reste immédiatement après le hero. Aucun changement de métier, API, asset autorisé ou fiche imprimable ; pas de relance de la suite métier pour cette présentation.
+
+TypeScript, revue indépendante et build final réussis : **112 modules**, huit sources publiques et **137 fichiers**, dont 123 pages de guides. Recette à **1280, 390 et 320 px** : trois schémas et trois paragraphes, une seule légende talon/colis, absence de débordement et flèches verticales sur mobile. Ordre hero/parcours/bandeau conservé ; ancre, focus, Tab et Entrée vers le formulaire, lien du compte vérifiés. Les deux dossiers, clients et pièces de la base en mémoire sont inchangés ; serveur arrêté. La suite métier/API n’est pas relancée pour cette présentation.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. Le site publié confirme trois cartes courtes sans rôles ni résultats, juste après le hero. Capture enregistrée, onglet créé fermé et viewport réinitialisé. Aucune migration ni écriture D1.
+
+## Résultat précédent : trois étapes illustrées sous le bloc principal — 19 octobre 2026
 
 Le parcours public comprend trois cartes avec SVG décoratifs et consignes HTML : demande/compte, préparation/envoi, atelier/suivi/retrait. Il se trouve immédiatement après le hero. Les cartes passent de trois colonnes à une colonne à 900 px, avec flèches verticales. Le document imprimable, les règles métier, les API et la liste d’assets publics restent inchangés. La suite métier/API et les 32 tests des assets de la reprise précédente ne sont pas relancés pour cette présentation.
 

@@ -35,25 +35,22 @@ const googleReviewExcerpts = [
   {author:'Ibrahim Camara',date:'2025-05-07',label:'7 mai 2025',text:'Service top merci',initials:'IC',color:'gold'},
 ];
 const repairJourneySteps = [
-  {number: '01', kind: 'request', role: 'VOUS · EN LIGNE', title: 'Décrivez et enregistrez', labels: ['Votre console', 'Votre dossier'], paragraphs: ['Choisissez votre console et précisez ce qui ne fonctionne plus.', 'Créez votre compte ou connectez-vous pour enregistrer votre demande.'], result: 'Dossier : En attente d’envoi'},
-  {number: '02', kind: 'shipping', role: 'VOUS · LE COLIS', title: 'Préparez et envoyez', labels: ['Talon chez vous', 'Fiche dans le colis'], paragraphs: ['Imprimez la fiche depuis votre compte. Découpez le talon et gardez-le.', 'Glissez toute la fiche atelier dans le colis avec la console protégée. Envoyez-le à Maxxi Games, à l’adresse confirmée sur la fiche.'], result: 'La fiche atelier accompagne la console'},
-  {number: '03', kind: 'workshop', role: 'MAXXI GAMES · À L’ATELIER', title: 'Suivez et récupérez', labels: ['L’atelier Maxxi Games', 'Votre suivi client'], paragraphs: ['À réception, l’équipe établit le diagnostic et prend en charge votre console. Retrouvez les étapes et le montant dans votre compte.', 'Une fois la console prête, convenez de son retrait ou de son retour avec le magasin.'], result: 'Retrait ou retour à convenir avec l’équipe'},
+  {number: '01', kind: 'request', title: 'Faites votre demande', text: 'Choisissez votre console, décrivez la panne, puis créez votre compte ou connectez-vous.'},
+  {number: '02', kind: 'shipping', title: 'Envoyez votre console', text: 'Imprimez et découpez la fiche. Gardez le talon, puis envoyez la console protégée avec la fiche atelier, à l’adresse confirmée.'},
+  {number: '03', kind: 'workshop', title: 'Suivez la réparation', text: 'Suivez l’avancement avec Maxxi Games dans votre compte. Quand la console est prête, convenez de son retrait ou de son retour.'},
 ] as const;
 function HomeRepairJourney() {
   return <section className="rp-how" id="rp-how" tabIndex={-1} aria-labelledby="rp-how-title">
     <div className="rp-shell">
-      <div className="rp-section-heading"><div><span className="rp-eyebrow">TROIS ÉTAPES · UN SEUL DOSSIER</span><h2 id="rp-how-title">Votre réparation,<br/>en trois étapes.</h2></div><p>Une demande en ligne, un colis à préparer,<br/>puis un suivi avec l’équipe Maxxi Games.</p></div>
-      <ol className="rp-steps" aria-label="Les trois étapes de votre réparation">{repairJourneySteps.map((step, index) => <li className={`rp-journey-step${step.kind === 'workshop' ? ' rp-journey-workshop' : ''}`} key={step.number}>
-        <div className="rp-step-top"><span className="rp-step-number" aria-hidden="true">{step.number}</span><p className="rp-step-role">{step.role}</p></div>
-        <h3>{step.title}</h3>
-        <div className="rp-step-illustration"><HomeRepairJourneyArt kind={step.kind}/></div>
-        <div className="rp-step-art-labels">{step.labels.map(label => <span key={label}>{label}</span>)}</div>
-        <div className="rp-step-description">{step.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
-        <div className="rp-step-result"><Icon name={step.kind === 'workshop' ? 'check' : 'right'} size={15}/><span>{step.result}</span></div>
+      <div className="rp-section-heading"><h2 id="rp-how-title">Comment ça marche ?</h2></div>
+      <ol className="rp-steps" aria-label="Les trois étapes de votre réparation">{repairJourneySteps.map((step, index) => <li className="rp-journey-step" key={step.number}>
+        <div className="rp-step-top"><span className="rp-step-number" aria-hidden="true">{step.number}</span><h3>{step.title}</h3></div>
+        <figure className="rp-step-illustration"><HomeRepairJourneyArt kind={step.kind}/>{step.kind === 'shipping' && <figcaption><span>Talon chez vous</span><span>Fiche dans le colis</span></figcaption>}</figure>
+        <p className="rp-step-description">{step.text}</p>
         {index < repairJourneySteps.length - 1 && <span className="rp-step-link" aria-hidden="true"><Icon name="arrow" size={19}/></span>}
       </li>)}</ol>
-      <div className="rp-journey-notes"><p><Icon name="print" size={21}/><span><strong>La fiche identifie votre dossier.</strong> L’étiquette de transport et l’affranchissement sont à prévoir séparément.</span></p><p><Icon name="euro" size={21}/><span><strong>Le montant est confirmé après diagnostic.</strong> Aucun paiement n’est demandé dans le formulaire.</span></p></div>
-      <div className="rp-journey-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Faire ma demande de réparation<Icon name="arrow" size={18}/></a><a className="rp-text-link" href="#/espace-client">J’ai déjà un dossier : accéder à mon compte<Icon name="right" size={16}/></a></div>
+      <div className="rp-journey-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Commencer ma demande<Icon name="arrow" size={18}/></a><a className="rp-text-link" href="#/espace-client">Suivre mon dossier<Icon name="right" size={16}/></a></div>
+      <p className="rp-journey-note">Montant confirmé après diagnostic. Aucun paiement dans le formulaire. Transport à prévoir séparément.</p>
     </div>
   </section>;
 }

@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : trois étapes illustrées sous le bloc principal — 19 octobre 2026
+## Dernière reprise : parcours encore simplifié — 19 octobre 2026
+
+La section **Comment ça marche ?**, toujours juste après le hero, garde ses trois schémas mais retire les rôles, résultats, introduction et répétitions. Numéro et titre sont réunis ; les cartes deviennent uniformément blanches et plus compactes. Un paragraphe par étape et les seuls labels **Talon chez vous / Fiche dans le colis** restent visibles. Deux liens courts et une seule note sur diagnostic, paiement et transport terminent le bloc.
+
+Le compte, l’adresse confirmée, la console protégée avec sa fiche atelier et le retrait/retour à convenir une fois prête restent explicités. Aucun métier, API, asset public ou document imprimable ne change.
+
+TypeScript, revue indépendante et build final réussis : **112 modules**, huit sources publiques et **137 fichiers**, dont 123 pages de guides. Recette à **1280, 390 et 320 px** : trois schémas et trois paragraphes, une seule légende talon/colis, absence de débordement et flèches verticales sur mobile. Ordre hero/parcours/bandeau conservé ; ancre, focus, Tab et Entrée vers le formulaire, lien du compte vérifiés. Les deux dossiers, clients et pièces de la base en mémoire sont inchangés ; serveur arrêté. La suite métier/API n’est pas relancée pour cette présentation.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. Le site publié confirme trois cartes courtes sans rôles ni résultats, juste après le hero. Capture enregistrée, onglet créé fermé et viewport réinitialisé. Aucune migration ni écriture D1.
+
+## Reprise précédente : trois étapes illustrées sous le bloc principal — 19 octobre 2026
 
 Le composant `HomeRepairJourney`, dans `public-home.tsx`, est placé directement après le hero, avant le bandeau de confiance. Le parcours est regroupé en trois cartes : demande et création/connexion du compte, préparation et envoi, prise en charge à l’atelier et suivi/retrait. `home-repair-journey-art.tsx` ajoute trois SVG décoratifs ; les textes HTML distinguent notamment **talon chez vous** et **fiche dans le colis**. Les cartes passent de trois colonnes à une seule à 900 px, avec des flèches verticales.
 
