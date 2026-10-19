@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **15 octobre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **19 octobre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : frise du suivi et choix direct de la console — 15 octobre 2026
+## Dernière reprise : vue Liste des demandes du site — 19 octobre 2026
+
+L’onglet du magasin `#/website-requests` propose une vue **Liste** compacte par défaut et une bascule **Liste / Cartes**. Les deux présentations utilisent les mêmes demandes, recherche, filtres, tri et compteurs. Le listing présente console/référence, client, panne, dates, statut et accès au dossier avec action de progression. Les transitions et confirmations existantes restent centralisées ; aucun contrat serveur ni règle du domaine ne change.
+
+La table reste contenue dans une zone défilable sur les petits écrans. Les données clients restent dans l’application authentifiée, sans nouvelle route publique ni copie dans les assets.
+
+Validation : TypeScript et build final de **111 modules**, 135 fichiers publics ; recette en mémoire sur dix demandes et un dossier classique exclu. Bascule, recherche, filtres, tri, texte intégral des pannes et ouverture du dossier vérifiés. Réception et mise à disposition confirmées puis relues après rechargement ; seules ces deux actions modifient leurs dossiers/consoles fictifs. Six colonnes visibles à 1280 px, tableau défilable à 390/320 px sans débordement. Les détails sont dans TESTS.md.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : sept assets identiques au build, API publique 200 et cinq API privées 401. Aucune migration ni écriture D1.
+
+## Reprise précédente : frise du suivi et choix direct de la console — 15 octobre 2026
 
 Le suivi du dossier sélectionné commence par une frise horizontale pleine largeur, avant les panneaux console et consignes. Les étapes sont reliées ; les étapes passées sont cochées, l’étape actuelle est mise en évidence et conserve `aria-current="step"`. Sur petit écran, seule la frise défile horizontalement, au clavier ou au toucher. Un `ResizeObserver` recentre l’étape actuelle lors d’un redimensionnement. Les variantes restent conservées : envoi pour les demandes en ligne, attente de pièces seulement lorsqu’elle est actuelle, cinq étapes pour un dossier classique et message de clôture pour les dossiers irréparables ou abandonnés.
 

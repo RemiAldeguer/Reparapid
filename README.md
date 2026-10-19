@@ -121,6 +121,10 @@ Le formulaire demande **Prénom**, **Nom**, **E-mail** et **Message**. **Ouvrir 
 
 Cette reprise a passé **476 tests** et le build final TypeScript/Vite de **87 modules**. Les parcours du magasin et du client ainsi que le contact ont été contrôlés sur une base temporaire, sans modifier la production. La publication est vérifiée sur **100 % du trafic Cloudflare** : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final ; API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données.
 
+## Demandes du site dans le magasin
+
+L’onglet **Demandes du site** ouvre une vue **Liste** compacte avec référence/console, client, panne, dates, statut et actions. La bascule **Liste / Cartes** conserve la recherche, les filtres et le tri. Les actions de réception et de mise à disposition gardent leurs confirmations et les transitions existantes du dossier. Sur petit écran, le tableau défile dans son propre cadre.
+
 ## Demande express et suivi client
 
 L’accueil propose un seul champ **Votre console**, avec les 38 choix illustrés directement accessibles, sans devoir connaître la marque. Les noms explicites et la recherche au clavier aident à reconnaître le modèle. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.

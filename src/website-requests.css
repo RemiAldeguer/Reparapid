@@ -1,3 +1,4 @@
+.rp-backoffice .website-requests-page {min-width: 0; max-width: 100%}
 .rp-backoffice .website-request-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -36,6 +37,59 @@
 .rp-backoffice .website-request-select select {width: 100%; min-height: 45px; font-size: 12px; padding: 11px 28px 11px 12px; border-radius: 7px}
 .rp-backoffice .website-request-results {display: flex; align-items: center; justify-content: space-between; gap: 18px; font-size: 11px; line-height: 1.8; margin-bottom: 17px; color: #737373}
 .rp-backoffice .website-request-results .text-link {font-size: 11px}
+.rp-backoffice .website-request-result-count {display: flex; align-items: center; gap: 18px; flex-wrap: wrap; min-width: 0}
+.rp-backoffice .website-request-view-switch {display: inline-flex; flex-shrink: 0; gap: 3px; padding: 4px; border: 1px solid #dcdcdc; border-radius: 7px; background: #ededed}
+.rp-backoffice .website-request-view-switch>button {display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 35px; padding: 7px 12px; border-radius: 4px; font-size: 11px; line-height: 1.5; color: #686868}
+.rp-backoffice .website-request-view-switch>button[aria-pressed=true] {background: #fff; color: #a32720; font-weight: 650; box-shadow: 0 1px 4px #1919190d}
+.rp-backoffice .website-request-view-switch>button:hover {color: #a32720}
+.rp-backoffice .website-request-list {min-width: 0; max-width: 100%; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px #19191904; container-type: inline-size}
+.rp-backoffice .website-request-scroll-hint {display: none; align-items: center; gap: 7px; padding: 11px 15px; border-bottom: 1px solid #ededed; font-size: 10px; line-height: 1.7; color: #737373; background: #fafafa}
+.rp-backoffice .website-request-scroll-hint>svg {color: #a32720; flex-shrink: 0}
+.rp-backoffice .website-request-table-scroll {width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin}
+.rp-backoffice .website-request-table-scroll:focus-visible {outline: 2px solid #b21414; outline-offset: -3px}
+.rp-backoffice .website-request-table {width: 100%; min-width: 960px; table-layout: fixed; text-align: left; font-size: 11px; line-height: 1.65}
+.rp-backoffice .website-request-col-console {width: 24%}
+.rp-backoffice .website-request-col-client {width: 15%}
+.rp-backoffice .website-request-col-symptoms {width: 18%}
+.rp-backoffice .website-request-col-date {width: 11%}
+.rp-backoffice .website-request-col-stage {width: 14%}
+.rp-backoffice .website-request-col-actions {width: 18%}
+.rp-backoffice .website-request-table thead th {padding: 13px 14px; background: #fafafa; border-bottom: 1px solid #e9e9e9; color: #737373; font-size: 10px; font-weight: 550; vertical-align: middle}
+.rp-backoffice .website-request-table tbody :is(th,td) {padding: 16px 14px; border-bottom: 1px solid #ededed; vertical-align: middle; color: #575757; overflow-wrap: anywhere}
+.rp-backoffice .website-request-table tbody th {font-weight: 400}
+.rp-backoffice .website-request-table tbody tr:last-child :is(th,td) {border-bottom: 0}
+.rp-backoffice .website-request-table tbody tr:hover {background: #fdfafa}
+.rp-backoffice .website-request-list-console {display: flex; align-items: center; gap: 11px; min-width: 0}
+.rp-backoffice .website-request-list-console>div:last-child {min-width: 0}
+.rp-backoffice .website-request-list-console .website-request-art {width: 54px; height: 54px; border-radius: 6px}
+.rp-backoffice .website-request-list-console .website-request-art>.console-art {width: 50px; height: 44px; max-width: 100%; max-height: 100%}
+.rp-backoffice .website-request-list-title {display: block; padding: 0; text-align: left; color: #292929; font-size: 12px; line-height: 1.6; font-weight: 650; overflow-wrap: anywhere}
+.rp-backoffice .website-request-list-title:hover {color: #b21414}
+.rp-backoffice .website-request-list-console .mono {display: block; margin-top: 4px; font-size: 10px; color: #a32720}
+.rp-backoffice .website-request-list-console small {display: block; margin-top: 3px; font-size: 9px; color: #737373; line-height: 1.6; overflow-wrap: anywhere}
+.rp-backoffice .website-request-list-client {display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0}
+.rp-backoffice .website-request-list-client .text-link {font-size: 11px; line-height: 1.7; text-align: left; white-space: normal; overflow-wrap: anywhere}
+.rp-backoffice .website-request-list-client .text-link>svg {flex-shrink: 0}
+.rp-backoffice .website-request-list-client>a {font-size: 9px; line-height: 1.6; color: #737373; overflow-wrap: anywhere}
+.rp-backoffice .website-request-list-client>a:hover {color: #b21414}
+.rp-backoffice .website-request-list-short-symptoms,.rp-backoffice .website-request-list-symptoms p {white-space: pre-line; overflow-wrap: anywhere; font-size: 11px; line-height: 1.75}
+.rp-backoffice .website-request-list-symptoms>summary {cursor: pointer; list-style: none; border-radius: 3px}
+.rp-backoffice .website-request-list-symptoms>summary::-webkit-details-marker {display: none}
+.rp-backoffice .website-request-list-symptoms>summary>span {display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: pre-line; overflow-wrap: anywhere}
+.rp-backoffice .website-request-list-symptoms>summary>small {display: flex; align-items: center; gap: 5px; margin-top: 5px; color: #a32720; font-size: 9px; font-weight: 600}
+.rp-backoffice .website-request-list-symptoms[open]>summary>span {display: none}
+.rp-backoffice .website-request-list-symptoms[open]>summary>small>svg {transform: rotate(180deg)}
+.rp-backoffice .website-request-list-symptoms[open]>p {margin-top: 9px}
+.rp-backoffice .website-request-list-symptoms>summary:focus-visible {outline: 2px solid #b21414; outline-offset: 3px}
+.rp-backoffice .website-request-list-dates>time {display: block; color: #424242; font-variant-numeric: tabular-nums}
+.rp-backoffice .website-request-list-dates>small {display: block; margin-top: 6px; color: #737373; font-size: 9px; line-height: 1.7}
+.rp-backoffice .website-request-list-dates>small>time {display: block; font-variant-numeric: tabular-nums}
+.rp-backoffice .website-request-table .badge {white-space: normal; line-height: 1.5; font-size: 9px}
+.rp-backoffice .website-request-table .badge>i {flex-shrink: 0}
+.rp-backoffice .website-request-table .website-request-completed {font-size: 9px}
+.rp-backoffice .website-request-list-actions {display: flex; flex-direction: column; align-items: stretch; gap: 7px}
+.rp-backoffice .website-request-list-actions>.btn {min-height: 34px; justify-content: center; gap: 6px; padding: 8px 9px; font-size: 10px; line-height: 1.6; white-space: normal}
+.rp-backoffice .website-request-list-actions>.btn>svg {flex-shrink: 0}
 .rp-backoffice .website-request-grid {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px}
 .rp-backoffice .website-request-card {display: flex; flex-direction: column; min-width: 0; padding: 24px; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 2px 8px #19191904}
 .rp-backoffice .website-request-card-top {display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 22px}
@@ -72,11 +126,15 @@
 .rp-backoffice .website-request-actions>.btn>svg {flex-shrink: 0}
 .rp-backoffice .website-request-help {display: flex; align-items: flex-start; gap: 9px; color: #737373; font-size: 11px; line-height: 1.9; margin-top: 24px; max-width: 850px}
 .rp-backoffice .website-request-help>svg {flex-shrink: 0; color: #a32720; margin-top: 3px}
+@container (max-width: 959px) {
+  .rp-backoffice .website-request-scroll-hint {display: flex}
+}
 @media(max-width: 1150px) {
   .rp-backoffice .website-request-toolbar {flex-wrap: wrap}
   .rp-backoffice .website-request-search {flex-basis: 100%}
   .rp-backoffice .website-request-select {flex: 1}
   .rp-backoffice .website-request-grid {grid-template-columns: 1fr}
+  .rp-backoffice .website-request-scroll-hint {display: flex}
 }
 @media(max-width: 900px) {
   .rp-backoffice .website-request-metrics {grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px}
@@ -92,6 +150,8 @@
   .rp-backoffice .website-request-select {flex-basis: 100%}
   .rp-backoffice .website-request-search input,.rp-backoffice .website-request-select select {font-size: 16px}
   .rp-backoffice .website-request-results {align-items: flex-start; flex-direction: column; gap: 9px; font-size: 10px}
+  .rp-backoffice .website-request-result-count {align-items: flex-start; flex-direction: column; gap: 7px}
+  .rp-backoffice .website-request-view-switch {align-self: flex-end}
   .rp-backoffice .website-request-grid {gap: 16px}
   .rp-backoffice .website-request-card {padding: 19px}
   .rp-backoffice .website-request-card-top {gap: 9px; margin-bottom: 18px}
@@ -110,4 +170,7 @@
 @media(pointer: coarse) {
   .rp-backoffice .website-request-metric {min-height: 125px}
   .rp-backoffice .website-request-client .text-link {min-height: 34px}
+  .rp-backoffice .website-request-view-switch>button {min-height: 40px}
+  .rp-backoffice .website-request-list-client .text-link {min-height: 34px}
+  .rp-backoffice .website-request-list-actions>.btn {min-height: 40px}
 }

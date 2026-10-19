@@ -4,9 +4,23 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-Documentation mise à jour le **15 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : frise horizontale et choix direct de console — 15 octobre 2026
+## Résultat courant : vue Liste des demandes du site — 19 octobre 2026
+
+Présentation dans `website-requests.tsx/.css` : vue **Liste** par défaut et bascule **Liste / Cartes**. Recherche, filtres, tri, compteurs, transitions et confirmations réutilisés ; aucun changement de contrat API, domaine ou données de production. La suite métier/API n’est pas relancée pour cette évolution de présentation.
+
+TypeScript et build final réussis : **111 modules**, six sources publiques et **135 fichiers**, dont 123 pages de guides. Un second build prend en compte l’ajustement de largeur à 960 px minimum et le libellé accessible des pannes longues. Le warning de bundle supérieur à 500 kB demeure.
+
+Recette sur SQLite **en mémoire**, notifications désactivées : onze dossiers fictifs, dont dix demandes publiques et un dossier classique exclu du listing. Liste par défaut, six colonnes, bascule sans perdre recherche/filtre/tri, tris chronologiques, résultat vide puis réinitialisation vérifiés. Le texte complet de la panne longue se déplie au clavier. Le bouton du dossier ouvre bien la bonne référence et le retour retrouve la liste. Les dossiers irréparable/abandonné restent sans action rapide de progression.
+
+Annulation puis confirmation de réception sur un dossier et confirmation « prête à récupérer » sur un autre, suivies d’un rechargement pour vérifier la persistance. Les onze dossiers restent présents ; seuls les deux dossiers et leurs consoles liés à ces actions attendues sont modifiés. Clients et pièces restent inchangés. Aucun e-mail réel ni donnée fictive transférée en production.
+
+**1280, 390 et 320 px effectivement contrôlés** sur le bundle final : à 1280 px les six colonnes sont visibles sans défilement horizontal ; à 390/320 px seul le tableau défile, y compris au clavier, sans débordement du document. Compte fictif déconnecté, tableau privé retiré, onglet fermé, viewport réinitialisé et serveur arrêté. Les captures contiennent uniquement des demandes fictives.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : sept assets identiques au build, API publique 200 et cinq API privées 401. Aucune migration ni écriture D1.
+
+## Résultat précédent : frise horizontale et choix direct de console — 15 octobre 2026
 
 Retouche de présentation dans `client-portal.*`, `public-home.*` et `home-console-select.*`. La frise pleine largeur précède les deux panneaux du dossier. L’accueil propose directement les 38 consoles illustrées dans un seul sélecteur, sans marque obligatoire. Aucun contrat API, règle métier, document imprimable ou stockage ne change.
 

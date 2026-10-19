@@ -34,6 +34,7 @@ export function WebsiteRequests() {
   const [group, setGroup] = useState<RequestGroup>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'recent' | 'oldest' | 'updated'>('recent');
+  const [view, setView] = useState<'list' | 'cards'>('list');
   const consoles = useMemo(() => new Map(data.consoles.map(item => [item.id, item])), [data.consoles]);
   const clients = useMemo(() => new Map(data.clients.map(client => [client.id, client])), [data.clients]);
   const requests = data.repairs.filter(repair => !!repair.publicRequestId);
@@ -82,8 +83,37 @@ export function WebsiteRequests() {
       <label className="website-request-select"><span>Afficher</span><select aria-label="Filtrer les demandes du site" value={group} onChange={event => setGroup(event.target.value as RequestGroup)}><option value="all">Toutes les demandes ({counts.all})</option>{requestGroups.map(category => <option key={category.id} value={category.id}>{category.label} ({counts[category.id]})</option>)}</select></label>
       <label className="website-request-select"><span>Trier</span><select aria-label="Trier les demandes du site" value={sort} onChange={event => setSort(event.target.value as typeof sort)}><option value="recent">Les plus récentes</option><option value="oldest">Les plus anciennes</option><option value="updated">Dernière mise à jour</option></select></label>
     </div>
-    <div className="website-request-results" aria-live="polite"><span>{rows.length} demande{rows.length !== 1 ? 's' : ''} affichée{rows.length !== 1 ? 's' : ''} sur {requests.length}</span>{(search || group !== 'all') && <button className="text-link" type="button" onClick={() => {setSearch(''); setGroup('all');}}>Réinitialiser les filtres</button>}</div>
-    {rows.length ? <div className="website-request-grid">{rows.map(repair => {
+    <div className="website-request-results">
+      <div className="website-request-result-count" aria-live="polite"><span>{rows.length} demande{rows.length !== 1 ? 's' : ''} affichée{rows.length !== 1 ? 's' : ''} sur {requests.length}</span>{(search || group !== 'all') && <button className="text-link" type="button" onClick={() => {setSearch(''); setGroup('all');}}>Réinitialiser les filtres</button>}</div>
+      <div className="website-request-view-switch" role="group" aria-label="Affichage des demandes du site">
+        <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><Icon name="list" size={16}/>Liste</button>
+        <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}><Icon name="grid" size={16}/>Cartes</button>
+      </div>
+    </div>
+    {rows.length ? view === 'list' ? <div className="website-request-list">
+      <p className="website-request-scroll-hint"><Icon name="arrow" size={14}/>Faites défiler le tableau pour voir les statuts et les actions.</p>
+      <div className="website-request-table-scroll" role="region" aria-label="Liste des demandes du site" tabIndex={0}>
+        <table className="website-request-table">
+          <caption className="sr-only">Demandes de réparation créées sur le site, avec leur console, client, panne, date, statut et actions.</caption>
+          <colgroup><col className="website-request-col-console"/><col className="website-request-col-client"/><col className="website-request-col-symptoms"/><col className="website-request-col-date"/><col className="website-request-col-stage"/><col className="website-request-col-actions"/></colgroup>
+          <thead><tr><th scope="col">Dossier / console</th><th scope="col">Client</th><th scope="col">Panne signalée</th><th scope="col">Demandée le</th><th scope="col">Statut</th><th scope="col">Actions</th></tr></thead>
+          <tbody>{rows.map(repair => {
+            const item = consoles.get(repair.consoleId);
+            const client = item?.clientId ? clients.get(item.clientId) : undefined;
+            const action = nextAction[repair.stage];
+            const stage = stageInfo(repair.stage);
+            return <tr key={repair.id} aria-label={`Demande ${repair.code}`}>
+              <th scope="row"><div className="website-request-list-console"><div className="website-request-art">{item ? item.photos.length ? <ConsoleVisual item={item} small/> : <ShopConsoleArt item={item}/> : <Icon name="gamepad" size={26}/>}</div><div><button type="button" className="website-request-list-title" onClick={() => go('/repairs/' + repair.id)}>{item ? [item.brand, item.model].join(' ') : repair.title}</button><span className="mono">{repair.code}</span>{item?.variant && <small>{item.variant}</small>}{item?.serial && <small>N° de série : {item.serial}</small>}</div></div></th>
+              <td><div className="website-request-list-client">{client ? <><button type="button" className="text-link" onClick={() => go('/clients/' + client.id)}>{client.name}<Icon name="right" size={12}/></button>{client.email && <a href={`mailto:${encodeURIComponent(client.email)}`}>{client.email}</a>}{client.phone && <a href={`tel:${client.phone.replace(/\s/g, '')}`}>{client.phone}</a>}</> : <span>Client non renseigné</span>}</div></td>
+              <td>{repair.symptoms.length > 130 ? <details className="website-request-list-symptoms"><summary aria-label={`Panne signalée du dossier ${repair.code}`}><span>{repair.symptoms}</span><small>Lire la panne<Icon name="down" size={12}/></small></summary><p>{repair.symptoms}</p></details> : <p className="website-request-list-short-symptoms">{repair.symptoms || 'Aucun symptôme renseigné.'}</p>}</td>
+              <td className="website-request-list-dates"><time dateTime={repair.createdAt}>{dateFmt(repair.createdAt)}</time><small>{repair.completedAt ? 'Clôturée le' : 'Mise à jour le'}<time dateTime={repair.completedAt || repair.updatedAt}>{dateFmt(repair.completedAt || repair.updatedAt)}</time></small></td>
+              <td><Badge tone={stage.color}>{repair.stage === 'terminee' ? 'Prête à récupérer' : stage.label}</Badge>{repair.stage === 'terminee' && <span className="website-request-completed">Réparation terminée</span>}</td>
+              <td><div className="website-request-list-actions"><button type="button" className="btn secondary" onClick={() => go('/repairs/' + repair.id)} aria-label={`Ouvrir le dossier ${repair.code}`}>Ouvrir le dossier<Icon name="arrow" size={14}/></button>{action && <button type="button" className="btn primary" onClick={() => applyNext(repair)} aria-label={`${action.label} · ${repair.code}`}><Icon name={action.icon} size={14}/>{action.label}</button>}</div></td>
+            </tr>;
+          })}</tbody>
+        </table>
+      </div>
+    </div> : <div className="website-request-grid">{rows.map(repair => {
       const item = consoles.get(repair.consoleId);
       const client = item?.clientId ? clients.get(item.clientId) : undefined;
       const action = nextAction[repair.stage];
