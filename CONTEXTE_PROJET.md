@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernier ajustement : avis Google en troisième section — 19 octobre 2026
+## Dernière reprise : présentation des avis Google — 19 octobre 2026
+
+La troisième section devient **La parole à nos clients** : fond crème, bouton Google plus visible, citations agrandies, étoiles et note propres à chaque avis, auteurs/dates en pied de carte. Les trois extraits, dates et cinq étoiles existants sont conservés. Le chiffre visible **5/5** appartient à sa carte et est masqué au lecteur d’écran pour éviter de répéter l’étiquette accessible des étoiles ; aucun score global ni total n’est ajouté. Les crédits et liens d’origine restent présents.
+
+Le bloc utilise un conteneur `rp-shell` interne et passe en cartes verticales à 900 px ; aucun carrousel, média externe, API ou stockage supplémentaire. Aucun métier ni donnée d’atelier ne change.
+
+TypeScript, revue indépendante et build de **112 modules** validés, avec **137 fichiers publics**. Recette à **1280, 390 et 320 px** : citations, trois notes individuelles accessibles, auteurs/dates, crédits, focus clavier et lien Google sécurisé contrôlés ; aucun débordement. Trois colonnes à 1024 px, une seule à 900 px. Contrastes ciblés vérifiés : étoiles 3,61:1, dates 5,19:1, source 4,85:1. Ordre hero/parcours/avis conservé. Les dossiers, clients et pièces de la base éphémère sont inchangés ; serveur arrêté.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. La nouvelle présentation, les trois notes individuelles et la troisième place sont vérifiées sur le site publié. Capture enregistrée, onglet créé fermé et viewport réinitialisé ; aucune migration ni écriture D1.
+
+## Reprise précédente : avis Google en troisième section — 19 octobre 2026
 
 L’ordre d’accueil commence par le hero, **Comment ça marche ?**, puis **les avis Google**. `GoogleReviews` n’est monté qu’une fois, avant le bandeau de confiance. Les citations, dates, étoiles, crédits et liens restent identiques. Aucun changement de métier, API ou donnée.
 

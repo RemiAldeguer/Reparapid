@@ -6,7 +6,15 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : avis Google en troisième section — 19 octobre 2026
+## Résultat courant : nouvelle présentation des avis — 19 octobre 2026
+
+Présentation de la troisième section : fond crème, citations plus lisibles, bouton Google rouge, étoiles/notes propres à chaque carte et auteurs en pied. Les trois textes, dates, auteurs et notes sont conservés ; aucun score global ou total n’est ajouté. Aucun changement d’API, règle métier ou asset autorisé ; pas de relance métier pour ce design.
+
+TypeScript, revue indépendante et build de **112 modules** validés, avec **137 fichiers publics**. Recette à **1280, 390 et 320 px** : citations, trois notes individuelles accessibles, auteurs/dates, crédits, focus clavier et lien Google sécurisé contrôlés ; aucun débordement. Trois colonnes à 1024 px, une seule à 900 px. Contrastes ciblés vérifiés : étoiles 3,61:1, dates 5,19:1, source 4,85:1. Ordre hero/parcours/avis conservé. Les dossiers, clients et pièces de la base éphémère sont inchangés ; serveur arrêté.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. La nouvelle présentation, les trois notes individuelles et la troisième place sont vérifiées sur le site publié. Capture enregistrée, onglet créé fermé et viewport réinitialisé ; aucune migration ni écriture D1.
+
+## Résultat précédent : avis Google en troisième section — 19 octobre 2026
 
 Déplacement de `GoogleReviews` juste après `HomeRepairJourney`, avant le bandeau de confiance. Le contenu des avis et leurs liens restent identiques ; aucun changement de données, API ou métier. Pas de nouvelle exécution métier pour ce changement d’ordre.
 
