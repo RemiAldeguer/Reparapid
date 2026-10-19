@@ -76,7 +76,13 @@ Le formulaire `#/demande-reparation` borne désormais les cadres et SVG des cons
 
 Le **build final et TypeScript ont réussi avec 85 modules**. La publication de cette harmonisation est vérifiée sur 100 % du trafic Cloudflare : SHA-256 du HTML, du JavaScript, du CSS, du logo, de la police et de sa licence conformes au build final, API publique en HTTP 200 et cinq routes privées contrôlées en HTTP 401 sans exposition de données. La suite métier n’a pas été relancée ; le résultat de 474 tests du 12 octobre reste historique. La publication précédente ci-dessous concerne les engagements, avis et nouvelles illustrations.
 
-## Parcours expliqué sur l’accueil — 13 octobre 2026
+## Parcours illustré en trois étapes — 19 octobre 2026
+
+**Votre réparation, en trois étapes** apparaît immédiatement après le bloc principal de l’accueil, avant le bandeau de confiance et les familles de consoles. Trois cartes relient **Décrivez et enregistrez**, **Préparez et envoyez**, puis **Suivez et récupérez**. Les schémas vectoriels de `src/home-repair-journey-art.tsx` montrent console et dossier, découpe vers deux destinations, puis atelier et suivi. Les consignes restent en HTML et les SVG sont décoratifs.
+
+Le compte nouveau ou existant, le dossier **En attente d’envoi**, le talon à conserver, toute la fiche atelier à joindre avec la console protégée et l’adresse confirmée restent explicités. Transport/affranchissement séparés et montant confirmé après diagnostic sont rappelés. Le retrait ou le retour se convient avec le magasin une fois la console prête. Trois colonnes sur ordinateur, une colonne avec flèches verticales sur petit écran ; aucun contrat métier, API ou document imprimable ne change.
+
+## Historique : parcours expliqué sur l’accueil — 13 octobre 2026
 
 La section **Votre réparation, pas à pas** précise les quatre étapes : modèle et symptômes, enregistrement avec un compte nouveau ou existant au statut **En attente d’envoi**, impression de la fiche et expédition vers l’adresse confirmée, puis réception et prise en charge à l’atelier avec suivi des étapes et du montant. Les trois actions du client et le relais de RépaRapid sont distingués visuellement. Le statut **Prête à récupérer** invite à organiser le retrait ou le retour avec le magasin. La fiche identifie le dossier ; affranchissement et étiquette de transport se prévoient séparément. Le montant est confirmé après diagnostic, sans paiement dans le formulaire. Aucun texte de diagnostic interne n’est promis au client.
 

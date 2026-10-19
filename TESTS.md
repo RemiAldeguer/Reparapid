@@ -6,7 +6,15 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : identité Maxxi Games et photographies — 19 octobre 2026
+## Résultat courant : trois étapes illustrées sous le bloc principal — 19 octobre 2026
+
+Le parcours public comprend trois cartes avec SVG décoratifs et consignes HTML : demande/compte, préparation/envoi, atelier/suivi/retrait. Il se trouve immédiatement après le hero. Les cartes passent de trois colonnes à une colonne à 900 px, avec flèches verticales. Le document imprimable, les règles métier, les API et la liste d’assets publics restent inchangés. La suite métier/API et les 32 tests des assets de la reprise précédente ne sont pas relancés pour cette présentation.
+
+TypeScript, revue indépendante et build final réussis : **112 modules**, huit sources publiques et **137 fichiers**, dont 123 pages de guides. Recette sur SQLite en mémoire à **1280, 390 et 320 px** : trois schémas contenus, textes lisibles et absence de débordement. Trois colonnes confirmées à 1024 px, une seule à 900 px ; flèches verticales sur mobile. Ordre du DOM contrôlé : hero, parcours, bandeau de confiance, familles de consoles. Ancre directe, focus, Tab puis Entrée vers le formulaire et liens demande/compte vérifiés. Les deux dossiers, clients et pièces fictifs sont inchangés ; serveur arrêté.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. La recette du site publié confirme les trois cartes, trois schémas et leur position juste après le hero. Capture enregistrée, onglet de recette fermé et viewport réinitialisé. Aucune migration ni écriture D1.
+
+## Résultat précédent : identité Maxxi Games et photographies — 19 octobre 2026
 
 L’accroche présente l’atelier de Maxxi Games avec son logo et la devanture en fond rouge transparent. La section **Votre console, notre établi** comprend la photo réelle du comptoir, l’identité du magasin et trois points sur le contact, la prise en charge et le suivi. Deux nouveaux JPEG sont autorisés par leur chemin exact, sans ouvrir les autres images.
 

@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : Maxxi Games et photographies du magasin — 19 octobre 2026
+## Dernière reprise : trois étapes illustrées sous le bloc principal — 19 octobre 2026
+
+Le composant `HomeRepairJourney`, dans `public-home.tsx`, est placé directement après le hero, avant le bandeau de confiance. Le parcours est regroupé en trois cartes : demande et création/connexion du compte, préparation et envoi, prise en charge à l’atelier et suivi/retrait. `home-repair-journey-art.tsx` ajoute trois SVG décoratifs ; les textes HTML distinguent notamment **talon chez vous** et **fiche dans le colis**. Les cartes passent de trois colonnes à une seule à 900 px, avec des flèches verticales.
+
+Les étapes d’envoi, l’adresse confirmée, l’affranchissement séparé, le montant après diagnostic et le retrait/retour à convenir sont conservés. L’ancre `rp-how`, son focus et les deux liens de demande/compte restent disponibles. Aucun schéma de données, API, métier ou fiche imprimable ne change. Les photographies et l’identité Maxxi Games restent celles de la reprise précédente.
+
+TypeScript, revue indépendante et build final réussis : **112 modules**, huit sources publiques et **137 fichiers**, dont 123 pages de guides. Recette sur SQLite en mémoire à **1280, 390 et 320 px** : trois schémas contenus, textes lisibles et absence de débordement. Trois colonnes confirmées à 1024 px, une seule à 900 px ; flèches verticales sur mobile. Ordre du DOM contrôlé : hero, parcours, bandeau de confiance, familles de consoles. Ancre directe, focus, Tab puis Entrée vers le formulaire et liens demande/compte vérifiés. Les deux dossiers, clients et pièces fictifs sont inchangés ; serveur arrêté.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. La recette du site publié confirme les trois cartes, trois schémas et leur position juste après le hero. Capture enregistrée, onglet de recette fermé et viewport réinitialisé. Aucune migration ni écriture D1.
+
+## Reprise précédente : Maxxi Games et photographies du magasin — 19 octobre 2026
 
 L’accueil identifie explicitement RépaRapid comme **l’atelier de réparation de Maxxi Games** : logo dans l’accroche, équipe et magasin du Kremlin-Bicêtre nommés. La vraie devanture apparaît derrière le texte avec un voile rouge CSS ; le formulaire garde son fond blanc et sa grille de recherche. La section **Votre console, notre établi** présente une photo authentique du comptoir, le rôle de l’équipe, le diagnostic et trois points de service : contact, étapes de prise en charge et suivi dans le compte.
 

@@ -8,6 +8,7 @@ export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
 import {INTAKE_MODELS} from './repair-intake-catalog';
 import {ConsolePickerSearch} from './home-console-select';
+import {HomeRepairJourneyArt} from './home-repair-journey-art';
 import './public-home.css';
 import './reparapid-brand.css';
 
@@ -34,11 +35,29 @@ const googleReviewExcerpts = [
   {author:'Ibrahim Camara',date:'2025-05-07',label:'7 mai 2025',text:'Service top merci',initials:'IC',color:'gold'},
 ];
 const repairJourneySteps = [
-  {number: '01', role: 'VOUS · EN LIGNE', icon: 'gamepad', title: 'Décrivez la panne', text: 'Choisissez votre modèle, sélectionnez les symptômes proposés et ajoutez vos précisions. Indiquez aussi les accessoires que vous comptez joindre.', result: 'Modèle et symptômes renseignés'},
-  {number: '02', role: 'VOUS · VOTRE COMPTE', icon: 'user', title: 'Enregistrez votre demande', text: 'Créez votre compte ou connectez-vous à votre compte existant. Votre dossier et sa référence apparaissent dans votre espace client.', result: 'Statut : En attente d’envoi'},
-  {number: '03', role: 'VOUS · VOTRE COLIS', icon: 'package', title: 'Envoyez votre console', text: 'Depuis votre compte, imprimez la fiche d’envoi. Découpez le talon à conserver et glissez la partie atelier dans le colis. Envoyez votre console à Maxxi Games, au Kremlin-Bicêtre, à l’adresse confirmée sur la fiche.', result: 'Talon conservé, fiche jointe au colis'},
-  {number: '04', role: 'RÉPARAPID · À L’ATELIER', icon: 'wrench', title: 'Suivez, puis récupérez', text: 'À réception, l’atelier diagnostique et prend en charge la console. Suivez les étapes et le montant dans votre compte. Une fois prête, contactez le magasin pour organiser son retrait ou son retour.', result: 'Statut : Prête à récupérer'},
-];
+  {number: '01', kind: 'request', role: 'VOUS · EN LIGNE', title: 'Décrivez et enregistrez', labels: ['Votre console', 'Votre dossier'], paragraphs: ['Choisissez votre console et précisez ce qui ne fonctionne plus.', 'Créez votre compte ou connectez-vous pour enregistrer votre demande.'], result: 'Dossier : En attente d’envoi'},
+  {number: '02', kind: 'shipping', role: 'VOUS · LE COLIS', title: 'Préparez et envoyez', labels: ['Talon chez vous', 'Fiche dans le colis'], paragraphs: ['Imprimez la fiche depuis votre compte. Découpez le talon et gardez-le.', 'Glissez toute la fiche atelier dans le colis avec la console protégée. Envoyez-le à Maxxi Games, à l’adresse confirmée sur la fiche.'], result: 'La fiche atelier accompagne la console'},
+  {number: '03', kind: 'workshop', role: 'MAXXI GAMES · À L’ATELIER', title: 'Suivez et récupérez', labels: ['L’atelier Maxxi Games', 'Votre suivi client'], paragraphs: ['À réception, l’équipe établit le diagnostic et prend en charge votre console. Retrouvez les étapes et le montant dans votre compte.', 'Une fois la console prête, convenez de son retrait ou de son retour avec le magasin.'], result: 'Retrait ou retour à convenir avec l’équipe'},
+] as const;
+function HomeRepairJourney() {
+  return <section className="rp-how" id="rp-how" tabIndex={-1} aria-labelledby="rp-how-title">
+    <div className="rp-shell">
+      <div className="rp-section-heading"><div><span className="rp-eyebrow">TROIS ÉTAPES · UN SEUL DOSSIER</span><h2 id="rp-how-title">Votre réparation,<br/>en trois étapes.</h2></div><p>Une demande en ligne, un colis à préparer,<br/>puis un suivi avec l’équipe Maxxi Games.</p></div>
+      <ol className="rp-steps" aria-label="Les trois étapes de votre réparation">{repairJourneySteps.map((step, index) => <li className={`rp-journey-step${step.kind === 'workshop' ? ' rp-journey-workshop' : ''}`} key={step.number}>
+        <div className="rp-step-top"><span className="rp-step-number" aria-hidden="true">{step.number}</span><p className="rp-step-role">{step.role}</p></div>
+        <h3>{step.title}</h3>
+        <div className="rp-step-illustration"><HomeRepairJourneyArt kind={step.kind}/></div>
+        <div className="rp-step-art-labels">{step.labels.map(label => <span key={label}>{label}</span>)}</div>
+        <div className="rp-step-description">{step.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
+        <div className="rp-step-result"><Icon name={step.kind === 'workshop' ? 'check' : 'right'} size={15}/><span>{step.result}</span></div>
+        {index < repairJourneySteps.length - 1 && <span className="rp-step-link" aria-hidden="true"><Icon name="arrow" size={19}/></span>}
+      </li>)}</ol>
+      <div className="rp-journey-notes"><p><Icon name="print" size={21}/><span><strong>La fiche identifie votre dossier.</strong> L’étiquette de transport et l’affranchissement sont à prévoir séparément.</span></p><p><Icon name="euro" size={21}/><span><strong>Le montant est confirmé après diagnostic.</strong> Aucun paiement n’est demandé dans le formulaire.</span></p></div>
+      <div className="rp-journey-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Faire ma demande de réparation<Icon name="arrow" size={18}/></a><a className="rp-text-link" href="#/espace-client">J’ai déjà un dossier : accéder à mon compte<Icon name="right" size={16}/></a></div>
+    </div>
+  </section>;
+}
+
 function GoogleStars() {
   return <span className="rp-review-stars" role="img" aria-label="5 étoiles sur 5">{Array.from({length:5},(_,i)=><svg key={i} viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3.1 6.3 7 1-5.1 4.9 1.2 6.9L12 17.8l-6.2 3.3 1.2-6.9L1.9 9.3l7-1z"/></svg>)}</span>;
 }
@@ -148,22 +167,10 @@ export function PublicHome() {
       <p>Commencez par choisir votre console. Décrivez la panne, puis suivez sa prise en charge par notre équipe dans votre compte.</p>
       <div className="rp-hero-actions"><a className="rp-text-link" href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche<Icon name="down" size={16}/></a><a className="rp-text-link rp-home-full-form" href="#/demande-reparation">Ouvrir le formulaire complet<Icon name="arrow" size={16}/></a></div><p className="rp-hero-note"><Icon name="info" size={16}/>Le montant de l’intervention est confirmé après diagnostic.</p>
     </div><HomeConsolePicker/><a className="rp-hero-photo-credit" href="https://www.gamepedia.fr/magasins-de-jeux-video/94043-le-kremlin-bicetre/cjhccaffbcfhddjhbij.htm" target="_blank" rel="noopener noreferrer">Photo de la devanture : Google User Content</a></section>
+    <HomeRepairJourney/>
     <div className="rp-trust-strip"><div className="rp-shell"><span><Icon name="gamepad" size={20}/>Consoles de salon & portables</span><span><Icon name="wrench" size={20}/>Diagnostic à l’atelier</span><span><Icon name="user" size={20}/>Suivi dans votre compte</span></div></div>
     <section className="rp-devices rp-shell" id="rp-devices" tabIndex={-1}><div className="rp-section-heading"><div><span className="rp-eyebrow">ON COMMENCE PAR VOTRE CONSOLE</span><h2>À chaque console,<br/>sa prochaine partie.</h2></div><p>Choisissez le modèle dans le formulaire.<br/>Les pannes proposées s’adaptent à votre console.</p></div><div className="rp-device-grid">{consoleFamilies.map(item => <a href={`#/demande-reparation?marque=${encodeURIComponent(item.brand)}`} className={`rp-device-card ${item.theme}`} key={item.brand}><span className="rp-device-art"><ShopConsoleArt item={item}/></span><span className="rp-device-copy"><span><strong>{item.label}</strong><small>{item.note}</small></span><span className="rp-circle-arrow"><Icon name="arrow" size={20}/></span></span></a>)}</div><p className="rp-model-note">Votre modèle n’est pas dans la liste ? Vous pouvez le renseigner librement.</p></section>
     <StoreCommitments/>
-    <section className="rp-how" id="rp-how" tabIndex={-1} aria-labelledby="rp-how-title">
-      <div className="rp-shell">
-        <div className="rp-section-heading"><div><span className="rp-eyebrow">QUATRE ÉTAPES · UN SEUL DOSSIER</span><h2 id="rp-how-title">Votre réparation,<br/>pas à pas.</h2></div><p>Vous préparez la demande et l’envoi.<br/>L’atelier prend le relais à réception, avec un suivi dans votre compte.</p></div>
-        <ol className="rp-steps" aria-label="Les quatre étapes de votre réparation">{repairJourneySteps.map((step, index) => <li className={`rp-journey-step${index === 3 ? ' rp-journey-workshop' : ''}`} key={step.number}>
-          <div className="rp-step-top"><span className="rp-step-number" aria-hidden="true">{step.number}</span><Icon name={step.icon} size={25}/></div>
-          <p className="rp-step-role">{step.role}</p><h3>{step.title}</h3><p className="rp-step-description">{step.text}</p>
-          <div className="rp-step-result"><Icon name={index === 3 ? 'check' : 'right'} size={15}/><span>{step.result}</span></div>
-          {index < 3 && <span className="rp-step-link" aria-hidden="true"><Icon name="arrow" size={19}/></span>}
-        </li>)}</ol>
-        <div className="rp-journey-notes"><p><Icon name="print" size={21}/><span><strong>La fiche identifie votre dossier.</strong> L’étiquette de transport et l’affranchissement sont à prévoir séparément.</span></p><p><Icon name="euro" size={21}/><span><strong>Le montant est confirmé après diagnostic.</strong> Aucun paiement n’est demandé dans le formulaire.</span></p></div>
-        <div className="rp-journey-actions"><a className="rp-button rp-primary" href="#/demande-reparation">Faire ma demande de réparation<Icon name="arrow" size={18}/></a><a className="rp-text-link" href="#/espace-client">J’ai déjà un dossier : accéder à mon compte<Icon name="right" size={16}/></a></div>
-      </div>
-    </section>
     <section className="rp-shop rp-shell" aria-labelledby="rp-shop-title">
       <figure className="rp-shop-photo"><img src="/maxxi-games-atelier.jpg" width="1536" height="1154" alt="Le comptoir et l’espace de réparation de Maxxi Games, avec l’affiche Atelier de réparation." loading="lazy" decoding="async"/><figcaption><span>RÉPARAPID, CHEZ MAXXI GAMES</span><strong>Votre atelier au Kremlin-Bicêtre.</strong></figcaption></figure>
       <div className="rp-shop-copy"><span className="rp-eyebrow">UN SITE, UNE ÉQUIPE, UN VRAI MAGASIN</span><h2 id="rp-shop-title">Votre console,<br/>notre établi.</h2>
