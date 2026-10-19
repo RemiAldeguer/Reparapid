@@ -7,7 +7,7 @@ import type {RepairGuideFamily} from './repair-guides-types';
 export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
 import {INTAKE_MODELS} from './repair-intake-catalog';
-import {HomeConsoleSelect} from './home-console-select';
+import {ConsolePickerSearch} from './home-console-select';
 import './public-home.css';
 import './reparapid-brand.css';
 
@@ -102,7 +102,7 @@ function HomeRepairGuides() {
 }
 function HomeConsolePicker() {
   const [modelId, setModelId] = useState(''), [validation, setValidation] = useState(false);
-  const modelRef = useRef<HTMLButtonElement>(null), errorId = useId(), helpId = useId();
+  const modelRef = useRef<HTMLInputElement>(null), errorId = useId(), helpId = useId();
   const model = INTAKE_MODELS.find(item => item.id === modelId);
   const modelLabel = (item: typeof INTAKE_MODELS[number]) => item.id === 'psp' ? 'PlayStation Portable (PSP)' : item.id === 'ps-vita' ? 'PlayStation Vita (PS Vita)' : ['Nintendo', 'Sega'].includes(item.brand) && !item.model.toLocaleLowerCase('fr').includes(item.brand.toLocaleLowerCase('fr')) ? `${item.brand} ${item.model}` : item.model;
   function chooseConsole(event: FormEvent<HTMLFormElement>) {
@@ -112,10 +112,9 @@ function HomeConsolePicker() {
   }
   return <form className="rp-home-picker" aria-labelledby="rp-home-picker-title" onSubmit={chooseConsole}>
     <div className="rp-home-picker-heading"><span aria-hidden="true">01</span><div><span>ON COMMENCE ICI</span><h2 id="rp-home-picker-title">Quelle console réparer ?</h2></div></div>
-    <div className="rp-home-picker-preview"><span className="rp-home-picker-orbit" aria-hidden="true"/><div className="rp-home-picker-console" aria-hidden="true"><ShopConsoleArt item={model || {brand: '', model: ''}}/></div><p aria-live="polite">{model ? model.id === 'other' ? 'Un autre modèle ? On le prend en note.' : modelLabel(model) : 'Votre console, votre prochaine partie.'}</p></div>
-    <p id={helpId} className="rp-home-picker-help">Reconnaissez votre console grâce aux images. Pas besoin de connaître sa marque.</p>
+    <p id={helpId} className="rp-home-picker-help">Tapez son nom ou reconnaissez votre console dans les images.</p>
     <div className="rp-home-picker-fields">
-      <HomeConsoleSelect label="Votre console" kind="model" placeholder="Choisir dans les consoles illustrées" value={modelId} buttonRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={INTAKE_MODELS.map(item => ({value:item.id,label:modelLabel(item),searchLabel:item.model,visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}}/>
+      <ConsolePickerSearch label="Votre console" placeholder="PS5, Switch, Xbox…" value={modelId} inputRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={INTAKE_MODELS.map(item => ({value:item.id,label:modelLabel(item),searchLabel:[item.brand, item.model, item.family, item.id, item.id.replace(/-/g, '')].join(' '),visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}}/>
     </div>
     {validation && <p id={errorId} className="rp-home-picker-validation" role="alert">Choisissez votre console dans la liste, ou « Autre console ».</p>}
     <button type="submit" className="rp-button rp-primary rp-home-picker-submit">Choisir la panne<Icon name="arrow" size={18}/></button>

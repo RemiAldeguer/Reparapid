@@ -6,7 +6,21 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : vue Liste des demandes du site — 19 octobre 2026
+## Résultat courant : recherche écrite et grille de consoles sur l’accueil — 19 octobre 2026
+
+Le grand aperçu est retiré. Le choix des consoles est une grille toujours visible avec recherche texte et radios natifs ; les 38 identifiants du catalogue et le parcours vers les pannes restent inchangés. Aucun contrat API ni règle métier ne change ; la suite métier/API n’est pas relancée pour cette présentation.
+
+TypeScript, revue indépendante et build final réussis : **111 modules**, six sources publiques autorisées, **135 fichiers** dont 123 pages de guides. Le dernier build prend en compte le focus unique autour de la recherche mobile et le bouton explicite « Voir toutes les consoles ». Le warning de bundle supérieur à 500 kB demeure.
+
+Recette à **1280, 390 et 320 px** : grand aperçu absent, 38 illustrations sans identifiants dupliqués, deux colonnes lisibles, aucun débordement horizontal ni illustration hors de son cadre. La recherche propose quatre PS5 pour « PS5 » ou « ps 5 », une Switch OLED, une Xbox Series X (sans Series S), une Series S et les trois Sega malgré la saisie accentuée « SÉGA ». Une saisie sans correspondance propose effacement/retour au catalogue et Autre console.
+
+Aucun choix initial ni sélection implicite lors de la saisie ou d’Entrée. Entrée place le focus dans les radios ; les flèches changent le choix natif et font défiler la grille jusqu’au dernier modèle. Un choix masqué par le filtre reste annoncé dans le récapitulatif ; « Changer » réinitialise le choix et la recherche. La soumission vide affiche l’erreur et remet le focus dans la recherche. Switch ouvre directement les pannes ; Autre garde l’étape de saisie libre. À 320 px, le champ conserve une taille de 16 px et un seul cadre de focus ; retour aux 38 choix confirmé après « Voir toutes les consoles ».
+
+Deux bases SQLite en mémoire, avec données fictives, restent inchangées : aucun compte ou dossier créé par cette recette, clients et pièces préservés. Serveurs arrêtés et viewport réinitialisé. Les vérifications de publication sont consignées séparément.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : sept assets conformes au build, API publique 200 et cinq API privées 401. L’accueil publié confirme l’absence de grand aperçu, les 38 choix et le filtrage Switch avec sélection explicite. Onglets de recette fermés ; aucune migration ni écriture D1.
+
+## Résultat précédent : vue Liste des demandes du site — 19 octobre 2026
 
 Présentation dans `website-requests.tsx/.css` : vue **Liste** par défaut et bascule **Liste / Cartes**. Recherche, filtres, tri, compteurs, transitions et confirmations réutilisés ; aucun changement de contrat API, domaine ou données de production. La suite métier/API n’est pas relancée pour cette évolution de présentation.
 

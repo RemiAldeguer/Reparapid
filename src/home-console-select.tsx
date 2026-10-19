@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import {useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from 'react';
+import {useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from 'react';
 import {Icon} from './ui';
 import sonyLogo from './assets/console-brands/sony.svg?inline';
 import nintendoLogo from './assets/console-brands/nintendo.svg?inline';
@@ -11,7 +11,7 @@ import './home-console-select.css';
 // https://www.nintendo.com/en-gb/ (header SVG, Nintendo red),
 // https://www.sega.co.jp/common/images/logo-sega.svg and Microsoft header image:
 // https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31
-// Inlined by Vite so no external image request or new public asset route is needed.
+// Inlined by Vite: no external image request is needed.
 const brandLogos: Record<string, string> = {Sony: sonyLogo, Nintendo: nintendoLogo, Microsoft: microsoftLogo, Sega: segaLogo};
 export function ConsoleBrandLogo({brand}: {brand: string}) {
   const src = brandLogos[brand];
@@ -20,98 +20,74 @@ export function ConsoleBrandLogo({brand}: {brand: string}) {
 
 export type HomeConsoleChoice = {value: string; label: string; searchLabel?: string; visual: ReactNode};
 type Props = {
-  label: string; placeholder: string; value: string; options: HomeConsoleChoice[];
-  onChange: (value: string) => void; kind: 'brand' | 'model'; disabled?: boolean;
-  invalid?: boolean; errorId?: string; descriptionId?: string; buttonRef: RefObject<HTMLButtonElement | null>;
+  label?: string; placeholder?: string; value: string; options: HomeConsoleChoice[];
+  onChange: (value: string) => void; inputRef: RefObject<HTMLInputElement | null>;
+  disabled?: boolean; invalid?: boolean; errorId?: string; descriptionId?: string;
 };
 
-/** Select-only combobox: focus stays on the trigger while its active option changes. */
-export function HomeConsoleSelect({label, placeholder, value, options, onChange, kind, disabled = false, invalid = false, errorId, descriptionId, buttonRef}: Props) {
-  const id = useId(), rootRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false), [active, setActive] = useState(0);
-  const searchRef = useRef({text: '', time: 0});
+function normalizeSearch(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/** A visible, searchable group of native radios; typing never chooses a console. */
+export function ConsolePickerSearch({label = 'Votre console', placeholder = 'PS5, Switch, Xbox…', value, options, onChange, inputRef, disabled = false, invalid = false, errorId, descriptionId}: Props) {
+  const id = useId(), groupRef = useRef<HTMLFieldSetElement>(null);
+  const [query, setQuery] = useState('');
+  const words = normalizeSearch(query).split(' ').filter(Boolean);
+  const filtered = options.filter(option => {
+    const searchable = normalizeSearch(`${option.label} ${option.searchLabel || ''} ${option.value}`);
+    const searchableWords = searchable.split(' ');
+    const compact = searchable.replace(/ /g, '');
+    return words.every(word => /^[a-z]$/.test(word) ? searchableWords.includes(word) : searchable.includes(word) || compact.includes(word));
+  });
   const selected = options.find(option => option.value === value);
-  const listId = `${id}-list`, labelId = `${id}-label`;
-  const isOpen = open && !disabled;
-  function show(fromEnd = false) {
-    const index = options.findIndex(option => option.value === value);
-    setActive(index >= 0 ? index : fromEnd ? options.length - 1 : 0);
-    setOpen(true);
-  }
-  function choose(index: number) {
-    const option = options[index];
-    if (option) onChange(option.value);
-    setOpen(false);
-    buttonRef.current?.focus({preventScroll: true});
-  }
-  useEffect(() => {
-    if (!isOpen) return;
-    const outside = (event: Event) => {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', outside, true);
-    document.addEventListener('focusin', outside);
-    return () => {document.removeEventListener('pointerdown', outside, true); document.removeEventListener('focusin', outside);};
-  }, [isOpen]);
-  useEffect(() => {
-    if (!isOpen) return;
-    const option = rootRef.current?.querySelector<HTMLElement>(`[data-option-index="${active}"]`);
-    const list = option?.parentElement;
-    if (option && list) {
-      if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
-      else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
-    }
-  }, [isOpen, active]);
-  function keyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key === 'Tab') {setOpen(false); return;}
-    if (event.key === 'Escape') {if (isOpen) {event.preventDefault(); event.stopPropagation(); setOpen(false);} return;}
-    if (event.key === 'Enter' || event.key === ' ') {
+  const other = options.find(option => option.value === 'other');
+  const searchId = `${id}-search`, countId = `${id}-count`;
+  const describedBy = [descriptionId, invalid ? errorId : undefined].filter(Boolean).join(' ') || undefined;
+  function clearSearch() {setQuery(''); inputRef.current?.focus({preventScroll: true});}
+  function changeConsole() {onChange(''); clearSearch();}
+  function searchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
       event.preventDefault();
-      if (isOpen) choose(active); else show();
-      return;
+      const selectedRadio = groupRef.current?.querySelector<HTMLInputElement>('input:checked');
+      const firstRadio = groupRef.current?.querySelector<HTMLInputElement>('input[type="radio"]');
+      (selectedRadio || firstRadio)?.focus();
     }
-    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-      event.preventDefault();
-      if (!isOpen) {
-        show(event.key === 'ArrowUp' || event.key === 'End');
-        if (event.key === 'Home') setActive(0);
-        if (event.key === 'End') setActive(options.length - 1);
-      } else setActive(index => event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : Math.max(0, Math.min(options.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1))));
-      return;
-    }
-    if (event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey) {
-      event.preventDefault();
-      const now = Date.now(), letter = event.key.toLocaleLowerCase('fr');
-      const previous = now - searchRef.current.time < 700 ? searchRef.current.text : '';
-      const text = previous === letter ? letter : previous + letter;
-      searchRef.current = {text, time: now};
-      const start = isOpen ? active + 1 : 0;
-      const indexes = options.map((_, index) => (start + index) % options.length);
-      const index = indexes.find(index => [options[index].label, options[index].searchLabel].some(label => label?.toLocaleLowerCase('fr').startsWith(text)));
-      if (index !== undefined) {setActive(index); setOpen(true);}
-    }
+    if (event.key === 'Escape' && query) {event.preventDefault(); clearSearch();}
   }
-  return <div ref={rootRef} className={`home-console-select home-console-select-${kind}${isOpen ? ' is-open' : ''}`}>
-    <label id={labelId} htmlFor={`${id}-trigger`}>{label}</label>
-    <button ref={buttonRef} id={`${id}-trigger`} type="button" role="combobox" aria-labelledby={labelId}
-      aria-expanded={isOpen} aria-haspopup="listbox" aria-controls={isOpen ? listId : undefined}
-      aria-activedescendant={isOpen && options[active] ? `${id}-option-${active}` : undefined}
-      aria-required="true" aria-invalid={invalid || undefined} aria-describedby={[descriptionId, invalid ? errorId : undefined].filter(Boolean).join(' ') || undefined}
-      disabled={disabled} className={`home-console-select-trigger${selected ? ' has-value' : ''}`}
-      onClick={() => isOpen ? setOpen(false) : show()} onKeyDown={keyDown}>
-      {selected && <span className="home-console-select-visual" aria-hidden="true">{selected.visual}</span>}
-      <span className={`home-console-select-value${selected && kind === 'brand' && value !== 'Autre' ? ' home-console-select-brand-name' : ''}`}>{selected?.label || placeholder}</span>
-      <span className="home-console-select-chevron" aria-hidden="true"><Icon name="down" size={15}/></span>
-    </button>
-    {isOpen && <ul id={listId} role="listbox" aria-labelledby={labelId} className="home-console-select-options">
-      {options.map((option, index) => <li key={option.value} id={`${id}-option-${index}`} role="option"
-        aria-label={option.label} aria-selected={value === option.value} data-option-index={index}
-        className={`home-console-select-option${active === index ? ' is-active' : ''}${value === option.value ? ' is-selected' : ''}`}
-        onPointerMove={() => setActive(index)} onPointerDown={event => event.preventDefault()} onClick={() => choose(index)}>
-        <span className="home-console-select-visual" aria-hidden="true">{option.visual}</span>
-        <span className="home-console-select-option-label">{option.label}</span>
-        {value === option.value && <span className="home-console-select-check" aria-hidden="true"><Icon name="check" size={15}/></span>}
-      </li>)}
-    </ul>}
+  return <div className={`console-picker-search${invalid ? ' is-invalid' : ''}`}>
+    <label className="console-picker-search-label" htmlFor={searchId}>Rechercher une console</label>
+    <div className="console-picker-search-field">
+      <Icon name="search" size={21}/>
+      <input ref={inputRef} id={searchId} type="search" value={query} maxLength={80}
+        placeholder={placeholder} autoComplete="off" spellCheck={false} disabled={disabled}
+        aria-invalid={invalid || undefined} aria-describedby={describedBy}
+        onChange={event => setQuery(event.target.value)} onKeyDown={searchKeyDown}/>
+      {query && <button type="button" className="console-picker-clear" onClick={clearSearch} disabled={disabled} aria-label="Effacer la recherche"><Icon name="close" size={18}/></button>}
+    </div>
+    <fieldset ref={groupRef} className="console-picker-group" disabled={disabled} aria-describedby={describedBy}>
+      <legend>{label}</legend>
+      <p id={countId} className="console-picker-count" role="status" aria-live="polite" aria-atomic="true">{filtered.length === 0 ? 'Aucune console trouvée' : `${filtered.length} console${filtered.length > 1 ? 's' : ''} proposée${filtered.length > 1 ? 's' : ''}`}</p>
+      {filtered.length > 0 ? <div className="console-picker-options" aria-describedby={countId}>
+        {filtered.map(option => <label key={option.value} className={`console-picker-option${value === option.value ? ' is-selected' : ''}`}>
+          <input type="radio" name={`${id}-console`} value={option.value} checked={value === option.value}
+            aria-invalid={invalid || undefined} aria-describedby={invalid ? errorId : undefined}
+            onChange={() => onChange(option.value)}/>
+          <span className="console-picker-option-visual" aria-hidden="true">{option.visual}</span>
+          <span className="console-picker-option-label">{option.label}</span>
+        </label>)}
+      </div> : <div className="console-picker-empty">
+        <p>Aucun modèle ne correspond à « {query.trim()} ».</p>
+        <p>Essayez un autre nom ou renseignez votre modèle à l’étape suivante.</p>
+        <div><button type="button" onClick={clearSearch}>Voir toutes les consoles</button>
+          {other && <button type="button" onClick={() => {onChange(other.value); clearSearch();}}>{other.label}</button>}
+        </div>
+      </div>}
+    </fieldset>
+    {selected && <div className="console-picker-selection">
+      <span className="console-picker-selection-mark" aria-hidden="true"><Icon name="check" size={17}/></span>
+      <span aria-live="polite" aria-atomic="true"><small>Console sélectionnée</small><strong>{selected.label}</strong></span>
+      <button type="button" onClick={changeConsole} disabled={disabled} aria-label="Changer de console">Changer</button>
+    </div>}
   </div>;
 }

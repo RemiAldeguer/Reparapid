@@ -127,7 +127,7 @@ L’onglet **Demandes du site** ouvre une vue **Liste** compacte avec référenc
 
 ## Demande express et suivi client
 
-L’accueil propose un seul champ **Votre console**, avec les 38 choix illustrés directement accessibles, sans devoir connaître la marque. Les noms explicites et la recherche au clavier aident à reconnaître le modèle. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
+L’accueil propose une **recherche écrite** et les 38 consoles illustrées dans une grille agrandie, sans devoir connaître la marque. Le grand aperçu est retiré pour laisser la place au choix du modèle. Les noms courts comme PS5, les marques et les recherches par plusieurs mots permettent de filtrer le catalogue. Le bouton **Choisir la panne** reprend ce choix dans le formulaire, sans repasser par la sélection de console. « Autre console » conserve la saisie libre ; le formulaire complet reste accessible.
 
 L’espace client affiche la réparation à gauche et les étapes/actions à droite, avec empilement sur mobile. Les filtres, tris et changements de vue ont été retirés ; les dossiers se choisissent par référence lorsqu’il y en a plusieurs. Le montant provient du dossier de l’atelier, avec distinction entre zéro et montant à confirmer.
 

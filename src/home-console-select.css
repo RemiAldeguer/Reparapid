@@ -1,32 +1,43 @@
-.home-console-select{position:relative;min-width:0;display:flex;flex-direction:column;gap:6px}
-.home-console-select>label{font-size:10px;font-weight:700;color:#4d4240}
-.home-console-select-trigger{position:relative;display:flex;align-items:center;gap:9px;min-height:56px;width:100%;min-width:0;max-width:100%;padding:8px 42px 8px 11px;border:1px solid #d7cecc;border-radius:7px;background:#fff;color:#302725;font:12px/1.45 Arial,sans-serif;text-align:left;cursor:pointer}
-.home-console-select-trigger:hover:not(:disabled){border-color:#a32720;background:#fffdfc}
-.home-console-select-trigger:disabled{background:#f3f0ef;color:#8c8280;cursor:default}
-.home-console-select-trigger[aria-invalid=true]{border-color:#b21414}
-.home-console-select-trigger:focus-visible,.home-console-select.is-open>.home-console-select-trigger{outline:2px solid #b21414;outline-offset:3px;border-color:#b21414}
-.home-console-select-value{display:block;min-width:0;overflow-wrap:anywhere}
-.home-console-select-chevron{position:absolute;right:15px;top:50%;transform:translateY(-50%);display:flex;color:#796966;pointer-events:none}
-.home-console-select.is-open .home-console-select-chevron{transform:translateY(-50%) rotate(180deg)}
-.home-console-select-visual{display:flex;align-items:center;justify-content:center;flex:0 0 60px;min-width:0;height:38px;overflow:hidden}
-.home-console-select-visual>img{display:block;max-width:100%;max-height:26px;width:100%;object-fit:contain}
-.home-console-select-visual>.console-art{display:block;width:100%;height:100%;max-width:100%;max-height:100%;min-width:0;min-height:0;overflow:hidden}
-.home-console-select-brand .home-console-select-trigger>.home-console-select-visual{flex:0 1 91px;height:28px}
-.home-console-select-brand-name{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.home-console-select-model .home-console-select-trigger.has-value{padding-left:7px;gap:5px}
-.home-console-select-model .home-console-select-trigger>.home-console-select-visual{flex-basis:51px}
-.home-console-select-options{position:absolute;z-index:30;top:calc(100% + 9px);left:0;right:0;max-height:min(335px,45dvh);min-width:0;overflow-y:auto;overscroll-behavior:contain;list-style:none;margin:0;padding:5px;border:1px solid #d7cecc;border-radius:9px;background:#fff;box-shadow:0 15px 35px #36141028;scrollbar-gutter:stable;isolation:isolate}
-.home-console-select-option{position:relative;display:flex;align-items:center;gap:10px;min-height:57px;padding:7px 22px 7px 7px;border:1px solid transparent;border-radius:5px;color:#302725;cursor:pointer}
-.home-console-select-option.is-active{background:#fbefeb;border-color:#eed4cc}
-.home-console-select-option.is-selected{color:#971d17}
-.home-console-select-option-label{display:block;min-width:0;font:12px/1.5 Arial,sans-serif;overflow-wrap:anywhere}
-.home-console-select-check{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;color:#a32720}
-.home-console-select-brand .home-console-select-options{width:230px;max-width:calc(100vw - 64px);right:auto}
-.home-console-select-model .home-console-select-options{left:0;right:0;width:auto;max-width:100%}
-.home-console-select-model .home-console-select-option{min-height:72px}
-.home-console-select-model .home-console-select-option>.home-console-select-visual{flex-basis:78px;height:55px}
-.home-console-select-brand .home-console-select-option>.home-console-select-visual{flex-basis:83px}
+.console-picker-search{min-width:0;color:#302725}
+.console-picker-search-label{display:block;margin-bottom:8px;font-size:12px;font-weight:700;line-height:1.5;color:#4d4240}
+.console-picker-search-field{display:flex;align-items:center;gap:11px;min-width:0;min-height:56px;padding:0 10px 0 14px;border:1px solid #d7cecc;border-radius:8px;background:#fff;box-shadow:0 2px 5px #30272506}
+.console-picker-search-field>svg{flex-shrink:0;color:#a32720}
+.console-picker-search-field>input{display:block;min-width:0;width:100%;height:54px;margin:0;padding:0;border:0;border-radius:0;outline:none;background:transparent;color:#302725;font:14px/1.4 Arial,sans-serif;appearance:none;-webkit-appearance:none}
+.console-picker-search-field>input::placeholder{color:#847671;opacity:1}
+.reparapid-site .console-picker-search-field>input:focus,.reparapid-site .console-picker-search-field>input:focus-visible{outline:none;box-shadow:none;border:0;background:transparent}
+.console-picker-search-field>input::-webkit-search-cancel-button{display:none}
+.console-picker-search-field:focus-within{border-color:#b21414;outline:2px solid #b21414;outline-offset:3px}
+.console-picker-search.is-invalid .console-picker-search-field{border-color:#b21414}
+.console-picker-clear{display:grid;place-items:center;flex-shrink:0;width:34px;height:38px;padding:0;border:0;border-radius:5px;background:#f7f1ee;color:#79625c;cursor:pointer}
+.console-picker-clear:hover{background:#f2e4df;color:#a32720}
+.console-picker-group{position:relative;min-width:0;margin:18px 0 0;padding:0;border:0}
+.console-picker-group>legend{display:block;width:100%;padding:0 0 5px;font-size:12px;font-weight:700;line-height:1.5;color:#4d4240}
+.console-picker-count{margin:0 0 9px;font-size:10px;line-height:1.5;color:#85736e}
+.console-picker-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0;max-height:280px;padding:2px 4px 2px 2px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#cdbbb4 #f9f5f2}
+.console-picker-option{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:112px;padding:10px 10px 9px;border:1px solid #e5dbd6;border-radius:8px;background:#fff;color:#453632;text-align:center;cursor:pointer}
+.console-picker-option:hover{border-color:#b8665b;background:#fff9f6}
+.console-picker-option.is-selected{border-color:#b21414;background:#fcf0eb;box-shadow:inset 0 0 0 1px #b21414;color:#8f211b}
+.console-picker-option:has(>input:focus-visible){outline:2px solid #b21414;outline-offset:1px}
+.console-picker-option>input[type=radio]{position:absolute;right:8px;top:8px;display:block;width:15px;height:15px;margin:0;padding:0;accent-color:#b21414;cursor:pointer;appearance:auto;-webkit-appearance:radio}
+.console-picker-option-visual{display:flex;align-items:center;justify-content:center;width:100%;max-width:130px;height:63px;min-width:0;overflow:hidden;pointer-events:none}
+.console-picker-option-visual>.console-art{display:block;width:100%;height:100%;min-width:0;min-height:0;max-width:100%;max-height:100%;overflow:hidden}
+.console-picker-option-visual>img{display:block;width:100%;height:100%;object-fit:contain}
+.console-picker-option-label{display:block;min-width:0;max-width:100%;font-size:12px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
+.console-picker-selection{display:flex;align-items:center;gap:8px;min-width:0;margin-top:12px;padding:10px 11px;border:1px solid #e8c6bc;border-radius:7px;background:#fff7f2;color:#792920}
+.console-picker-selection-mark{display:grid;place-items:center;width:25px;height:25px;flex-shrink:0;border-radius:50%;background:#a32720;color:#fff}
+.console-picker-selection>span:nth-child(2){min-width:0;flex:1}
+.console-picker-selection small{display:block;margin-bottom:2px;font-size:9px;line-height:1.5;color:#8a655d}
+.console-picker-selection strong{display:block;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.console-picker-selection>button{flex-shrink:0;min-height:36px;padding:4px 0 4px 8px;border:0;background:transparent;color:#9c2921;font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.console-picker-empty{padding:17px 15px;border:1px dashed #dabdb2;border-radius:8px;background:#fffaf7}
+.console-picker-empty>p{font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.console-picker-empty>p+p{margin-top:6px;color:#796b68;font-size:11px}
+.console-picker-empty>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.console-picker-empty button{min-height:40px;max-width:100%;padding:8px 10px;border:1px solid #d7b6a9;border-radius:5px;background:#fff;color:#9c2921;font-size:11px;font-weight:700;cursor:pointer;white-space:normal}
+.console-picker-empty button:hover{background:#faebe4}
+.console-picker-search button:focus-visible{outline:2px solid #b21414;outline-offset:3px}
+.console-picker-search button:disabled,.console-picker-group:disabled .console-picker-option{cursor:default;opacity:.6}
 .rp-home-picker-validation{font-size:11px;line-height:1.7;color:#a32720;margin-top:10px}
-@media(max-width:680px){.home-console-select>label{font-size:11px}.home-console-select-trigger{min-height:57px}.home-console-select-option-label{font-size:13px}.home-console-select-options{max-height:min(330px,42dvh)}}
-@media(max-width:420px){.home-console-select-options,.home-console-select-brand .home-console-select-options,.home-console-select-model .home-console-select-options{left:0;right:0;width:auto;max-width:100%}.home-console-select-model .home-console-select-trigger>.home-console-select-visual{flex-basis:60px}.home-console-select-options{max-height:min(315px,40dvh)}}
-@media(forced-colors:active){.home-console-select-option.is-active{outline:1px solid Highlight}.home-console-select-option.is-selected{color:Highlight}.home-console-select-trigger,.home-console-select-options{border-color:ButtonText}}
+@media(max-width:680px){.console-picker-search-field>input{font-size:16px}.console-picker-search-label,.console-picker-group>legend{font-size:12px}.console-picker-option-label{font-size:12px}.console-picker-options{max-height:280px}.console-picker-option{min-height:114px}.console-picker-clear{width:38px;min-height:40px}}
+@media(max-width:360px){.console-picker-options{gap:6px;padding-right:2px}.console-picker-option{padding:10px 5px 8px;min-height:114px}.console-picker-option-visual{height:58px;max-width:110px}.console-picker-option-label{font-size:11px}.console-picker-search-field{gap:8px;padding-left:10px}.console-picker-search-field>input::placeholder{font-size:14px}.console-picker-selection{padding:9px 8px;gap:6px}.console-picker-selection strong{font-size:11px}.console-picker-selection>button{font-size:10px}}
+@media(forced-colors:active){.console-picker-search-field,.console-picker-option,.console-picker-selection,.console-picker-empty{border-color:ButtonText}.console-picker-option.is-selected{outline:2px solid Highlight;outline-offset:-3px}.console-picker-option:has(>input:focus-visible){outline:2px solid Highlight}.console-picker-selection-mark{background:Highlight;color:HighlightText}}

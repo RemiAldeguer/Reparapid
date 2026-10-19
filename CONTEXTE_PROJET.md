@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : vue Liste des demandes du site — 19 octobre 2026
+## Dernière reprise : recherche écrite et choix visuel sur l’accueil — 19 octobre 2026
+
+Le bloc **Quelle console réparer ?** retire le grand aperçu de console et donne sa place à une sélection agrandie toujours visible. `ConsolePickerSearch`, dans `home-console-select.tsx/.css`, fournit une recherche écrite, les illustrations et un choix explicite par boutons radio natifs. Le catalogue et les identifiants du formulaire restent les mêmes ; aucune présélection ni modification du contrat serveur.
+
+La recherche accepte modèle, marque, famille et identifiant court (PS5, PS Vita, Switch…), avec normalisation des accents et recherche par plusieurs mots. Le choix confirmé reste explicite même si un filtre le masque ; l’utilisateur peut effacer sa recherche ou sa sélection. Une recherche sans résultat propose de revenir au catalogue ou de choisir **Autre console**. Ce repli conserve la saisie libre dans le formulaire.
+
+Validation : TypeScript, revue indépendante et build final de **111 modules**, 135 fichiers. Recherche par alias, accents et plusieurs mots ; sélection explicite au clavier, absence de résultat, changement/effacement et parcours Switch/Autre contrôlés. Grille contenue à **1280, 390 et 320 px**, sans aperçu séparé ni débordement. Deux bases éphémères inchangées, serveurs arrêtés. Voir TESTS.md.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : sept assets conformes au build, API publique 200 et cinq API privées 401. L’accueil publié confirme l’absence de grand aperçu, les 38 choix et le filtrage Switch avec sélection explicite. Onglets de recette fermés ; aucune migration ni écriture D1.
+
+## Reprise précédente : vue Liste des demandes du site — 19 octobre 2026
 
 L’onglet du magasin `#/website-requests` propose une vue **Liste** compacte par défaut et une bascule **Liste / Cartes**. Les deux présentations utilisent les mêmes demandes, recherche, filtres, tri et compteurs. Le listing présente console/référence, client, panne, dates, statut et accès au dossier avec action de progression. Les transitions et confirmations existantes restent centralisées ; aucun contrat serveur ni règle du domaine ne change.
 
