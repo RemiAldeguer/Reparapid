@@ -78,7 +78,7 @@ Le **build final et TypeScript ont réussi avec 85 modules**. La publication de 
 
 ## Parcours illustré en trois étapes — 19 octobre 2026
 
-**Comment ça marche ?** apparaît immédiatement après le bloc principal de l’accueil. Trois cartes courtes relient **Faites votre demande**, **Envoyez votre console**, puis **Suivez la réparation**. Chaque carte garde un schéma vectoriel décoratif et un paragraphe. Les rôles, résultats et autres répétitions sont retirés ; seuls les labels **Talon chez vous / Fiche dans le colis** restent sous le schéma d’envoi. Les dessins sont dans `src/home-repair-journey-art.tsx`.
+**Comment ça marche ?** apparaît immédiatement après le bloc principal de l’accueil. Les **avis Google** forment la troisième section, juste après ce parcours. Trois cartes courtes relient **Faites votre demande**, **Envoyez votre console**, puis **Suivez la réparation**. Chaque carte garde un schéma vectoriel décoratif et un paragraphe. Les rôles, résultats et autres répétitions sont retirés ; seuls les labels **Talon chez vous / Fiche dans le colis** restent sous le schéma d’envoi. Les dessins sont dans `src/home-repair-journey-art.tsx`.
 
 Les textes précisent le compte nouveau ou existant, le talon à conserver, la fiche atelier avec la console protégée, l’adresse confirmée et le retrait/retour à convenir une fois prête. Une seule note rappelle le montant après diagnostic, l’absence de paiement dans le formulaire et le transport séparé. Les liens sont **Commencer ma demande** et **Suivre mon dossier**. Trois colonnes sur ordinateur, une colonne sur mobile ; aucun contrat métier, API ou document imprimable ne change.
 

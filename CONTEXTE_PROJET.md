@@ -28,7 +28,15 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : parcours encore simplifié — 19 octobre 2026
+## Dernier ajustement : avis Google en troisième section — 19 octobre 2026
+
+L’ordre d’accueil commence par le hero, **Comment ça marche ?**, puis **les avis Google**. `GoogleReviews` n’est monté qu’une fois, avant le bandeau de confiance. Les citations, dates, étoiles, crédits et liens restent identiques. Aucun changement de métier, API ou donnée.
+
+TypeScript, build de **112 modules** et revue ciblée validés, avec **137 fichiers publics**. Ordre vérifié dans le DOM : hero, parcours, avis Google, bandeau de confiance ; un seul bloc d’avis et trois cartes. Recette à 1280 et 390 px, contrôle de débordement à 320 px. Les deux dossiers, clients et pièces de la base éphémère restent inchangés ; serveur arrêté.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. L’ordre et l’unicité des avis sont confirmés sur le site publié. Capture enregistrée, onglet créé fermé, viewport réinitialisé ; aucune migration ni écriture D1.
+
+## Reprise précédente : parcours encore simplifié — 19 octobre 2026
 
 La section **Comment ça marche ?**, toujours juste après le hero, garde ses trois schémas mais retire les rôles, résultats, introduction et répétitions. Numéro et titre sont réunis ; les cartes deviennent uniformément blanches et plus compactes. Un paragraphe par étape et les seuls labels **Talon chez vous / Fiche dans le colis** restent visibles. Deux liens courts et une seule note sur diagnostic, paiement et transport terminent le bloc.
 

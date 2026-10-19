@@ -165,6 +165,7 @@ export function PublicHome() {
       <div className="rp-hero-actions"><a className="rp-text-link" href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche<Icon name="down" size={16}/></a><a className="rp-text-link rp-home-full-form" href="#/demande-reparation">Ouvrir le formulaire complet<Icon name="arrow" size={16}/></a></div><p className="rp-hero-note"><Icon name="info" size={16}/>Le montant de l’intervention est confirmé après diagnostic.</p>
     </div><HomeConsolePicker/><a className="rp-hero-photo-credit" href="https://www.gamepedia.fr/magasins-de-jeux-video/94043-le-kremlin-bicetre/cjhccaffbcfhddjhbij.htm" target="_blank" rel="noopener noreferrer">Photo de la devanture : Google User Content</a></section>
     <HomeRepairJourney/>
+    <GoogleReviews/>
     <div className="rp-trust-strip"><div className="rp-shell"><span><Icon name="gamepad" size={20}/>Consoles de salon & portables</span><span><Icon name="wrench" size={20}/>Diagnostic à l’atelier</span><span><Icon name="user" size={20}/>Suivi dans votre compte</span></div></div>
     <section className="rp-devices rp-shell" id="rp-devices" tabIndex={-1}><div className="rp-section-heading"><div><span className="rp-eyebrow">ON COMMENCE PAR VOTRE CONSOLE</span><h2>À chaque console,<br/>sa prochaine partie.</h2></div><p>Choisissez le modèle dans le formulaire.<br/>Les pannes proposées s’adaptent à votre console.</p></div><div className="rp-device-grid">{consoleFamilies.map(item => <a href={`#/demande-reparation?marque=${encodeURIComponent(item.brand)}`} className={`rp-device-card ${item.theme}`} key={item.brand}><span className="rp-device-art"><ShopConsoleArt item={item}/></span><span className="rp-device-copy"><span><strong>{item.label}</strong><small>{item.note}</small></span><span className="rp-circle-arrow"><Icon name="arrow" size={20}/></span></span></a>)}</div><p className="rp-model-note">Votre modèle n’est pas dans la liste ? Vous pouvez le renseigner librement.</p></section>
     <StoreCommitments/>
@@ -183,7 +184,6 @@ export function PublicHome() {
       </div>
     </section>
     <HomeRepairGuides/>
-    <GoogleReviews/>
     <StoreContact shop={shop}/>
     <section className="rp-final-cta"><div className="rp-shell"><div><span className="rp-eyebrow">LA PARTIE N’EST PAS FINIE.</span><h2>On regarde votre panne ?</h2></div><a className="rp-button rp-light" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={19}/></a></div></section>
   </main></StorefrontShell>;

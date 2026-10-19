@@ -6,7 +6,15 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : parcours simplifié — 19 octobre 2026
+## Résultat courant : avis Google en troisième section — 19 octobre 2026
+
+Déplacement de `GoogleReviews` juste après `HomeRepairJourney`, avant le bandeau de confiance. Le contenu des avis et leurs liens restent identiques ; aucun changement de données, API ou métier. Pas de nouvelle exécution métier pour ce changement d’ordre.
+
+TypeScript, build de **112 modules** et revue ciblée validés, avec **137 fichiers publics**. Ordre vérifié dans le DOM : hero, parcours, avis Google, bandeau de confiance ; un seul bloc d’avis et trois cartes. Recette à 1280 et 390 px, contrôle de débordement à 320 px. Les deux dossiers, clients et pièces de la base éphémère restent inchangés ; serveur arrêté.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et cinq API privées 401. L’ordre et l’unicité des avis sont confirmés sur le site publié. Capture enregistrée, onglet créé fermé, viewport réinitialisé ; aucune migration ni écriture D1.
+
+## Résultat précédent : parcours simplifié — 19 octobre 2026
 
 Textes et présentation de `HomeRepairJourney` allégés : trois schémas, numéro/titre réunis, un paragraphe par carte, seules les destinations talon/colis légendées, liens courts et une note commune. La section reste immédiatement après le hero. Aucun changement de métier, API, asset autorisé ou fiche imprimable ; pas de relance de la suite métier pour cette présentation.
 
