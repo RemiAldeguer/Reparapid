@@ -19,7 +19,7 @@ npx wrangler deploy --config .wrangler/reparapid.production.jsonc
 
 **Reprise dans une nouvelle session IA :** commencer par [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md), le guide de l’architecture, du métier, de la sécurité, du déploiement et des évolutions de cette conversation. [AGENTS.md](AGENTS.md) sert de point d’entrée aux agents ; [TESTS.md](TESTS.md) consigne la validation actuelle.
 
-La vitrine permet à un particulier de demander une réparation, de créer son compte et de préparer l’envoi de sa console. L’accès **Magasin** ouvre l’application protégée : clients, consoles, dossiers, stock, paiements et exports. L’espace client présente uniquement les consoles et demandes de son propriétaire. Le socle d’ateliers distincts est conservé côté serveur ; le rôle effectif du compte du magasin reste celui de la plateforme, tandis que l’interface affiche Administrateur.
+La vitrine permet à un particulier de demander une réparation, de créer son compte et de préparer l’envoi de sa console. Après diagnostic, le magasin publie le devis et les frais de retour propres au dossier. Le client accepte la réparation, demande le retour ou accepte une offre de rachat pour pièces si la console est irréparable. Le magasin confirme manuellement le virement de retour puis l’expédition ; le devis accepté est repris pour la facturation de la réparation. L’accès **Magasin** ouvre l’application protégée : clients, consoles, dossiers, stock, paiements et exports. L’espace client présente uniquement les consoles et demandes de son propriétaire. Le socle d’ateliers distincts est conservé côté serveur ; le rôle effectif du compte du magasin reste celui de la plateforme, tandis que l’interface affiche Administrateur.
 
 ## Tutoriels de réparation de consoles et smartphones
 

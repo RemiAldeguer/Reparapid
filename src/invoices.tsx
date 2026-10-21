@@ -5,7 +5,7 @@ import {useApp} from './store';
 import {api} from './api';
 import {PageHeader} from './pages';
 import {ConsoleArt, Empty, Icon, StageBadge} from './ui';
-import {dateFmt, money, repairTotalCost, validateStore, type Client, type Store} from './domain';
+import {dateFmt, money, repairChargeAmount, repairRequiresCustomerAgreement, validateStore, type Client, type Store} from './domain';
 import {buildInvoice, invoiceToday, type InvoiceCustomerInput, type InvoiceInput, type InvoiceSeller, type InvoiceSnapshot} from './invoice-domain';
 import './invoices.css';
 
@@ -20,7 +20,7 @@ function initialSelection(data: Store, query: URLSearchParams) {
   const repairClient = data.consoles.find(item => item.id === repair?.consoleId)?.clientId;
   const explicitClient = data.clients.find(item => item.id === query.get('clientId'))?.id;
   const clientId = explicitClient || (data.clients.some(item => item.id === repairClient) ? repairClient : '') || '';
-  return {clientId, repairIds: repair && repairClient === clientId ? [repair.id] : []};
+  return {clientId, repairIds: repair && !repairRequiresCustomerAgreement(repair) && repairClient === clientId ? [repair.id] : []};
 }
 
 function InvoiceSectionTitle({number, title, detail}: {number: string; title: string; detail: string}) {
@@ -88,14 +88,14 @@ export function Invoices({query}: {query: URLSearchParams}) {
   const invoice = generated?.revision === data.revision ? generated.invoice : null;
   const clients = useMemo(() => [...data.clients].sort((a, b) => a.name.localeCompare(b.name, 'fr')), [data.clients]);
   const consoleMap = useMemo(() => new Map(data.consoles.map(item => [item.id, item])), [data.consoles]);
-  const repairs = useMemo(() => data.repairs.filter(repair => consoleMap.get(repair.consoleId)?.clientId === clientId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [data.repairs, consoleMap, clientId]);
+  const repairs = useMemo(() => data.repairs.filter(repair => consoleMap.get(repair.consoleId)?.clientId === clientId && !repairRequiresCustomerAgreement(repair)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [data.repairs, consoleMap, clientId]);
   const visibleRepairs = useMemo(() => {
     const words = fold(search.trim()).split(/\s+/).filter(Boolean);
     return repairs.filter(repair => {const item = consoleMap.get(repair.consoleId)!; const text = fold([repair.code, repair.title, repair.symptoms, item.code, item.brand, item.model, item.variant, item.serial].join(' ')); return words.every(word => text.includes(word));});
   }, [repairs, consoleMap, search]);
   const selected = new Set(selectedIds);
   const selectedRepairs = repairs.filter(repair => selected.has(repair.id));
-  const selectedTotal = selectedRepairs.reduce((sum, repair) => sum + Math.round(repairTotalCost(data, repair) * 100), 0) / 100;
+  const selectedTotal = selectedRepairs.reduce((sum, repair) => sum + Math.round(repairChargeAmount(data, repair) * 100), 0) / 100;
 
   function invalidate() {requestVersion.current++; for (const request of requests.current) request.abort(); requests.current.clear(); setBusy(''); setPrintReady(false); setGenerated(null); setError(''); setPreviewNotice('');}
   function changeClient(id: string, repairIds: string[] = []) {
@@ -171,7 +171,7 @@ export function Invoices({query}: {query: URLSearchParams}) {
     if (generated && generated.revision !== data.revision) {setGenerated(null); setPrintReady(false); setPreviewNotice('Les données de l’atelier ont été actualisées. Générez de nouveau l’aperçu pour reprendre les montants actuels.');}
   }, [data.revision, generated]);
   useEffect(() => {
-    const valid = new Set(data.repairs.filter(repair => data.consoles.find(item => item.id === repair.consoleId)?.clientId === clientId).map(repair => repair.id));
+    const valid = new Set(data.repairs.filter(repair => data.consoles.find(item => item.id === repair.consoleId)?.clientId === clientId && !repairRequiresCustomerAgreement(repair)).map(repair => repair.id));
     setSelectedIds(previous => previous.every(id => valid.has(id)) ? previous : previous.filter(id => valid.has(id)));
     if (clientId && !data.clients.some(item => item.id === clientId)) {setClientId(''); setSearch(''); setDraft(previous => ({...previous, customer: blankCustomer()}));}
   }, [data.revision, data.repairs, data.consoles, data.clients, clientId]);
@@ -201,7 +201,7 @@ export function Invoices({query}: {query: URLSearchParams}) {
             {visibleRepairs.length ? <ul className="invoice-repairs-list">{visibleRepairs.map(repair => {
               const item = consoleMap.get(repair.consoleId)!;
               const fault = repair.symptoms.trim() || repair.title;
-              return <li key={repair.id}><label className={`invoice-repair-option${selected.has(repair.id) ? ' is-selected' : ''}`}><input type="checkbox" checked={selected.has(repair.id)} onChange={() => toggleRepair(repair.id)} aria-label={`Ajouter ${repair.code}, ${item.brand} ${item.model}, ${money(repairTotalCost(data, repair))} à la facture`}/><span className={`invoice-console-visual art-${item.illustration}`}><ConsoleArt item={item} small/></span><span className="invoice-repair-copy"><strong>{item.brand} {item.model}</strong><span className="invoice-repair-variant">{[item.variant, item.code].filter(Boolean).join(' · ')}</span><span className="invoice-repair-reference"><span className="mono">{repair.code}</span><StageBadge stage={repair.stage}/></span><span className="invoice-repair-fault">{fault.length > 240 ? `${fault.slice(0, 240)}…` : fault}</span></span><span className="invoice-repair-cost"><strong>{money(repairTotalCost(data, repair))}</strong><span>Coût actuel</span></span></label></li>;
+              return <li key={repair.id}><label className={`invoice-repair-option${selected.has(repair.id) ? ' is-selected' : ''}`}><input type="checkbox" checked={selected.has(repair.id)} onChange={() => toggleRepair(repair.id)} aria-label={`Ajouter ${repair.code}, ${item.brand} ${item.model}, ${money(repairChargeAmount(data, repair))} à la facture`}/><span className={`invoice-console-visual art-${item.illustration}`}><ConsoleArt item={item} small/></span><span className="invoice-repair-copy"><strong>{item.brand} {item.model}</strong><span className="invoice-repair-variant">{[item.variant, item.code].filter(Boolean).join(' · ')}</span><span className="invoice-repair-reference"><span className="mono">{repair.code}</span><StageBadge stage={repair.stage}/></span><span className="invoice-repair-fault">{fault.length > 240 ? `${fault.slice(0, 240)}…` : fault}</span></span><span className="invoice-repair-cost"><strong>{money(repairChargeAmount(data, repair))}</strong><span>{repair.proposal?'Devis accepté':'Coût actuel'}</span></span></label></li>;
             })}</ul> : <Empty icon="wrench" title={repairs.length ? 'Aucun dossier ne correspond' : 'Ce client n’a pas encore de réparation'}>{repairs.length ? 'Essayez une autre console, une référence ou un mot de la panne.' : 'Ses dossiers apparaîtront ici après l’ouverture d’une réparation.'}</Empty>}
           </> : <Empty icon="users" title={clients.length ? 'Commencez par choisir un client' : 'Votre premier client vous attend'} action={!clients.length ? <button type="button" className="btn secondary" onClick={() => go('/clients')}>Ouvrir les clients<Icon name="arrow" size={16}/></button> : undefined}>La facture regroupe uniquement les réparations d’un même client.</Empty>}
         </div>

@@ -1,4 +1,4 @@
-import {type Store, repairTotalCost} from './domain';
+import {type Store, repairChargeAmount, repairRequiresCustomerAgreement} from './domain';
 
 export type InvoiceTaxMode = 'none' | 'included';
 export type InvoiceFormat = 'simple' | 'complete';
@@ -95,7 +95,8 @@ export function buildInvoice(store: Store,input: InvoiceInput): InvoiceSnapshot 
     if(customer&&customer.id!==client.id)throw Error('Toutes les réparations d’une facture doivent appartenir au même client.');
     if(!customer)customer=simple?{id:client.id,name:text(client.name,'Le nom du client',200,true),address:'',email:'',phone:''}
       :{id:client.id,...coordinates(fields.customer===undefined?{name:client.name,address:client.address,email:client.email,phone:client.phone}:fields.customer,'du client')};
-    const amount=repairTotalCost(store,repair),amountCents=Math.round(amount*100);
+    if(repairRequiresCustomerAgreement(repair))throw Error('Le client doit accepter la proposition de réparation avant sa facturation.');
+    const amount=repairChargeAmount(store,repair),amountCents=Math.round(amount*100);
     if(!Number.isFinite(amount)||amount<0||!Number.isSafeInteger(amountCents)||!Number.isSafeInteger(totalCents+amountCents))throw Error('Le montant d’une réparation est invalide ou trop élevé.');
     totalCents+=amountCents;
     const line: InvoiceLine={repairId,repairCode:text(repair.code,'La référence de réparation',40,true),

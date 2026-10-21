@@ -1,6 +1,8 @@
 // The client response is an explicit allowlist. Internal workshop data must
 // never become public just because a new field is added to the store.
 // Hosts inject the canonical domain calculation; only its public total is returned.
+import {publicRepairProposal} from './repair-proposals.mjs';
+
 export function clientPortal(store, clientId, calculateTotalCost) {
   const client = (store.clients || []).find(item => item.id === clientId);
   if (!client) return null;
@@ -12,10 +14,13 @@ export function clientPortal(store, clientId, calculateTotalCost) {
   const repairs = store.repairs.filter(item => owned.has(item.consoleId)).map(item => ({
     id: item.id, code: item.code, consoleId: item.consoleId, title: item.title,
     symptoms: item.symptoms, stage: item.stage === 'a-commander' ? 'attente-pieces' : item.stage,
-    dueDate: item.dueDate, totalCost: item.publicRequestId && item.interventionCost == null
-      && !item.parts.length && !item.worklogs.length && !item.timerStartedAt ? null : calculateTotalCost(store, item),
+    dueDate: item.dueDate, totalCost: item.proposal
+      ? item.proposal.kind === 'repair' && ['pending', 'repair'].includes(item.proposal.decision) ? item.proposal.repairAmount : null
+      : item.publicRequestId && item.interventionCost == null
+        && !item.parts.length && !item.worklogs.length && !item.timerStartedAt ? null : calculateTotalCost(store, item),
     createdAt: item.createdAt, updatedAt: item.updatedAt, completedAt: item.completedAt,
     ...(item.publicRequestId ? {intakeSubmitted: true} : {}),
+    ...(item.proposal ? {proposal: publicRepairProposal(item.proposal)} : {}),
     ...(item.clientParts === undefined ? {} : {clientParts: item.clientParts.map(part => ({
       id: part.id, name: part.name, quantity: part.quantity, note: part.note, status: part.status,
     }))}),

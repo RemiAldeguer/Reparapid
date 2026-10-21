@@ -3,11 +3,14 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
-import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient } from '../tests/.compiled/domain.cjs';
+import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../tests/.compiled/domain.cjs';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from './client-part-availability.mjs';
+import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
+  applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from './repair-proposals.mjs';
 import { repairNotifications } from './repair-notifications.mjs';
 import { notificationConfiguration, deliverNotifications } from './notification-delivery.mjs';
 import { nodeNotificationRepository, notificationBatches, insertNotificationsSQL } from './notification-storage.mjs';
@@ -17,6 +20,8 @@ import { publicAsset, publicPageRedirect } from './public-assets.mjs';
 import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest, submitRegistrationRequest, listRegistrationRequests, reviewRegistrationRequest} from './registration-requests.mjs';
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from './workshop-scope.mjs';
 const HOUR = 3600000;
+const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -327,6 +332,31 @@ export function createApplication({ databasePath, origin, distPath, production =
         if (pathname === '/api/client/portal' && req.method === 'GET') {
           return json(res, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
         }
+        const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/proposal$/);
+        if (proposalRoute) {
+          if (req.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
+          const repairId = proposalRepairId(proposalRoute[1]);
+          const input = clientProposalRequest(await readJSON(req, 1024));
+          let current, clientId;
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            const fresh = clientSession(req, false);
+            if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+            current = fresh.store; clientId = fresh.row.client_id;
+            if (applyClientProposal(current, clientId, repairId, input, proposalActions)) {
+              validateStore(current);
+              const previousRevision = current.revision;
+              if (!Number.isSafeInteger(previousRevision) || previousRevision < 0 || previousRevision >= 1e9) throw new HttpError(409, 'L’atelier ne peut pas être modifié.');
+              current.revision++;
+              const serialized = JSON.stringify(current);
+              if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
+              const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, previousRevision);
+              if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
+            }
+            db.exec('COMMIT');
+          } catch (error) {db.exec('ROLLBACK'); throw error;}
+          return json(res, 200, clientPortal(current, clientId, repairTotalCost));
+        }
         if (pathname === '/api/client/repair-intake' && req.method === 'POST') {
           if (workshopId) throw new HttpError(404, 'Route introuvable.');
           throttle('repair-intake-client:' + digest(clientAuth.row.client_id), 10, HOUR, res);
@@ -386,6 +416,30 @@ export function createApplication({ databasePath, origin, distPath, production =
       }
       const auth = session(req, !(pathname === '/api/admin/notifications' && req.method === 'GET'));
       if (mutation && !equal(req.headers['x-csrf-token'], auth.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+      const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/proposal$/);
+      if (proposalRoute) {
+        if (req.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
+        const repairId = proposalRepairId(proposalRoute[1]);
+        const input = adminProposalRequest(await readJSON(req, REPAIR_PROPOSAL_BODY_LIMIT));
+        let current;
+        db.exec('BEGIN IMMEDIATE');
+        try {
+          const fresh = session(req, false);
+          if (!equal(req.headers['x-csrf-token'], fresh.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+          current = workshop();
+          if (current.revision !== input.revision) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
+          if (applyAdminProposal(current, repairId, input, proposalActions)) {
+            validateStore(current);
+            current.revision++;
+            const serialized = JSON.stringify(current);
+            if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
+            const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, input.revision);
+            if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
+          }
+          db.exec('COMMIT');
+        } catch (error) {db.exec('ROLLBACK'); throw error;}
+        return json(res, 200, current);
+      }
       if (pathname === '/api/admin/invoice-source' && req.method === 'GET') {
         if (!equal(req.headers['x-csrf-token'], auth.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
         return json(res, 200, workshop());
@@ -507,6 +561,7 @@ export function createApplication({ databasePath, origin, distPath, production =
           session(req, false);
           const before = workshop();
           assertIntakeMetadataPreserved(before, data, mode);
+          assertProposalEditPreserved(before, data, mode);
           // Legacy bundles strip the new price field; a deliberate reset uses null.
           const missingInterventionCosts = new Set(data.repairs.filter(repair => repair.interventionCost === undefined).map(repair => repair.id));
           if (mode === 'edit' && before.repairs.some(repair => repair.interventionCost != null
@@ -543,7 +598,7 @@ export function createApplication({ databasePath, origin, distPath, production =
       }
       throw new HttpError(404, 'Route introuvable.');
     } catch (error) {
-      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError || error instanceof RepairIntakeError ? error.status : 500;
+      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError || error instanceof RepairIntakeError || error instanceof RepairProposalError ? error.status : 500;
       if (status === 500) console.error('Erreur interne de l’API', error.code || error.name); // Never log request bodies, passwords or cookies.
       if (!res.headersSent && !res.destroyed) json(res, status, { error: status === 500 ? 'Erreur interne du serveur.' : error.message });
     }

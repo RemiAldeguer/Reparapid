@@ -1,10 +1,13 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
-import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient } from '../src/domain.ts';
+import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../src/domain.ts';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../src/repair-intake-domain.ts';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from '../server/client-part-availability.mjs';
+import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
+  applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from '../server/repair-proposals.mjs';
 import { repairNotifications } from '../server/repair-notifications.mjs';
 import { notificationConfiguration, deliverNotifications } from '../server/notification-delivery.mjs';
 import { d1NotificationRepository } from '../server/notification-storage.mjs';
@@ -16,6 +19,8 @@ import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest,
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from '../server/workshop-scope.mjs';
 
 const HOUR = 3600000;
+const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
 const SESSION_MS = 8 * HOUR;
 const IDLE_MS = HOUR / 2;
 let hashing = 0;
@@ -389,6 +394,26 @@ async function handle(request, env, headers, url, secure, configured, context) {
     if (pathname === '/api/client/portal' && request.method === 'GET') {
       return json(headers, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
     }
+    const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/proposal$/);
+    if (proposalRoute) {
+      if (request.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
+      const repairId = proposalRepairId(proposalRoute[1]);
+      const input = clientProposalRequest(await readJSON(request, 1024));
+      const fresh = await clientSession(false);
+      if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+      const current = fresh.store;
+      if (applyClientProposal(current, fresh.row.client_id, repairId, input, proposalActions)) {
+        validateStore(current);
+        const changed = await saveClientWorkshop(db, {expectedRevision: current.revision, data: current,
+          tokenHash: fresh.row.token_hash, clientId: fresh.row.client_id, csrf: fresh.row.csrf, now: Date.now(), idleMs: IDLE_MS});
+        if (!changed) {
+          const checked = await clientSession(false);
+          if (!equal(request.headers.get('X-CSRF-Token'), checked.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+          throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
+        }
+      }
+      return json(headers, 200, clientPortal(current, fresh.row.client_id, repairTotalCost));
+    }
     if (pathname === '/api/client/repair-intake' && request.method === 'POST') {
       if (workshopId) throw new HttpError(404, 'Route introuvable.');
       await throttle('repair-intake-client:' + await digest(clientAuth.row.client_id), 10, HOUR);
@@ -439,6 +464,28 @@ async function handle(request, env, headers, url, secure, configured, context) {
   const auth = await session(!(pathname === '/api/admin/notifications' && request.method === 'GET'));
   if (mutation && !equal(request.headers.get('X-CSRF-Token'), auth.csrf)) {
     throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+  }
+  const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/proposal$/);
+  if (proposalRoute) {
+    if (request.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
+    const repairId = proposalRepairId(proposalRoute[1]);
+    const input = adminProposalRequest(await readJSON(request, REPAIR_PROPOSAL_BODY_LIMIT));
+    const fresh = await session(false);
+    if (!equal(request.headers.get('X-CSRF-Token'), fresh.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+    const current = await readWorkshop(db);
+    if (current.revision !== input.revision) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
+    if (applyAdminProposal(current, repairId, input, proposalActions)) {
+      validateStore(current);
+      const changed = await saveWorkshop(db, {expectedRevision: input.revision, data: current,
+        tokenHash: fresh.token_hash, adminCsrf: fresh.csrf, now: Date.now(), idleMs: IDLE_MS});
+      if (!changed) {
+        const checked = await session(false);
+        if (!equal(request.headers.get('X-CSRF-Token'), checked.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+        throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
+      }
+      current.revision++;
+    }
+    return json(headers, 200, current);
   }
   if (pathname === '/api/admin/invoice-source' && request.method === 'GET') {
     if (!equal(request.headers.get('X-CSRF-Token'), auth.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
@@ -588,6 +635,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
     const before = await readWorkshop(db);
     if (before.revision !== body.revision) throw new HttpError(409, 'L’atelier a changé dans une autre session. Rechargez les données.');
     assertIntakeMetadataPreserved(before, data, mode);
+    assertProposalEditPreserved(before, data, mode);
     // A legacy editor must not silently erase an existing manual intervention price.
     const missingInterventionCosts = new Set(data.repairs.filter(repair => repair.interventionCost === undefined).map(repair => repair.id));
     if (mode === 'edit' && before.repairs.some(repair => repair.interventionCost != null
@@ -632,7 +680,7 @@ export default {
       const { secure, configured } = validateOrigin(url, env);
       return await handle(request, env, headers, url, secure, configured, context);
     } catch (error) {
-      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError || error instanceof RepairIntakeError ? error.status : error instanceof StoreSizeError ? 413 : 500;
+      const status = error instanceof HttpError || error instanceof NotificationError || error instanceof RegistrationError || error instanceof ClientPartAvailabilityError || error instanceof RepairIntakeError || error instanceof RepairProposalError ? error.status : error instanceof StoreSizeError ? 413 : 500;
       return json(headers, status, { error: status === 500 ? 'Erreur interne du serveur.' : error.message });
     }
   },

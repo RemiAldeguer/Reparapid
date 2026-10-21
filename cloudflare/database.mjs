@@ -68,6 +68,11 @@ const saveGuard = `EXISTS (
     AND EXISTS (SELECT 1 FROM sessions s JOIN admin a ON a.id = s.admin_id
       WHERE s.token_hash = ? AND s.expires_at > ? AND s.seen_at > ? AND a.role = 'admin')
 )`;
+const proposalSaveGuard = `EXISTS (
+  SELECT 1 FROM workshop w WHERE w.id=1 AND w.revision=?
+    AND EXISTS (SELECT 1 FROM sessions s JOIN admin a ON a.id=s.admin_id
+      WHERE s.token_hash=? AND s.csrf=? AND s.expires_at>? AND s.seen_at>? AND a.role='admin')
+)`;
 
 const clientSaveGuard = `EXISTS (
   SELECT 1 FROM workshop w WHERE w.id=1 AND w.revision=?
@@ -82,7 +87,7 @@ const registrationSaveGuard = `EXISTS (SELECT 1 FROM workshop WHERE id=1 AND rev
   AND NOT EXISTS (SELECT 1 FROM admin WHERE email=?)
   AND NOT EXISTS (SELECT 1 FROM saas_workshops WHERE email=?)`;
 
-export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now, idleMs, notifications = [], cancelNotifications = false, clientAuth = null, registration = null }) {
+export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now, idleMs, notifications = [], cancelNotifications = false, clientAuth = null, registration = null, adminCsrf }) {
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= 1e9) {
     throw new Error('Révision invalide.');
   }
@@ -90,12 +95,14 @@ export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now,
   if (encoder.encode(text).byteLength > MAX_STORE_BYTES) throw new StoreSizeError('L’atelier dépasse 20 Mio.');
   const chunks = splitJSON(text);
   const generation = crypto.randomUUID();
-  const guard = registration ? registrationSaveGuard : clientAuth ? clientSaveGuard : saveGuard;
+  const guard = registration ? registrationSaveGuard : clientAuth ? clientSaveGuard : adminCsrf === undefined ? saveGuard : proposalSaveGuard;
   const guardValues = registration
     ? [expectedRevision, registration.email, registration.email, registration.email]
     : clientAuth
     ? [expectedRevision, tokenHash, clientAuth.clientId, clientAuth.csrf, now, now - idleMs]
-    : [expectedRevision, tokenHash, now, now - idleMs];
+    : adminCsrf === undefined
+    ? [expectedRevision, tokenHash, now, now - idleMs]
+    : [expectedRevision, tokenHash, adminCsrf, now, now - idleMs];
   const statements = [];
   for (let start = 0; start < chunks.length; start += CHUNKS_PER_INSERT) {
     const group = chunks.slice(start, start + CHUNKS_PER_INSERT);

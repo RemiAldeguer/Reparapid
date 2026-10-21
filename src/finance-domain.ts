@@ -1,4 +1,4 @@
-import {type Store, cents, money, partsCost, repairTotalCost} from './domain';
+import {type Store, cents, money, partsCost, repairChargeAmount} from './domain';
 
 export type FinanceGranularity = 'week' | 'month';
 export interface FinanceOptions { granularity: FinanceGranularity; anchor: string; count?: number; }
@@ -132,7 +132,7 @@ export function buildFinanceReport(store: Store, options: FinanceOptions): Finan
     if(repair.stage==='terminee') {
       const period = datedBucket(repair.completedAt);
       if(period) {
-        const value = integerCents(repairTotalCost(store,repair));
+        const value = integerCents(repairChargeAmount(store,repair));
         period.bucket.completedValue+=value;period.bucket.completedCount++;
         if(repair.payment==null){period.bucket.outstanding+=value;period.bucket.unpaidCompletedCount++;}
       }

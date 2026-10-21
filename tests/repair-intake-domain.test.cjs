@@ -96,6 +96,9 @@ test('Other consoles retain the customer’s model and remain ordinary owned wor
 
 test('Closing a historical repair preserves a newer dossier still waiting for shipment',()=>{
   const {store,client}=customerStore(),first=intake.createPublicRepair(store,client.id,input());
+  d.moveRepair(store,first.repair.id,'diagnostic');
+  d.publishRepairProposal(store,first.repair.id,{kind:'repair',description:'Intervention fictive acceptée pour cette recette.',repairAmount:0,buybackAmount:null,returnFee:0,bankInstructions:''});
+  d.decideRepairProposal(store,first.repair.id,first.repair.proposal.id,'repair');
   d.moveRepair(store,first.repair.id,'terminee');
   const next=d.createRepair(store,{consoleId:first.console.id,title:'Nouvelle demande fictive',symptoms:'Panne différente',priority:'normale',dueDate:''});
   d.moveRepair(store,next.id,'attente-envoi');

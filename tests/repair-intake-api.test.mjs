@@ -302,6 +302,17 @@ for (const platform of ['node', 'worker']) {
       body: {data: initial, revision: initial.revision, mode: 'edit'}});
     assert.equal(blocked.status, 403); assert.deepEqual(f.read(), initial);
     for (const stage of ['reception', 'diagnostic', 'reparation', 'tests', 'terminee']) {
+      if (stage === 'reparation') {
+        const offer = await f.request(`/api/admin/repairs/${repairId}/proposal`, {...admin, method: 'POST', body: {
+          revision: f.read().revision, action: 'publish', kind: 'repair', description: 'Intervention fictive confirmée après diagnostic.',
+          repairAmount: 65, buybackAmount: null, returnFee: 0, bankInstructions: '',
+        }});
+        assert.equal(offer.status, 200, JSON.stringify(offer.data));
+        const proposalId = offer.data.repairs.find(repair => repair.id === repairId).proposal.id;
+        const accepted = await f.request(`/api/client/repairs/${repairId}/proposal`, {...registered.auth, method: 'POST',
+          body: {proposalId, action: 'repair'}});
+        assert.equal(accepted.status, 200, JSON.stringify(accepted.data));
+      }
       const loaded = await f.request('/api/store', admin); assert.equal(loaded.status, 200);
       const draft = structuredClone(loaded.data);
       if (stage === 'reception') {

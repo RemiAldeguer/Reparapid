@@ -1,24 +1,26 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {flushSync} from 'react-dom';
-import {dateFmt, stageInfo, CLIENT_PART_STATUSES, type ClientPartRequest, type ConsoleState, type Stage} from './domain';
+import {dateFmt, stageInfo, CLIENT_PART_STATUSES, type ClientPartRequest, type ConsoleState, type RepairProposal, type Stage} from './domain';
 import {Badge, ConsoleArt, Empty, Icon, Logo, Modal, StageBadge, StateBadge} from './ui';
 import {createSessionEpoch, observeSessionPrivacy, type SessionTicket} from './session-privacy';
 import {clientApi, ClientApiError, type ClientSession} from './client-api';
 import {StorefrontShell} from './public-home';
 import {ShippingDocument, type ShippingSheet} from './client-shipping-sheet';
 import {ShippingProcessDiagram} from './shipping-process-diagram';
+import {RepairProposalClient, ProposalOutcomeJourney, proposalClientStatus, proposalNeedsFollowUp, type ProposalClientAction, type ProposalFeedback} from './repair-proposal-client';
 import './repair-intake.css';
 import './client-portal.css';
 
 type PortalConsole = {id: string; code: string; brand: string; model: string; variant: string; serial: string; state: ConsoleState; accessories: string};
 type PortalClientPart = Pick<ClientPartRequest, 'id' | 'name' | 'quantity' | 'note' | 'status'>;
-type PortalRepair = {id: string; code: string; consoleId: string; title: string; symptoms: string; stage: Stage; dueDate: string; createdAt: string; updatedAt: string; completedAt: string; totalCost: number | null; intakeSubmitted?: boolean; clientParts?: PortalClientPart[]};
+type PortalRepair = {id: string; code: string; consoleId: string; title: string; symptoms: string; stage: Stage; dueDate: string; createdAt: string; updatedAt: string; completedAt: string; totalCost: number | null; intakeSubmitted?: boolean; clientParts?: PortalClientPart[]; proposal?: RepairProposal};
 type PortalData = {client: {name: string}; workshop: {name: string}; consoles: PortalConsole[]; repairs: PortalRepair[]};
 const ShippingContext = React.createContext<{onOpen: (repairId: string) => void; busy: boolean} | null>(null);
+const ProposalActionsContext = React.createContext<{busyKey: string; refreshing: boolean; feedback: ProposalFeedback; onAction: (repairId: string, proposalId: string, action: ProposalClientAction) => Promise<boolean>} | null>(null);
 
 const consoleName = (item: {brand: string; model: string}) => item.brand === 'Autre' || item.model.toLocaleLowerCase('fr').startsWith(item.brand.toLocaleLowerCase('fr')) ? item.model : `${item.brand} ${item.model}`;
 const closedStages = new Set<Stage>(['terminee', 'irreparable', 'abandonnee']);
-const isOpenRepair = (repair: PortalRepair) => !closedStages.has(repair.stage);
+const isOpenRepair = (repair: PortalRepair) => !closedStages.has(repair.stage) || proposalNeedsFollowUp(repair.proposal);
 const stageDescriptions: Record<Stage, string> = {
   'attente-envoi': 'Votre demande est enregistrée. Préparez votre colis ; l’atelier confirmera sa réception dans cet espace.',
   reception: 'L’atelier a réceptionné votre console. Elle va pouvoir être examinée.',
@@ -53,6 +55,8 @@ function jumpTo(id: string) {
   target?.focus({preventScroll: true});
 }
 function PortalRepairStage({repair}: {repair: PortalRepair}) {
+  const proposalStatus = proposalClientStatus(repair.proposal, repair.stage);
+  if (proposalStatus) return <Badge tone={proposalStatus.tone}>{proposalStatus.label}</Badge>;
   return repair.intakeSubmitted && repair.stage === 'terminee' ? <Badge tone="green">Prête à récupérer</Badge> : <StageBadge stage={repair.stage}/>;
 }
 function RepairJourney({repair}: {repair: PortalRepair}) {
@@ -68,13 +72,14 @@ function RepairJourney({repair}: {repair: PortalRepair}) {
     const observer = new ResizeObserver(centerCurrentStep);
     observer.observe(scroll);
     return () => observer.disconnect();
-  }, [repair.id, repair.stage, repair.intakeSubmitted]);
+  }, [repair.id, repair.stage, repair.intakeSubmitted, repair.proposal?.id, repair.proposal?.decision]);
   const heading = <header className="portal-tracking-heading"><div><span className="portal-section-label">SUIVI DU DOSSIER <span className="mono">{repair.code}</span></span><h2 id="portal-tracking-title">Votre réparation, étape par étape</h2></div><PortalRepairStage repair={repair}/></header>;
+  if (repair.proposal && (repair.proposal.decision === 'return' || repair.proposal.decision === 'buyback')) return <section className="portal-tracking-panel" aria-labelledby="portal-tracking-title">{heading}<ProposalOutcomeJourney proposal={repair.proposal}/></section>;
   if (repair.stage === 'irreparable' || repair.stage === 'abandonnee') return <section className="portal-tracking-panel" aria-labelledby="portal-tracking-title">{heading}<div className="portal-closed-journey"><Icon name="archive" size={19}/><span>Dossier clôturé · {stageInfo(repair.stage).short}</span></div></section>;
   const steps: {stage: Stage; label: string; text: string; icon: string}[] = [
     ...(repair.intakeSubmitted || repair.stage === 'attente-envoi' ? [{stage: 'attente-envoi' as Stage, label: 'Préparer et envoyer', text: 'Votre fiche accompagne la console.', icon: 'package'}] : []),
     {stage: 'reception', label: 'Réception à l’atelier', text: 'Le magasin confirme l’arrivée de la console.', icon: 'inbox'},
-    {stage: 'diagnostic', label: 'Diagnostic', text: 'La panne et l’intervention sont précisées.', icon: 'stethoscope'},
+    {stage: 'diagnostic', label: repair.proposal?.decision === 'pending' ? 'Votre réponse' : 'Diagnostic', text: repair.proposal?.decision === 'pending' ? 'La proposition du magasin vous attend.' : repair.proposal?.decision === 'repair' ? 'Votre accord est enregistré.' : 'La panne et l’intervention sont précisées.', icon: 'stethoscope'},
     ...(repair.stage === 'attente-pieces' ? [{stage: 'attente-pieces' as Stage, label: 'Attente des pièces', text: 'Les pièces nécessaires sont attendues.', icon: 'package'}] : []),
     {stage: 'reparation', label: 'Réparation', text: 'L’atelier réalise l’intervention.', icon: 'wrench'},
     {stage: 'tests', label: 'Vérifications', text: 'Le fonctionnement est contrôlé.', icon: 'checklist'},
@@ -98,12 +103,17 @@ function PartLine({part, repairId}: {part: PortalClientPart; repairId: string}) 
 }
 function RepairDetails({repair, item}: {repair: PortalRepair; item: PortalConsole}) {
   const showClientParts = React.useContext(PartActionsContext) !== null;
-  return <article className="portal-repair-panel" aria-labelledby="portal-repair-title"><header className="portal-panel-heading"><span className="portal-section-label">VOTRE RÉPARATION</span><span className="mono">{repair.code}</span></header><div className="portal-console-hero"><div className="portal-console-visual" aria-hidden="true"><ConsoleArt item={item}/></div><div><span className="portal-console-brand">{item.brand}</span><h2 id="portal-repair-title">{consoleName(item)}</h2>{item.variant && <p>{item.variant}</p>}<StateBadge state={item.state}/></div></div><div className="portal-repair-copy"><h3>{repair.title}</h3><div className="portal-symptoms"><span>La panne que vous avez signalée</span><p className="prewrap">{repair.symptoms || 'Aucun symptôme renseigné.'}</p></div><div className="portal-repair-amount"><span><Icon name="euro" size={18}/>{repair.totalCost === null ? 'Montant de l’intervention' : 'Montant actuel du dossier'}</span><strong>{money(repair.totalCost)}</strong></div><dl className="portal-console-facts"><div><dt>Référence console</dt><dd className="mono">{item.code}</dd></div><div><dt>Numéro de série</dt><dd>{item.serial || 'Non renseigné'}</dd></div><div className="portal-fact-wide"><dt>Accessoires déclarés</dt><dd className="prewrap">{item.accessories || 'Aucun accessoire déclaré'}</dd></div></dl><dl className="portal-repair-dates"><div><dt>Demande enregistrée</dt><dd>{dateFmt(repair.createdAt)}</dd></div>{repair.dueDate && <div><dt>Date prévue par l’atelier</dt><dd>{dateFmt(repair.dueDate)}</dd></div>}{repair.completedAt && <div><dt>Dossier clôturé</dt><dd>{dateFmt(repair.completedAt)}</dd></div>}<div><dt>Dernière mise à jour</dt><dd>{dateFmt(repair.updatedAt)}</dd></div></dl>{showClientParts && !!repair.clientParts?.length && <section className="portal-client-parts" aria-label={`Pièces à fournir pour ${repair.code}`}><h4><Icon name="package" size={18}/>Pièces demandées pour ce dossier</h4><p className="portal-client-parts-intro">Marquer disponible confirme toute la quantité demandée chez vous. L’atelier confirme ensuite la livraison et l’installation.</p><ul>{sortedParts(repair.clientParts).map(part => <PartLine key={part.id} part={part} repairId={repair.id}/>)}</ul></section>}</div></article>;
+  const proposal = repair.proposal;
+  const showQuote = proposal?.kind === 'repair' && (proposal.decision === 'pending' || proposal.decision === 'repair');
+  const amountLabel = proposal ? showQuote ? proposal.decision === 'repair' ? 'Devis accepté TTC' : 'Devis proposé TTC' : 'Après le diagnostic' : repair.totalCost === null ? 'Montant de l’intervention' : 'Montant actuel du dossier';
+  const amount = proposal ? showQuote ? money(proposal.repairAmount) : proposal.kind === 'unrepairable' ? 'Console non réparable' : 'Réparation refusée' : money(repair.totalCost);
+  return <article className="portal-repair-panel" aria-labelledby="portal-repair-title"><header className="portal-panel-heading"><span className="portal-section-label">VOTRE RÉPARATION</span><span className="mono">{repair.code}</span></header><div className="portal-console-hero"><div className="portal-console-visual" aria-hidden="true"><ConsoleArt item={item}/></div><div><span className="portal-console-brand">{item.brand}</span><h2 id="portal-repair-title">{consoleName(item)}</h2>{item.variant && <p>{item.variant}</p>}<StateBadge state={item.state}/></div></div><div className="portal-repair-copy"><h3>{repair.title}</h3><div className="portal-symptoms"><span>La panne que vous avez signalée</span><p className="prewrap">{repair.symptoms || 'Aucun symptôme renseigné.'}</p></div><div className={`portal-repair-amount${proposal && !showQuote ? ' is-proposal-outcome' : ''}`}><span><Icon name="euro" size={18}/>{amountLabel}</span><strong>{amount}</strong></div><dl className="portal-console-facts"><div><dt>Référence console</dt><dd className="mono">{item.code}</dd></div><div><dt>Numéro de série</dt><dd>{item.serial || 'Non renseigné'}</dd></div><div className="portal-fact-wide"><dt>Accessoires déclarés</dt><dd className="prewrap">{item.accessories || 'Aucun accessoire déclaré'}</dd></div></dl><dl className="portal-repair-dates"><div><dt>Demande enregistrée</dt><dd>{dateFmt(repair.createdAt)}</dd></div>{repair.dueDate && <div><dt>Date prévue par l’atelier</dt><dd>{dateFmt(repair.dueDate)}</dd></div>}{repair.completedAt && (!proposal || proposal.decision === 'repair') && <div><dt>Dossier clôturé</dt><dd>{dateFmt(repair.completedAt)}</dd></div>}<div><dt>Dernière mise à jour</dt><dd>{dateFmt(repair.updatedAt)}</dd></div></dl>{showClientParts && !!repair.clientParts?.length && <section className="portal-client-parts" aria-label={`Pièces à fournir pour ${repair.code}`}><h4><Icon name="package" size={18}/>Pièces demandées pour ce dossier</h4><p className="portal-client-parts-intro">Marquer disponible confirme toute la quantité demandée chez vous. L’atelier confirme ensuite la livraison et l’installation.</p><ul>{sortedParts(repair.clientParts).map(part => <PartLine key={part.id} part={part} repairId={repair.id}/>)}</ul></section>}</div></article>;
 }
 function RepairProcess({repair, tenant}: {repair: PortalRepair; tenant: boolean}) {
   const shipping = React.useContext(ShippingContext);
+  const proposalActions = React.useContext(ProposalActionsContext);
   const action = expectedActions[repair.stage];
-  return <aside className="portal-process-panel" aria-labelledby="portal-process-title"><header className="portal-panel-heading"><span className="portal-section-label" id="portal-process-title">LA SUITE, ÉTAPE PAR ÉTAPE</span><PortalRepairStage repair={repair}/></header><div className="portal-next-action"><span><Icon name={repair.stage === 'attente-envoi' ? 'package' : repair.stage === 'irreparable' || repair.stage === 'abandonnee' ? 'archive' : repair.stage === 'terminee' ? 'check' : 'wrench'} size={23}/></span><div><h2>{action.title}</h2><p>{repair.intakeSubmitted && repair.stage === 'terminee' ? 'Votre réparation est terminée. Contactez l’atelier pour convenir du retrait de votre console ou de son retour.' : repair.stage === 'attente-envoi' && !repair.intakeSubmitted ? stageDescriptions[repair.stage] : action.text}</p></div></div>{repair.stage !== 'attente-envoi' && <p className="portal-stage-description">{stageDescriptions[repair.stage]}</p>}{repair.intakeSubmitted && shipping && <section className="portal-shipping-action" aria-label="Préparer le colis"><h3>{repair.stage === 'attente-envoi' ? 'Deux parties, deux destinations.' : 'Retrouver votre fiche d’envoi'}</h3><p>{repair.stage === 'attente-envoi' ? 'Gardez le talon avec la référence du dossier. La partie atelier accompagne votre console dans le colis.' : 'La fiche reste accessible. Si la console a déjà été réceptionnée, aucun nouvel envoi n’est demandé.'}</p><button type="button" className="btn primary" disabled={shipping.busy} onClick={() => shipping.onOpen(repair.id)}><Icon name="print" size={17}/>{shipping.busy ? 'Chargement de la fiche…' : 'Imprimer ma fiche d’envoi'}</button>{repair.stage === 'attente-envoi' && <><ShippingProcessDiagram/><p className="portal-shipping-note">La fiche identifie votre console. Prévoyez une étiquette de transport et conservez le suivi du transporteur.</p></>}</section>}{!tenant && <a className="portal-contact-link" href="#/accueil?section=rp-contact"><Icon name="mail" size={17}/>Une question ? Contacter l’atelier<Icon name="right" size={16}/></a>}</aside>;
+  return <aside className="portal-process-panel" aria-labelledby="portal-process-title"><header className="portal-panel-heading"><span className="portal-section-label" id="portal-process-title">LA SUITE, ÉTAPE PAR ÉTAPE</span><PortalRepairStage repair={repair}/></header>{repair.proposal && proposalActions ? <RepairProposalClient key={repair.id} repairId={repair.id} repairCode={repair.code} proposal={repair.proposal} stage={repair.stage} busy={proposalActions.busyKey.startsWith(`${repair.id}:`)} disabled={!!proposalActions.busyKey || proposalActions.refreshing} feedback={proposalActions.feedback} onAction={proposalActions.onAction}/> : <><div className="portal-next-action"><span><Icon name={repair.stage === 'attente-envoi' ? 'package' : repair.stage === 'irreparable' || repair.stage === 'abandonnee' ? 'archive' : repair.stage === 'terminee' ? 'check' : 'wrench'} size={23}/></span><div><h2>{action.title}</h2><p>{repair.intakeSubmitted && repair.stage === 'terminee' ? 'Votre réparation est terminée. Contactez l’atelier pour convenir du retrait de votre console ou de son retour.' : repair.stage === 'attente-envoi' && !repair.intakeSubmitted ? stageDescriptions[repair.stage] : action.text}</p></div></div>{repair.stage !== 'attente-envoi' && <p className="portal-stage-description">{stageDescriptions[repair.stage]}</p>}</>}{repair.intakeSubmitted && shipping && <section className="portal-shipping-action" aria-label="Préparer le colis"><h3>{repair.stage === 'attente-envoi' ? 'Deux parties, deux destinations.' : 'Retrouver votre fiche d’envoi'}</h3><p>{repair.stage === 'attente-envoi' ? 'Gardez le talon avec la référence du dossier. La partie atelier accompagne votre console dans le colis.' : 'La fiche reste accessible. Si la console a déjà été réceptionnée, aucun nouvel envoi n’est demandé.'}</p><button type="button" className="btn primary" disabled={shipping.busy} onClick={() => shipping.onOpen(repair.id)}><Icon name="print" size={17}/>{shipping.busy ? 'Chargement de la fiche…' : 'Imprimer ma fiche d’envoi'}</button>{repair.stage === 'attente-envoi' && <><ShippingProcessDiagram/><p className="portal-shipping-note">La fiche identifie votre console. Prévoyez une étiquette de transport et conservez le suivi du transporteur.</p></>}</section>}{!tenant && <a className="portal-contact-link" href="#/accueil?section=rp-contact"><Icon name="mail" size={17}/>Une question ? Contacter l’atelier<Icon name="right" size={16}/></a>}</aside>;
 }
 function RequestedPartsBoard({data, onSelect}: {data: PortalData; onSelect: (repairId: string) => void}) {
   const waiting = quantityFor(data.repairs, 'en-attente'), all = quantityFor(data.repairs);
@@ -121,7 +131,7 @@ function PortalCollection({data, selectedId, onSelect, tenant}: {data: PortalDat
   });
   const selected = entries.find(entry => entry.repair.id === selectedId) || entries[0];
   const withoutRepairs = data.consoles.filter(item => !data.repairs.some(repair => repair.consoleId === item.id));
-  return <section className="portal-collection" id="portal-consoles" tabIndex={-1} aria-label="Mes réparations">{entries.length > 1 && <div className="portal-dossier-picker"><div><span className="portal-section-label">MES DOSSIERS</span><p>Choisissez la réparation à suivre.</p></div><div className="portal-dossier-buttons" role="group" aria-label="Choisir un dossier de réparation">{entries.map(({repair, item}) => <button key={repair.id} type="button" aria-pressed={selected?.repair.id === repair.id} onClick={() => onSelect(repair.id)}><span className="mono">{repair.code}</span><strong>{consoleName(item)}</strong><span>{repair.intakeSubmitted && repair.stage === 'terminee' ? 'Prête à récupérer' : stageInfo(repair.stage).short}</span></button>)}</div></div>}{selected ? <div className="portal-selected-repair" id="portal-selected-repair" tabIndex={-1}><RepairJourney repair={selected.repair}/><div className="portal-repair-split"><RepairDetails repair={selected.repair} item={selected.item}/><RepairProcess repair={selected.repair} tenant={tenant}/></div></div> : !data.consoles.length && <section className="panel"><Empty icon="gamepad" title="Votre première réparation commence ici" action={!tenant && <a className="btn primary" href="#/demande-reparation">Demander une réparation<Icon name="right" size={16}/></a>}>{tenant ? 'Dès que l’atelier ouvre un dossier à votre nom, son suivi apparaît dans cet espace.' : 'Sélectionnez votre console pour décrire la panne et préparer votre envoi.'}</Empty></section>}{withoutRepairs.length > 0 && <section className="portal-unassigned"><h2>Consoles sans dossier de réparation</h2><div>{withoutRepairs.map(item => <article key={item.id}><div aria-hidden="true"><ConsoleArt item={item} small/></div><div><h3>{consoleName(item)}</h3><p className="mono">{item.code}</p>{item.variant && <p>{item.variant}</p>}{item.serial && <p>N° de série : {item.serial}</p>}{item.accessories && <p className="prewrap">Accessoires : {item.accessories}</p>}<StateBadge state={item.state}/><p>L’atelier n’a pas encore ouvert de dossier pour cette console.</p></div></article>)}</div></section>}</section>;
+  return <section className="portal-collection" id="portal-consoles" tabIndex={-1} aria-label="Mes réparations">{entries.length > 1 && <div className="portal-dossier-picker"><div><span className="portal-section-label">MES DOSSIERS</span><p>Choisissez la réparation à suivre.</p></div><div className="portal-dossier-buttons" role="group" aria-label="Choisir un dossier de réparation">{entries.map(({repair, item}) => <button key={repair.id} type="button" aria-pressed={selected?.repair.id === repair.id} onClick={() => onSelect(repair.id)}><span className="mono">{repair.code}</span><strong>{consoleName(item)}</strong><span>{proposalClientStatus(repair.proposal, repair.stage)?.label || (repair.intakeSubmitted && repair.stage === 'terminee' ? 'Prête à récupérer' : stageInfo(repair.stage).short)}</span></button>)}</div></div>}{selected ? <div className="portal-selected-repair" id="portal-selected-repair" tabIndex={-1}><RepairJourney repair={selected.repair}/><div className="portal-repair-split"><RepairDetails repair={selected.repair} item={selected.item}/><RepairProcess repair={selected.repair} tenant={tenant}/></div></div> : !data.consoles.length && <section className="panel"><Empty icon="gamepad" title="Votre première réparation commence ici" action={!tenant && <a className="btn primary" href="#/demande-reparation">Demander une réparation<Icon name="right" size={16}/></a>}>{tenant ? 'Dès que l’atelier ouvre un dossier à votre nom, son suivi apparaît dans cet espace.' : 'Sélectionnez votre console pour décrire la panne et préparer votre envoi.'}</Empty></section>}{withoutRepairs.length > 0 && <section className="portal-unassigned"><h2>Consoles sans dossier de réparation</h2><div>{withoutRepairs.map(item => <article key={item.id}><div aria-hidden="true"><ConsoleArt item={item} small/></div><div><h3>{consoleName(item)}</h3><p className="mono">{item.code}</p>{item.variant && <p>{item.variant}</p>}{item.serial && <p>N° de série : {item.serial}</p>}{item.accessories && <p className="prewrap">Accessoires : {item.accessories}</p>}<StateBadge state={item.state}/><p>L’atelier n’a pas encore ouvert de dossier pour cette console.</p></div></article>)}</div></section>}</section>;
 }
 
 function ClientLogin({busy, error, message, onLogin}: {busy: boolean; error: string; message: string; onLogin: (event: React.FormEvent<HTMLFormElement>) => void}) {
@@ -140,6 +150,8 @@ export function ClientPortal() {
   const sheetRequest = useRef(0), printInProgress = useRef(false);
   const [partBusyKey, setPartBusyKey] = useState(''), [partFeedback, setPartFeedback] = useState<PartFeedback>({message: '', error: ''});
   const partRequest = useRef('');
+  const [proposalBusyKey, setProposalBusyKey] = useState(''), [proposalFeedback, setProposalFeedback] = useState<ProposalFeedback>({repairId: '', message: '', error: ''});
+  const proposalRequest = useRef('');
   const [epoch] = useState(createSessionEpoch);
   const mounted = useRef(false), currentSession = useRef<ClientSession | null>(null);
   const automaticCheck = useRef(true), loggingOut = useRef(false);
@@ -155,6 +167,7 @@ export function ClientPortal() {
   function reset(checking: boolean, text = '') {
     currentSession.current = null; portalRequest.current++; sheetRequest.current++; setSheet(null); setSheetError(''); setSheetBusy(false); setPrintReady(false);
     partRequest.current = ''; setPartBusyKey(''); setPartFeedback({message: '', error: ''});
+    proposalRequest.current = ''; setProposalBusyKey(''); setProposalFeedback({repairId: '', message: '', error: ''});
     setSession(null); setData(null); setSelectedRepairId(''); setCheckedAt('');
     setLoading(checking); setRefreshing(false); setBusy(loggingOut.current); setMessage(text); setError(''); setServiceError('');
   }
@@ -187,7 +200,7 @@ export function ClientPortal() {
       onVisible: () => {if (automaticCheck.current && !loggingOut.current) void check(true);},
       onBackground: () => {if (printInProgress.current) return; epoch.advance(); portalRequest.current++; sheetRequest.current++; setPrintReady(false); setSheet(null); setSheetBusy(false);},
     });
-    return () => {stop(); mounted.current = false; epoch.advance(); currentSession.current = null; portalRequest.current++; sheetRequest.current++; partRequest.current = '';};
+    return () => {stop(); mounted.current = false; epoch.advance(); currentSession.current = null; portalRequest.current++; sheetRequest.current++; partRequest.current = ''; proposalRequest.current = '';};
   }, []);
   useEffect(() => {
     const channel = 'BroadcastChannel' in window ? new BroadcastChannel('clinique-client-auth') : null;
@@ -243,7 +256,7 @@ export function ClientPortal() {
     } catch (e) {if (current(ticket) && request === authRequest.current && e instanceof ClientApiError && e.status === 401) clearSession('Votre session a expiré. Reconnectez-vous.');}
   }
   async function refresh() {
-    if (!currentSession.current || loggingOut.current || partRequest.current) return;
+    if (!currentSession.current || loggingOut.current || partRequest.current || proposalRequest.current) return;
     const ticket = epoch.capture(), request = ++portalRequest.current;
     setRefreshing(true); setError('');
     try {const value = await clientApi<PortalData>('/api/client/portal', {signal: ticket.signal}); if (current(ticket) && request === portalRequest.current) {setData(value); setCheckedAt(new Date().toISOString());}}
@@ -252,7 +265,7 @@ export function ClientPortal() {
   }
   async function markAvailable(repairId: string, part: PortalClientPart) {
     const previous = currentSession.current;
-    if (!previous || loggingOut.current || partRequest.current || part.status !== 'en-attente') return;
+    if (!previous || loggingOut.current || partRequest.current || proposalRequest.current || part.status !== 'en-attente') return;
     const ticket = epoch.capture(), key = `${repairId}:${part.id}`;
     const sameSession = () => current(ticket) && currentSession.current?.csrfToken === previous.csrfToken;
     partRequest.current = key; portalRequest.current++;
@@ -274,6 +287,41 @@ export function ClientPortal() {
       } else setPartFeedback({message: '', error: failure instanceof Error ? failure.message : 'La disponibilité de la pièce n’a pas pu être enregistrée.'});
     } finally {
       if (sameSession() && partRequest.current === key) {partRequest.current = ''; setPartBusyKey('');}
+    }
+  }
+  async function submitProposal(repairId: string, proposalId: string, action: ProposalClientAction): Promise<boolean> {
+    const previous = currentSession.current;
+    if (!previous || loggingOut.current || proposalRequest.current || partRequest.current || refreshing) return false;
+    const ticket = epoch.capture(), key = `${repairId}:${proposalId}:${action}`;
+    const sameSession = () => current(ticket) && currentSession.current?.csrfToken === previous.csrfToken;
+    proposalRequest.current = key; portalRequest.current++;
+    setProposalBusyKey(key); setProposalFeedback({repairId, message: '', error: ''}); setError(''); setRefreshing(false);
+    try {
+      const next = await clientApi<PortalData>(`/api/client/repairs/${encodeURIComponent(repairId)}/proposal`, {
+        method: 'POST', body: {proposalId, action}, csrfToken: previous.csrfToken, signal: ticket.signal,
+      });
+      if (!sameSession() || proposalRequest.current !== key) return false;
+      setData(next); setCheckedAt(new Date().toISOString());
+      const notices: Record<ProposalClientAction, string> = {
+        repair: 'Votre accord est enregistré. Le magasin peut lancer la réparation au prix proposé.',
+        return: 'Votre demande de retour est enregistrée. Retrouvez les prochaines étapes ci-dessous.',
+        buyback: 'Votre accord de rachat est enregistré. Le magasin doit encore finaliser le rachat et son règlement.',
+        'declare-transfer': 'Votre virement est signalé. Sa réception reste à confirmer par le magasin.',
+      };
+      setProposalFeedback({repairId, message: notices[action], error: ''});
+      broadcast('changed');
+      return true;
+    } catch (failure) {
+      if (!sameSession() || proposalRequest.current !== key) return false;
+      if (failure instanceof ClientApiError && failure.status === 401) {clearSession('Votre session a expiré. Reconnectez-vous.'); return false;}
+      if (failure instanceof ClientApiError && (failure.status === 409 || failure.status === 404)) {
+        proposalRequest.current = ''; setProposalBusyKey('');
+        setProposalFeedback({repairId, message: '', error: 'Cette proposition a changé depuis votre consultation. Vérifiez la proposition actualisée avant de confirmer à nouveau votre choix.'});
+        await refresh();
+      } else setProposalFeedback({repairId, message: '', error: failure instanceof ClientApiError && failure.status === 0 ? 'L’enregistrement de votre réponse n’est pas confirmé. Actualisez le suivi avant de réessayer.' : failure instanceof Error ? failure.message : 'Votre réponse n’a pas pu être enregistrée.'});
+      return false;
+    } finally {
+      if (sameSession() && proposalRequest.current === key) {proposalRequest.current = ''; setProposalBusyKey('');}
     }
   }
   async function openSheet(repairId: string, printing = false) {
@@ -323,11 +371,11 @@ export function ClientPortal() {
   const tenant = !!new URLSearchParams(window.location.search).get('atelier');
   const newlyCreated = data?.repairs.find(repair => repair.id === requestedRepairId && repair.intakeSubmitted);
   // Keep the legacy payload intact; only independent workshops use client-supplied parts.
-  return <ShippingContext.Provider value={{onOpen: repairId => void openSheet(repairId), busy: sheetBusy}}><PartActionsContext.Provider value={tenant ? {busyKey: partBusyKey, refreshing, feedback: partFeedback, onAvailable: (repairId, part) => void markAvailable(repairId, part)} : null}><div className={`client-portal${tenant ? '' : ' reparapid-portal'}`}>
+  return <ProposalActionsContext.Provider value={{busyKey: proposalBusyKey || partBusyKey, refreshing, feedback: proposalFeedback, onAction: submitProposal}}><ShippingContext.Provider value={{onOpen: repairId => void openSheet(repairId), busy: sheetBusy}}><PartActionsContext.Provider value={tenant ? {busyKey: partBusyKey || proposalBusyKey, refreshing, feedback: partFeedback, onAvailable: (repairId, part) => void markAvailable(repairId, part)} : null}><div className={`client-portal${tenant ? '' : ' reparapid-portal'}`}>
     <a className="portal-skip-link" href="#portal-content" onClick={event => {event.preventDefault(); document.getElementById('portal-content')?.focus();}}>Aller à mon suivi</a>
     <header className="portal-header"><a href="#/espace-client" className="portal-brand">{tenant ? <><Logo/><span>{data?.workshop.name || 'Votre atelier'}<small>Espace client</small></span></> : <><img className="portal-rp-logo" src="./reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small>Mon espace client</small></span></>}</a><nav className="portal-header-nav" aria-label="Navigation de mon suivi">{!tenant && <a href="#/demande-reparation"><Icon name="plus" size={16}/>Nouvelle réparation</a>}{tenant && <button type="button" onClick={() => jumpTo('portal-requested-parts')}><Icon name="package" size={16}/>Pièces demandées</button>}<button type="button" onClick={() => jumpTo('portal-consoles')}><Icon name="gamepad" size={16}/>Mes réparations</button></nav><div className="portal-account"><span>Espace personnel</span><button className="btn secondary" onClick={() => void logout()} disabled={busy}><Icon name="logout" size={17}/>{busy ? 'Déconnexion…' : 'Se déconnecter'}</button></div></header>
     <main id="portal-content" tabIndex={-1} className="portal-content">
-      <div className="portal-welcome"><div><span className="eyebrow">LE SUIVI DE VOS RÉPARATIONS</span><h1>Bonjour {data?.client.name || session.user.name}.</h1><p>Vos dossiers, les prochaines étapes et le suivi de vos consoles.</p></div><button className="btn primary" onClick={() => void refresh()} disabled={refreshing || !!partBusyKey}><Icon name="restore" size={17}/>{refreshing ? 'Actualisation…' : 'Actualiser le suivi'}</button></div>
+      <div className="portal-welcome"><div><span className="eyebrow">LE SUIVI DE VOS RÉPARATIONS</span><h1>Bonjour {data?.client.name || session.user.name}.</h1><p>Vos dossiers, les prochaines étapes et le suivi de vos consoles.</p></div><button className="btn primary" onClick={() => void refresh()} disabled={refreshing || !!partBusyKey || !!proposalBusyKey}><Icon name="restore" size={17}/>{refreshing ? 'Actualisation…' : 'Actualiser le suivi'}</button></div>
       {newlyCreated && <section className="portal-intake-success" role="status"><span><Icon name="check" size={25}/></span><div><strong>Votre demande {newlyCreated.code} est enregistrée.</strong><p>{newlyCreated.stage === 'attente-envoi' ? 'Imprimez la fiche, gardez son talon et joignez la partie atelier au colis avec votre console.' : 'Retrouvez sa fiche et son avancement dans votre espace client.'}</p></div><button className="btn secondary" type="button" disabled={sheetBusy} onClick={() => void openSheet(newlyCreated.id)}><Icon name="print" size={16}/>Voir ma fiche d’envoi</button></section>}
       {sheetError && !sheet && <p className="auth-error portal-error" role="alert">{sheetError}</p>}
       {error && <p className="auth-error portal-error" role="alert">{error}</p>}
@@ -340,5 +388,5 @@ export function ClientPortal() {
     </main>
 
     {sheet && <Modal title="Votre fiche d’envoi à découper" subtitle={sheet.repair.code} wide onClose={() => {sheetRequest.current++; setSheet(null); setSheetError(''); setPrintReady(false); setSheetBusy(false);}}><div className="intake-sheet-preview"><p className="intake-sheet-intro">Imprimez la fiche, découpez le talon à conserver, puis glissez la partie atelier dans le colis avec votre console. Le schéma ci-dessous vous guide.</p>{!sheet.shop.addressConfirmed && <p className="intake-sheet-blocked" role="status"><Icon name="alert" size={18}/><span>L’adresse d’expédition reste à confirmer. Contactez {sheet.shop.shopName}{sheet.shop.email && <> à <a href={`mailto:${sheet.shop.email}`}>{sheet.shop.email}</a></>}{sheet.shop.phone && <> au <a href={`tel:${sheet.shop.phone.replace(/\s/g, '')}`}>{sheet.shop.phone}</a></>}. N’envoyez pas votre console pour le moment.</span></p>}<ShippingDocument sheet={sheet}/>{sheetError && <p className="auth-error" role="alert">{sheetError}</p>}</div><div className="modal-footer intake-sheet-footer"><button type="button" className="btn secondary" onClick={() => {sheetRequest.current++; setSheet(null); setSheetError(''); setPrintReady(false); setSheetBusy(false);}}>Fermer</button><button type="button" className="btn primary" disabled={sheetBusy || !sheet.shop.addressConfirmed} onClick={() => void openSheet(sheet.repair.id, true)}><Icon name="print" size={17}/>{sheetBusy ? 'Vérification…' : 'Imprimer / enregistrer en PDF'}</button></div></Modal>}
-  </div>{sheet && printReady && sheet.shop.addressConfirmed && <div className="intake-sheet-print"><ShippingDocument sheet={sheet}/></div>}</PartActionsContext.Provider></ShippingContext.Provider>;
+  </div>{sheet && printReady && sheet.shop.addressConfirmed && <div className="intake-sheet-print"><ShippingDocument sheet={sheet}/></div>}</PartActionsContext.Provider></ShippingContext.Provider></ProposalActionsContext.Provider>;
 }

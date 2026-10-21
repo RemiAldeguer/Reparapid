@@ -1,0 +1,22 @@
+.proposal-admin {--border:var(--line);--bg:#faf8f5;--accent:var(--green);display:grid;gap:20px;min-width:0}
+.proposal-admin p {margin:0;line-height:1.65;overflow-wrap:anywhere}
+.proposal-admin-intro {color:var(--muted)}
+.proposal-admin-published {border:1px solid var(--border);border-radius:12px;padding:20px;background:var(--bg);display:grid;gap:14px}
+.proposal-admin-published small {color:var(--muted)}
+.proposal-admin-amounts {display:flex;flex-wrap:wrap;gap:18px 32px;margin:0}
+.proposal-admin-amounts dt {font-size:12px;color:var(--muted);margin-bottom:5px}
+.proposal-admin-amounts dd {margin:0;font-size:21px;font-weight:750}
+.proposal-admin-operation {display:grid;gap:16px;border-top:1px solid var(--border);padding-top:20px}
+.proposal-admin-operation h3 {display:flex;align-items:center;gap:8px;margin:0}
+.proposal-admin-operation summary {cursor:pointer;font-weight:600}
+.proposal-admin-operation details p {margin-top:12px}
+.proposal-admin-success {color:#226344}
+.proposal-admin-form {border-top:1px solid var(--border);padding-top:20px}
+.proposal-admin-form fieldset {border:0;padding:0;margin:0;min-width:0}
+.proposal-admin-form legend {font-weight:650;font-size:13px;margin-bottom:12px}
+.proposal-admin-options {display:flex;flex-wrap:wrap;gap:12px}
+.proposal-admin-options label {display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer}
+.proposal-admin input[type=radio],.proposal-admin input[type=checkbox] {width:18px;height:18px;flex:0 0 18px;accent-color:var(--accent)}
+.proposal-admin-checkbox {display:flex;align-items:center;gap:10px;font-weight:600}
+.proposal-admin .btn {max-width:100%;white-space:normal}
+@media(max-width:600px){.proposal-admin-published{padding:16px}.proposal-admin-options{flex-direction:column}.proposal-admin .button-row{align-items:stretch;flex-direction:column}}

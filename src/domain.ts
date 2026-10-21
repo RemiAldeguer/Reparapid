@@ -48,6 +48,14 @@ export interface PartUsage { id: string; partId: string; name: string; quantity:
 export interface Worklog { id: string; minutes: number; note: string; createdAt: string; }
 export interface RepairTest { id: string; label: string; result: TestResult; }
 export interface RepairPayment { amount: number; paidAt: string; }
+/** Explicit customer-facing terms, separate from internal notes, costs and repair receipts. */
+export interface RepairProposal {
+  id: string; kind: 'repair' | 'unrepairable'; description: string;
+  repairAmount: number | null; buybackAmount: number | null; returnFee: number; bankInstructions: string;
+  publishedAt: string; decision: 'pending' | 'repair' | 'return' | 'buyback'; decidedAt: string;
+  transferDeclaredAt: string; returnPaidAt: string; returnedAt: string; tracking: string; buybackCompletedAt: string;
+}
+export type RepairProposalInput = Pick<RepairProposal,'kind'|'description'|'repairAmount'|'buybackAmount'|'returnFee'|'bankInstructions'>;
 export interface Repair {
   id: string; code: string; consoleId: string; title: string; symptoms: string; diagnosis: string;
   stage: Stage; priority: Priority; dueDate: string; createdAt: string; updatedAt: string; completedAt: string;
@@ -56,6 +64,7 @@ export interface Repair {
   payment?: RepairPayment | null;
   clientParts?: ClientPartRequest[];
   publicRequestId?: string;
+  proposal?: RepairProposal;
 }
 export interface Activity {
   id: string; kind: 'created' | 'stage' | 'note' | 'part' | 'time' | 'test' | 'edit' | 'system' | 'photo';
@@ -99,6 +108,10 @@ export const cents = (n: number) => Math.round((n + Number.EPSILON)*100)/100;
 /** A manual intervention price overrides the hourly estimate, including a free intervention. */
 export const repairInterventionCost = (s: Store,r: Repair) => r.interventionCost ?? cents(totalMinutes(r)*s.settings.hourlyRate/60);
 export const repairTotalCost = (s: Store,r: Repair) => cents(partsCost(r)+repairInterventionCost(s,r));
+/** New website requests need a diagnostic response; historical repairs already in work stay compatible. */
+export const repairRequiresCustomerAgreement = (r: Repair): boolean => r.proposal?r.proposal.decision!=='repair':Boolean(r.publicRequestId&&['attente-envoi','reception','diagnostic'].includes(r.stage));
+/** An accepted customer quote fixes the charge independently of changing workshop costs. */
+export const repairChargeAmount = (s: Store,r: Repair): number => r.proposal?(r.proposal.kind==='repair'&&r.proposal.decision==='repair'?r.proposal.repairAmount!:0):repairTotalCost(s,r);
 /** Current costs of every customer repair, regardless of stage or recorded receipt. */
 export function theoreticalRepairRevenue(s: Store): {total: number; count: number} {
   const clientIds=new Set(s.clients.map(client=>client.id));
@@ -106,7 +119,7 @@ export function theoreticalRepairRevenue(s: Store): {total: number; count: numbe
   let totalCents=0,count=0;
   for(const repair of s.repairs) {
     if(!clientConsoleIds.has(repair.consoleId))continue;
-    totalCents+=Math.round(repairTotalCost(s,repair)*100);count++;
+    totalCents+=Math.round(repairChargeAmount(s,repair)*100);count++;
   }
   return {total:totalCents/100,count};
 }
@@ -117,7 +130,7 @@ export function completedRepairRevenue(s: Store): {total: number; count: number}
   let totalCents=0,count=0;
   for(const repair of s.repairs) {
     if(repair.stage!=='terminee'||!clientConsoleIds.has(repair.consoleId))continue;
-    totalCents+=Math.round(repairTotalCost(s,repair)*100);count++;
+    totalCents+=Math.round(repairChargeAmount(s,repair)*100);count++;
   }
   return {total:totalCents/100,count};
 }
@@ -142,6 +155,52 @@ function validPaymentAmount(value: unknown): value is number {
 }
 function validPaymentTimestamp(value: unknown): value is string {
   return typeof value==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value;
+}
+function proposalAmount(value: unknown): value is number {
+  return typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100000&&cents(value)===value;
+}
+function proposalText(value: unknown,max: number,required=false): string {
+  if(typeof value!=='string'||value.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)||required&&!value.trim())throw Error('Proposition : texte obligatoire manquant, invalide ou trop long.');
+  return value.trim();
+}
+function proposalInput(raw: unknown): RepairProposalInput {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Proposition de diagnostic invalide.');
+  const value=raw as Record<string,unknown>;
+  const fields=new Set(['kind','description','repairAmount','buybackAmount','returnFee','bankInstructions']);
+  if(Object.keys(value).some(key=>!fields.has(key)))throw Error('La proposition contient un champ non autorisé.');
+  if(value.kind!=='repair'&&value.kind!=='unrepairable')throw Error('Indiquez si la console est réparable ou irréparable.');
+  if(!proposalAmount(value.returnFee))throw Error('Les frais de retour doivent être compris entre 0 et 100 000 €, avec deux décimales maximum.');
+  if(value.kind==='repair'&&(!proposalAmount(value.repairAmount)||value.buybackAmount!==null))throw Error('La proposition de réparation exige un prix compris entre 0 et 100 000 €, avec deux décimales maximum, sans rachat.');
+  if(value.kind==='unrepairable'&&(value.repairAmount!==null||value.buybackAmount!==null&&!proposalAmount(value.buybackAmount)))throw Error('Une console irréparable ne peut avoir de prix de réparation ; le rachat facultatif doit être compris entre 0 et 100 000 €, avec deux décimales maximum.');
+  const description=proposalText(value.description,5000,true),bankInstructions=proposalText(value.bankInstructions,3000);
+  if(value.returnFee>0&&!bankInstructions)throw Error('Renseignez les coordonnées ou instructions de virement pour les frais de retour.');
+  return {kind:value.kind,description,repairAmount:value.repairAmount as number|null,buybackAmount:value.buybackAmount as number|null,returnFee:value.returnFee,bankInstructions};
+}
+/** Reject inconsistent saved choices instead of silently losing their commercial terms. */
+function validateRepairProposal(raw: unknown): RepairProposal {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Proposition de diagnostic invalide.');
+  const value=raw as Record<string,unknown>;
+  const terms=proposalInput({kind:value.kind,description:value.description,repairAmount:value.repairAmount,buybackAmount:value.buybackAmount,returnFee:value.returnFee,bankInstructions:value.bankInstructions});
+  if(typeof value.id!=='string'||value.id.length>120||!/^[A-Za-z0-9_-]+$/.test(value.id))throw Error('Identifiant de proposition invalide.');
+  if(!['pending','repair','return','buyback'].includes(value.decision as string))throw Error('Réponse à la proposition invalide.');
+  const stamp=(name: string,required=false):string=>{
+    const timestamp=value[name];
+    if(typeof timestamp!=='string'||(timestamp===''?required:!validPaymentTimestamp(timestamp)))throw Error('Horodatage de proposition invalide.');
+    return timestamp;
+  };
+  const result:RepairProposal={id:value.id,...terms,publishedAt:stamp('publishedAt',true),decision:value.decision as RepairProposal['decision'],decidedAt:stamp('decidedAt'),transferDeclaredAt:stamp('transferDeclaredAt'),returnPaidAt:stamp('returnPaidAt'),returnedAt:stamp('returnedAt'),tracking:proposalText(value.tracking,300),buybackCompletedAt:stamp('buybackCompletedAt')};
+  if((result.decision==='pending')!==!result.decidedAt)throw Error('La date de réponse doit correspondre au choix du client.');
+  if(result.decision==='repair'&&result.kind!=='repair')throw Error('Une console irréparable ne peut être acceptée pour réparation.');
+  if(result.decision==='buyback'&&(result.kind!=='unrepairable'||result.buybackAmount===null))throw Error('Aucune offre de rachat n’est disponible pour ce dossier.');
+  if(result.decision!=='return'&&(result.transferDeclaredAt||result.returnPaidAt||result.returnedAt||result.tracking))throw Error('Le suivi du retour exige une demande de retour du client.');
+  if(result.returnFee===0&&(result.transferDeclaredAt||result.returnPaidAt))throw Error('Un retour gratuit ne doit pas être enregistré comme un virement.');
+  if(result.returnedAt&&result.returnFee>0&&!result.returnPaidAt)throw Error('Le retour exige la confirmation du règlement des frais.');
+  if(Boolean(result.returnedAt)!==Boolean(result.tracking))throw Error('Le retour expédié exige une référence de suivi.');
+  if(result.buybackCompletedAt&&result.decision!=='buyback')throw Error('Le rachat doit être accepté avant sa finalisation.');
+  if(result.decidedAt&&result.decidedAt<result.publishedAt)throw Error('La réponse précède la proposition.');
+  for(const timestamp of [result.transferDeclaredAt,result.returnPaidAt,result.returnedAt,result.buybackCompletedAt])if(timestamp&&(!result.decidedAt||timestamp<result.decidedAt))throw Error('Le suivi du dossier précède la réponse du client.');
+  if(result.returnedAt&&result.returnPaidAt&&result.returnedAt<result.returnPaidAt)throw Error('L’expédition précède la réception du virement.');
+  return result;
 }
 export const consoleInvestment = (s: Store,c: ConsoleItem) => cents(c.purchasePrice+s.repairs.filter(r=>r.consoleId===c.id).reduce((a,r)=>a+partsCost(r),0));
 export const overdue = (r: Repair) => active(r) && !!r.dueDate && r.dueDate < today();
@@ -212,9 +271,10 @@ export function setRepairPayment(s: Store,repairId: string,paid: boolean): void 
   const c=s.consoles.find(x=>x.id===r.consoleId);if(!c)throw Error('Console introuvable.');
   const client=c.clientId?s.clients.find(x=>x.id===c.clientId):undefined;
   if(paid&&!client)throw Error('Associez la console à un client avant d’enregistrer son paiement.');
+  if(paid&&repairRequiresCustomerAgreement(r))throw Error('Le client doit accepter la réparation avant d’enregistrer son règlement.');
   validateStore(s);
   if(Boolean(r.payment)===paid)return;
-  const amount=paid?repairTotalCost(s,r):0;
+  const amount=paid?repairChargeAmount(s,r):0;
   if(paid&&!validPaymentAmount(amount))throw Error('Le montant payé doit être compris entre 0 et 1 000 000 000 €, avec deux décimales maximum.');
   const draft=structuredClone(s),next=draft.repairs.find(x=>x.id===repairId)!;
   const recordedAt=now();next.payment=paid?{amount,paidAt:recordedAt}:null;next.updatedAt=recordedAt;
@@ -226,6 +286,17 @@ export function moveRepair(s: Store,id: string,stage: Stage) {
   const r=s.repairs.find(x=>x.id===id); if(!r) throw Error('Dossier introuvable.');
   if(!STAGES.some(x=>x.id===stage)) throw Error('Étape inconnue.');
   if(r.stage===stage) return;
+  if(r.publicRequestId&&['attente-envoi','reception','diagnostic'].includes(r.stage)&&['attente-pieces','reparation','tests','terminee'].includes(stage)&&r.proposal?.decision!=='repair')throw Error('Publiez le diagnostic et attendez l’accord du client avant de lancer la réparation.');
+  if(r.publicRequestId&&r.stage==='diagnostic'&&!r.proposal&&['irreparable','abandonnee'].includes(stage))throw Error('Publiez le diagnostic pour laisser le client choisir le retour ou le rachat proposé.');
+  if(r.proposal){
+    const p=r.proposal;
+    if(p.decision==='pending')throw Error('La réponse du client à la proposition est attendue avant de changer d’étape.');
+    if(['attente-pieces','reparation','tests','terminee'].includes(stage)&&p.decision!=='repair')throw Error('Le client doit accepter la réparation avant sa prise en charge.');
+    if(p.decision==='return'||p.decision==='buyback'){
+      const closed=p.kind==='repair'?'abandonnee':'irreparable';
+      if(stage!==closed)throw Error('Le choix de retour ou de rachat du client ne permet plus de rouvrir cette réparation.');
+    }
+  }
   const c=s.consoles.find(x=>x.id===r.consoleId)!;
   if(!['terminee','abandonnee','irreparable'].includes(stage)) {
     if(c.archived) throw Error('Restaurez d’abord cette console dans l’inventaire.');
@@ -246,6 +317,93 @@ export function moveRepair(s: Store,id: string,stage: Stage) {
   const anotherOpen=s.repairs.find(x=>x.id!==r.id&&x.consoleId===c.id&&active(x));
   c.state=anotherOpen?(anotherOpen.stage==='attente-envoi'?'en-panne':'en-reparation'):stage==='terminee'?'fonctionnelle':stage==='irreparable'?'pour-pieces':stage==='abandonnee'||stage==='attente-envoi'?'en-panne':'en-reparation';
   addEvent(s,`${previous} → ${stageInfo(stage).label}`, 'stage',{consoleId:c.id,repairId:r.id});
+}
+/** Apply a proposal action atomically while keeping existing repair/console object references. */
+function proposalMutation(s: Store,id: string,mutate: (draft: Store,r: Repair)=>boolean): boolean {
+  const repair=s.repairs.find(item=>item.id===id);if(!repair)throw Error('Dossier introuvable.');
+  const consoleItem=s.consoles.find(item=>item.id===repair.consoleId);
+  if(!consoleItem?.clientId||!s.clients.some(item=>item.id===consoleItem.clientId))throw Error('Associez la console à un client avant de publier ou traiter sa proposition.');
+  validateStore(s);
+  const draft=structuredClone(s),next=draft.repairs.find(item=>item.id===id)!;
+  if(!mutate(draft,next))return false;
+  validateStore(draft);
+  Object.assign(repair,next);Object.assign(consoleItem,draft.consoles.find(item=>item.id===consoleItem.id)!);s.events=draft.events;
+  return true;
+}
+function currentProposal(r: Repair,proposalId: string): RepairProposal {
+  if(!r.proposal||typeof proposalId!=='string'||r.proposal.id!==proposalId)throw Error('Cette proposition a changé. Actualisez le dossier avant de répondre.');
+  return r.proposal;
+}
+function proposalEvent(s: Store,r: Repair,text: string) {
+  r.updatedAt=now();
+  addEvent(s,text,'edit',{repairId:r.id,consoleId:r.consoleId,clientId:s.consoles.find(item=>item.id===r.consoleId)!.clientId});
+}
+/** Only unanswered terms can be replaced; accepted commercial terms remain immutable. */
+export function publishRepairProposal(s: Store,id: string,input: RepairProposalInput): boolean {
+  const terms=proposalInput(input);
+  return proposalMutation(s,id,(draft,r)=>{
+    if(r.stage!=='diagnostic')throw Error('Passez le dossier en diagnostic avant de publier une proposition.');
+    if(r.payment)throw Error('Un règlement de réparation est déjà enregistré ; annulez-le avant de publier de nouvelles conditions.');
+    if(r.proposal&&r.proposal.decision!=='pending')throw Error('Le client a déjà répondu : sa proposition ne peut plus être modifiée.');
+    if(r.proposal&&Object.entries(terms).every(([key,value])=>r.proposal![key as keyof RepairProposal]===value))return false;
+    r.proposal={id:uid(),...terms,publishedAt:now(),decision:'pending',decidedAt:'',transferDeclaredAt:'',returnPaidAt:'',returnedAt:'',tracking:'',buybackCompletedAt:''};
+    proposalEvent(draft,r,terms.kind==='repair'?`Proposition de réparation publiée au client : ${money(terms.repairAmount!)}.`:terms.buybackAmount===null?'Diagnostic irréparable publié : retour proposé au client.':`Diagnostic irréparable publié : rachat pour pièces proposé à ${money(terms.buybackAmount)}.`);
+    return true;
+  });
+}
+/** A response concerns one exact version and cannot be changed by another click or stale page. */
+export function decideRepairProposal(s: Store,id: string,proposalId: string,decision: 'repair'|'return'|'buyback'): boolean {
+  if(!['repair','return','buyback'].includes(decision))throw Error('Choisissez la réparation, le retour ou le rachat proposé.');
+  return proposalMutation(s,id,(draft,r)=>{
+    const p=currentProposal(r,proposalId);
+    if(p.decision===decision)return false;
+    if(p.decision!=='pending')throw Error('Une réponse définitive a déjà été enregistrée pour cette proposition.');
+    if(decision==='repair'&&p.kind!=='repair')throw Error('Cette console est déclarée irréparable.');
+    if(decision==='buyback'&&(p.kind!=='unrepairable'||p.buybackAmount===null))throw Error('Aucune offre de rachat n’est disponible pour ce dossier.');
+    p.decision=decision;p.decidedAt=now();
+    if(decision!=='repair')moveRepair(draft,r.id,p.kind==='repair'?'abandonnee':'irreparable');
+    proposalEvent(draft,r,decision==='repair'?`Le client accepte la réparation proposée à ${money(p.repairAmount!)}.`:decision==='return'?'Le client demande le retour de sa console.':`Le client accepte le rachat pour pièces proposé à ${money(p.buybackAmount!)}.`);
+    return true;
+  });
+}
+/** This is a customer declaration, never proof that funds have reached the shop. */
+export function declareRepairReturnTransfer(s: Store,id: string,proposalId: string): boolean {
+  return proposalMutation(s,id,(draft,r)=>{
+    const p=currentProposal(r,proposalId);
+    if(p.decision!=='return')throw Error('Demandez d’abord le retour de la console.');
+    if(p.returnFee===0)throw Error('Aucun virement n’est nécessaire pour ce retour gratuit.');
+    if(p.transferDeclaredAt||p.returnPaidAt)return false;
+    p.transferDeclaredAt=now();proposalEvent(draft,r,'Le client déclare avoir effectué le virement des frais de retour ; réception à confirmer par le magasin.');return true;
+  });
+}
+/** Only the shop confirms a received return transfer; repair receipts stay separate. */
+export function confirmRepairReturnPayment(s: Store,id: string,proposalId: string): boolean {
+  return proposalMutation(s,id,(draft,r)=>{
+    const p=currentProposal(r,proposalId);
+    if(p.decision!=='return')throw Error('Le client doit demander le retour avant son règlement.');
+    if(p.returnFee===0)throw Error('Ce retour gratuit ne nécessite aucun règlement.');
+    if(p.returnPaidAt)return false;
+    p.returnPaidAt=now();proposalEvent(draft,r,`Virement des frais de retour confirmé reçu par le magasin : ${money(p.returnFee)}.`);return true;
+  });
+}
+export function dispatchRepairReturn(s: Store,id: string,proposalId: string,tracking: string): boolean {
+  const reference=proposalText(tracking,300,true);
+  return proposalMutation(s,id,(draft,r)=>{
+    const p=currentProposal(r,proposalId);
+    if(p.decision!=='return')throw Error('Le client doit demander le retour avant l’expédition.');
+    if(p.returnedAt){if(p.tracking===reference)return false;throw Error('Le retour est déjà enregistré comme expédié.');}
+    if(p.returnFee>0&&!p.returnPaidAt)throw Error('Confirmez la réception du virement des frais de retour avant l’expédition.');
+    p.returnedAt=now();p.tracking=reference;proposalEvent(draft,r,`Retour de la console expédié. Suivi : ${reference}`);return true;
+  });
+}
+/** A completed buyback records the shop action without inventing payment or stock movements. */
+export function completeRepairBuyback(s: Store,id: string,proposalId: string): boolean {
+  return proposalMutation(s,id,(draft,r)=>{
+    const p=currentProposal(r,proposalId);
+    if(p.decision!=='buyback')throw Error('Le client doit accepter le rachat avant sa finalisation.');
+    if(p.buybackCompletedAt)return false;
+    p.buybackCompletedAt=now();proposalEvent(draft,r,`Rachat pour pièces finalisé par le magasin au montant accepté de ${money(p.buybackAmount!)}.`);return true;
+  });
 }
 function repairDeletionText(r: Repair): string {
   const consumed=r.parts.length?` Pièces déjà utilisées : ${r.parts.reduce((quantity,p)=>quantity+p.quantity,0)} unité(s), ${money(partsCost(r))}. Le stock reste déduit.`:'';
@@ -530,6 +688,9 @@ export function validateStore(raw: unknown): Store {
     if(!validPaymentTimestamp(p.paidAt))return fail('horodatage de paiement invalide');
     return {amount:p.amount,paidAt:p.paidAt};
   };
+  const proposal=(x:unknown):RepairProposal=>{
+    try{return validateRepairProposal(x);}catch(error){return fail(error instanceof Error?error.message:'proposition de diagnostic invalide');}
+  };
   const clientParts=(x:unknown):ClientPartRequest[]=>arr(x,100).map(value=>{
     const p=rec(value),quantity=num(p.quantity,true);
     if(quantity<1||quantity>1000)return fail('quantité de pièce client hors limites');
@@ -544,7 +705,7 @@ export function validateStore(raw: unknown): Store {
   s.clients=(v.clients===undefined?[]:arr(v.clients)).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),name:required(c.name,200),email:email(c.email),phone:str(c.phone,80),address:str(c.address,1000),notes:str(c.notes),createdAt:timestamp(c.createdAt)};});
   s.consoles=arr(v.consoles).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),clientId:optionalId(c.clientId),brand:required(c.brand,80),model:required(c.model,120),variant:str(c.variant,150),serial:str(c.serial,100),state:one(c.state,Object.keys(STATES) as ConsoleState[]),condition:str(c.condition,80),acquiredAt:day(c.acquiredAt),purchasePrice:num(c.purchasePrice),estimatedValue:num(c.estimatedValue),source:str(c.source,200),location:str(c.location,200),accessories:str(c.accessories),notes:str(c.notes),illustration:one(c.illustration,['gameboy','snes','playstation','megadrive','dreamcast','switch','gamegear'] as const),photos:photos(c.photos),archived:flag(c.archived),createdAt:timestamp(c.createdAt)};});
   s.parts=arr(v.parts).map(y=>{const p=rec(y);return{id:id(p.id),reference:required(p.reference,80),name:required(p.name,200),category:str(p.category,80),compatibility:str(p.compatibility,500),quantity:num(p.quantity,true),threshold:num(p.threshold,true),unitCost:num(p.unitCost),location:str(p.location,200),supplier:str(p.supplier,200)};});
-  s.repairs=arr(v.repairs).map(y=>{const r=rec(y);return{id:id(r.id),code:required(r.code,40),consoleId:id(r.consoleId),title:required(r.title,200),symptoms:str(r.symptoms),diagnosis:str(r.diagnosis),stage:one(r.stage,STAGES.map(x=>x.id)),priority:one(r.priority,Object.keys(PRIORITIES) as Priority[]),dueDate:day(r.dueDate),createdAt:timestamp(r.createdAt),updatedAt:timestamp(r.updatedAt),completedAt:timestamp(r.completedAt,true),timerStartedAt:timestamp(r.timerStartedAt,true),...(r.interventionCost===undefined?{}:{interventionCost:interventionCost(r.interventionCost)}),...(r.payment===undefined?{}:{payment:payment(r.payment)}),...(r.clientParts===undefined?{}:{clientParts:clientParts(r.clientParts)}),...(r.publicRequestId===undefined?{}:{publicRequestId:publicRequestId(r.publicRequestId)}),photos:photos(r.photos),parts:arr(r.parts).map(y=>{const p=rec(y);const q=num(p.quantity,true);if(q<1)fail('quantité utilisée nulle');return{id:id(p.id),partId:id(p.partId),name:required(p.name,200),quantity:q,unitCost:num(p.unitCost),usedAt:timestamp(p.usedAt)};}),worklogs:arr(r.worklogs).map(y=>{const w=rec(y);return{id:id(w.id),minutes:num(w.minutes,true),note:str(w.note,1000),createdAt:timestamp(w.createdAt)};}),tests:arr(r.tests,100).map(y=>{const t=rec(y);return{id:id(t.id),label:required(t.label,300),result:one(t.result,['pending','pass','fail','na'] as const)};})};});
+  s.repairs=arr(v.repairs).map(y=>{const r=rec(y);return{id:id(r.id),code:required(r.code,40),consoleId:id(r.consoleId),title:required(r.title,200),symptoms:str(r.symptoms),diagnosis:str(r.diagnosis),stage:one(r.stage,STAGES.map(x=>x.id)),priority:one(r.priority,Object.keys(PRIORITIES) as Priority[]),dueDate:day(r.dueDate),createdAt:timestamp(r.createdAt),updatedAt:timestamp(r.updatedAt),completedAt:timestamp(r.completedAt,true),timerStartedAt:timestamp(r.timerStartedAt,true),...(r.interventionCost===undefined?{}:{interventionCost:interventionCost(r.interventionCost)}),...(r.payment===undefined?{}:{payment:payment(r.payment)}),...(r.clientParts===undefined?{}:{clientParts:clientParts(r.clientParts)}),...(r.publicRequestId===undefined?{}:{publicRequestId:publicRequestId(r.publicRequestId)}),...(r.proposal===undefined?{}:{proposal:proposal(r.proposal)}),photos:photos(r.photos),parts:arr(r.parts).map(y=>{const p=rec(y);const q=num(p.quantity,true);if(q<1)fail('quantité utilisée nulle');return{id:id(p.id),partId:id(p.partId),name:required(p.name,200),quantity:q,unitCost:num(p.unitCost),usedAt:timestamp(p.usedAt)};}),worklogs:arr(r.worklogs).map(y=>{const w=rec(y);return{id:id(w.id),minutes:num(w.minutes,true),note:str(w.note,1000),createdAt:timestamp(w.createdAt)};}),tests:arr(r.tests,100).map(y=>{const t=rec(y);return{id:id(t.id),label:required(t.label,300),result:one(t.result,['pending','pass','fail','na'] as const)};})};});
   s.events=arr(v.events,100000).map(y=>{const e=rec(y);return{id:id(e.id),kind:one(e.kind,['created','stage','note','part','time','test','edit','system','photo'] as const),text:str(e.text),createdAt:timestamp(e.createdAt),...(e.consoleId?{consoleId:id(e.consoleId)}:{}),...(e.repairId?{repairId:id(e.repairId)}:{}),...(e.clientId===undefined||e.clientId===''?{}:{clientId:id(e.clientId)})};});
   function unique(items:{id:string}[]) {const ids=new Set(items.map(x=>x.id));if(ids.size!==items.length)fail('identifiants dupliqués');return ids;}
   const clients=unique(s.clients),consoles=unique(s.consoles),parts=unique(s.parts),repairs=unique(s.repairs);unique(s.events);
@@ -552,6 +713,17 @@ export function validateStore(raw: unknown): Store {
   for(const repair of s.repairs)for(const request of repair.clientParts??[]){if(clientPartIds.has(request.id))fail('identifiants de pièces client dupliqués');clientPartIds.add(request.id);}
   const publicRequests=new Set<string>();
   for(const repair of s.repairs)if(repair.publicRequestId){const owner=s.consoles.find(console=>console.id===repair.consoleId)?.clientId;if(!owner)fail('demande publique sans client');const key=owner+':'+repair.publicRequestId;if(publicRequests.has(key))fail('identifiants de demandes publiques dupliqués pour un client');publicRequests.add(key);}
+  const proposalIds=new Set<string>();
+  // Receipts saved before diagnostic proposals existed remain readable and can be cancelled explicitly.
+  for(const repair of s.repairs)if(repair.proposal&&repair.payment&&repairRequiresCustomerAgreement(repair))fail('règlement de réparation sans accord du client');
+  for(const repair of s.repairs)if(repair.proposal){
+    const p=repair.proposal,owner=s.consoles.find(console=>console.id===repair.consoleId)?.clientId;
+    if(!owner||!clients.has(owner))fail('proposition de diagnostic sans client');
+    if(proposalIds.has(p.id))fail('identifiants de propositions dupliqués');proposalIds.add(p.id);
+    if(p.decision==='pending'&&repair.stage!=='diagnostic')fail('proposition sans réponse hors diagnostic');
+    if((p.decision==='return'||p.decision==='buyback')&&repair.stage!==(p.kind==='repair'?'abandonnee':'irreparable'))fail('étape incohérente avec le choix de retour ou de rachat');
+    if(repair.payment&&(p.decision!=='repair'||repair.payment.amount!==p.repairAmount))fail('règlement de réparation incohérent avec la proposition acceptée');
+  }
   if(new Set(s.clients.map(c=>c.code)).size!==s.clients.length||new Set(s.consoles.map(c=>c.code)).size!==s.consoles.length||new Set(s.repairs.map(r=>r.code)).size!==s.repairs.length)fail('numéros de dossier dupliqués');
   if(new Set(s.parts.map(p=>p.reference.toLowerCase())).size!==s.parts.length)fail('références de pièces dupliquées');
   const open=new Set<string>(),waitingShipment=new Set<string>();let timers=0;

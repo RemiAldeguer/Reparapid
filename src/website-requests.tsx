@@ -15,6 +15,7 @@ const requestGroups: {id: RequestGroup; label: string; description: string; icon
 ];
 
 function requestGroup(repair: Repair): Exclude<RequestGroup, 'all'> {
+  if (repair.proposal?.decision === 'return' && !repair.proposal.returnedAt || repair.proposal?.decision === 'buyback' && !repair.proposal.buybackCompletedAt) return 'processing';
   if (repair.stage === 'attente-envoi') return 'waiting';
   if (repair.stage === 'terminee') return 'ready';
   return active(repair) ? 'processing' : 'closed';
@@ -59,7 +60,8 @@ export function WebsiteRequests() {
   }
 
   function applyNext(repair: Repair) {
-    const action = nextAction[repair.stage];
+    if(repair.stage==='diagnostic'&&repair.proposal?.decision!=='repair'){go('/repairs/'+repair.id);return;}
+    const action = repair.stage==='diagnostic'&&repair.proposal?.decision!=='repair' ? {stage:'diagnostic' as Stage,label:repair.proposal?'Voir la proposition':'Préparer la proposition',icon:'note'} : nextAction[repair.stage];
     if (!action) return;
     if (action.stage === 'reception') {
       ask({title: 'La console est-elle reçue ?', body: `Confirmez la réception physique de la console du dossier ${repair.code} au magasin. La demande passera en Réception, avant le diagnostic.`, label: 'Confirmer la réception', run: () => advance(repair, 'reception')});
@@ -100,14 +102,14 @@ export function WebsiteRequests() {
           <tbody>{rows.map(repair => {
             const item = consoles.get(repair.consoleId);
             const client = item?.clientId ? clients.get(item.clientId) : undefined;
-            const action = nextAction[repair.stage];
+            const action = repair.stage==='diagnostic'&&repair.proposal?.decision!=='repair' ? {stage:'diagnostic' as Stage,label:repair.proposal?'Voir la proposition':'Préparer la proposition',icon:'note'} : nextAction[repair.stage];
             const stage = stageInfo(repair.stage);
             return <tr key={repair.id} aria-label={`Demande ${repair.code}`}>
               <th scope="row"><div className="website-request-list-console"><div className="website-request-art">{item ? item.photos.length ? <ConsoleVisual item={item} small/> : <ShopConsoleArt item={item}/> : <Icon name="gamepad" size={26}/>}</div><div><button type="button" className="website-request-list-title" onClick={() => go('/repairs/' + repair.id)}>{item ? [item.brand, item.model].join(' ') : repair.title}</button><span className="mono">{repair.code}</span>{item?.variant && <small>{item.variant}</small>}{item?.serial && <small>N° de série : {item.serial}</small>}</div></div></th>
               <td><div className="website-request-list-client">{client ? <><button type="button" className="text-link" onClick={() => go('/clients/' + client.id)}>{client.name}<Icon name="right" size={12}/></button>{client.email && <a href={`mailto:${encodeURIComponent(client.email)}`}>{client.email}</a>}{client.phone && <a href={`tel:${client.phone.replace(/\s/g, '')}`}>{client.phone}</a>}</> : <span>Client non renseigné</span>}</div></td>
               <td>{repair.symptoms.length > 130 ? <details className="website-request-list-symptoms"><summary aria-label={`Panne signalée du dossier ${repair.code}`}><span>{repair.symptoms}</span><small>Lire la panne<Icon name="down" size={12}/></small></summary><p>{repair.symptoms}</p></details> : <p className="website-request-list-short-symptoms">{repair.symptoms || 'Aucun symptôme renseigné.'}</p>}</td>
               <td className="website-request-list-dates"><time dateTime={repair.createdAt}>{dateFmt(repair.createdAt)}</time><small>{repair.completedAt ? 'Clôturée le' : 'Mise à jour le'}<time dateTime={repair.completedAt || repair.updatedAt}>{dateFmt(repair.completedAt || repair.updatedAt)}</time></small></td>
-              <td><Badge tone={stage.color}>{repair.stage === 'terminee' ? 'Prête à récupérer' : stage.label}</Badge>{repair.stage === 'terminee' && <span className="website-request-completed">Réparation terminée</span>}</td>
+              <td><Badge tone={stage.color}>{repair.proposal?.decision==='pending'?'Accord client attendu':repair.proposal?.decision==='return'?(repair.proposal.returnedAt?'Retour expédié':repair.proposal.returnFee>0&&!repair.proposal.returnPaidAt?'Virement retour attendu':'Retour à préparer'):repair.proposal?.decision==='buyback'?(repair.proposal.buybackCompletedAt?'Rachat finalisé':'Rachat à finaliser'):repair.stage === 'terminee' ? 'Prête à récupérer' : stage.label}</Badge>{repair.stage === 'terminee' && <span className="website-request-completed">Réparation terminée</span>}</td>
               <td><div className="website-request-list-actions"><button type="button" className="btn secondary" onClick={() => go('/repairs/' + repair.id)} aria-label={`Ouvrir le dossier ${repair.code}`}>Ouvrir le dossier<Icon name="arrow" size={14}/></button>{action && <button type="button" className="btn primary" onClick={() => applyNext(repair)} aria-label={`${action.label} · ${repair.code}`}><Icon name={action.icon} size={14}/>{action.label}</button>}</div></td>
             </tr>;
           })}</tbody>
@@ -116,10 +118,10 @@ export function WebsiteRequests() {
     </div> : <div className="website-request-grid">{rows.map(repair => {
       const item = consoles.get(repair.consoleId);
       const client = item?.clientId ? clients.get(item.clientId) : undefined;
-      const action = nextAction[repair.stage];
+      const action = repair.stage==='diagnostic'&&repair.proposal?.decision!=='repair' ? {stage:'diagnostic' as Stage,label:repair.proposal?'Voir la proposition':'Préparer la proposition',icon:'note'} : nextAction[repair.stage];
       const stage = stageInfo(repair.stage);
       return <article className="website-request-card" key={repair.id} aria-label={`Demande ${repair.code}`}>
-        <div className="website-request-card-top"><span className="mono">{repair.code}</span><Badge tone={stage.color}>{repair.stage === 'terminee' ? 'Prête à récupérer' : stage.label}</Badge></div>
+        <div className="website-request-card-top"><span className="mono">{repair.code}</span><Badge tone={stage.color}>{repair.proposal?.decision==='pending'?'Accord client attendu':repair.proposal?.decision==='return'?(repair.proposal.returnedAt?'Retour expédié':repair.proposal.returnFee>0&&!repair.proposal.returnPaidAt?'Virement retour attendu':'Retour à préparer'):repair.proposal?.decision==='buyback'?(repair.proposal.buybackCompletedAt?'Rachat finalisé':'Rachat à finaliser'):repair.stage === 'terminee' ? 'Prête à récupérer' : stage.label}</Badge></div>
         <div className="website-request-console"><div className="website-request-art">{item ? item.photos.length ? <ConsoleVisual item={item} small/> : <ShopConsoleArt item={item}/> : <Icon name="gamepad" size={35}/>}</div><div><h2><button type="button" onClick={() => go('/repairs/' + repair.id)}>{item ? [item.brand, item.model].join(' ') : repair.title}</button></h2>{item?.variant && <p>{item.variant}</p>}{item?.serial && <small>N° de série : {item.serial}</small>}{repair.stage === 'terminee' && <span className="website-request-completed">Réparation terminée</span>}</div></div>
         <div className="website-request-client"><Icon name="users" size={17}/>{client ? <button type="button" className="text-link" onClick={() => go('/clients/' + client.id)}>{client.name}<Icon name="right" size={13}/></button> : <span>Client non renseigné</span>}</div>
         {client && (client.email || client.phone) && <div className="website-request-contact">{client.email && <a href={`mailto:${encodeURIComponent(client.email)}`}><Icon name="mail" size={14}/>{client.email}</a>}{client.phone && <a href={`tel:${client.phone.replace(/\s/g, '')}`}><Icon name="phone" size={14}/>{client.phone}</a>}</div>}

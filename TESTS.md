@@ -4,9 +4,23 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-Documentation mise à jour le **19 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **21 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : nouvelle présentation des avis — 19 octobre 2026
+## Résultat courant : devis après diagnostic, retour et rachat — 21 octobre 2026
+
+Le domaine et les API Node/Worker couvrent publication/version, accord et refus, console HS avec ou sans rachat, retour gratuit/payant, déclaration de virement, confirmation magasin et suivi d’expédition. Le devis accepté est repris en facturation et en encaissement, indépendamment des coûts internes. Les anciens reçus sans proposition restent lisibles et annulables ; la création d’un nouveau reçu avant accord est refusée. Aucun faux paiement de réparation n’est créé pour les frais de retour ou le rachat.
+
+Les tests vérifient l’idempotence, les prix 0/absents/invalides, les offres remplacées, la conservation du stock et des coûts/reçus, la validation des dates/états, l’impossibilité d’expédier avant réception du virement, les consentements non transférables à une autre console ou un autre client, les anciens éditeurs, sessions révoquées et écritures concurrentes. Les API testent origine/CSRF, allowlists strictes, propriétaire étranger, contextes d’ateliers réellement provisionnés avec IDs identiques, taille UTF-8 maximale et bornes de suivi. Le diagnostic technique, les notes et les coordonnées bancaires avant choix de retour restent absents de la projection client.
+
+Recette sur **SQLite en mémoire**, un compte administrateur et un client fictifs, quatre dossiers : publication d’un devis de 89,90 €, acceptation confirmée et montant d’encaissement identique ; refus avec frais de 12,50 €, déclaration de virement sans validation automatique, confirmation magasin puis expédition avec suivi fictif ; rachat pour pièces de 25 € accepté et finalisé ; retour gratuit sans virement. La frise et les choix client reflètent les suites en attente, même après clôture technique du dossier. Aucun diagnostic interne visible dans le portail. Affichage client contrôlé à **1280, 390 et 320 px**, sans débordement. Le backoffice desktop conserve son identité RépaRapid. Capture client enregistrée hors dépôt.
+
+Compilation finale : **116 modules**, **137 fichiers publics** dont 123 pages de guides, TypeScript et contrôles des sources/assets réussis. Le warning historique du bundle supérieur à 500 kB reste présent. **593 tests réussis (548 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré. Les 36 scénarios de propositions API et les 25 nouveaux tests de propositions du domaine sont inclus dans cette suite.
+
+Serveur de recette arrêté : les quatre dossiers ont uniquement les choix attendus (devis accepté, retour expédié, rachat finalisé, retour gratuit en préparation), un seul client fictif et aucun paiement de réparation créé. Aucun e-mail, virement, rachat ou envoi réel. Onglets créés fermés et viewport réinitialisé.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets identiques au build, coordonnées publiques 200, cinq routes privées et les deux nouvelles actions de diagnostic refusées anonymement en 401. Le bundle publié contient le nouveau parcours ; la page de connexion magasin est vérifiée dans le navigateur. Aucune migration ni modification des données D1 de production.
+
+## Résultat précédent : nouvelle présentation des avis — 19 octobre 2026
 
 Présentation de la troisième section : fond crème, citations plus lisibles, bouton Google rouge, étoiles/notes propres à chaque carte et auteurs en pied. Les trois textes, dates, auteurs et notes sont conservés ; aucun score global ou total n’est ajouté. Aucun changement d’API, règle métier ou asset autorisé ; pas de relance métier pour ce design.
 

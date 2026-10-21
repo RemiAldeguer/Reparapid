@@ -8,6 +8,7 @@ export type Confirm={title:string;body:string;label?:string;destructive?:boolean
 export type SaveMode='edit'|'restore'|'reset';
 interface AppContextValue {
  data:Store; transact:(fn:(draft:Store)=>void,message?:string,mode?:SaveMode)=>boolean;
+ serverCommand:(url:string,body:Record<string,unknown>,message?:string)=>Promise<boolean>;
  notify:(message:string,error?:boolean)=>void; go:(path:string)=>void;
  edit:(value:EditModal)=>void; ask:(value:Confirm)=>void;
  exportData:()=>void; exportInventory:()=>void; storageError:string;
@@ -51,9 +52,25 @@ export function Provider({children,showToast,edit,ask}:{children:React.ReactNode
    return true;
   }catch(e){notify(e instanceof Error?e.message:'Modification invalide.',true);return false;}
  }
+ async function serverCommand(url:string,body:Record<string,unknown>,message?:string):Promise<boolean>{
+  if(!mounted.current)return false;
+  if(busy.current||failure||loading){notify('Une sauvegarde doit être terminée avant de continuer.',true);return false;}
+  busy.current=true;setPending(true);
+  const version=generation.current,controller=new AbortController();requests.current.add(controller);
+  const current=()=>mounted.current&&generation.current===version;
+  try{
+   const saved=validateStore(await api<Store>(url,{method:'POST',body:{...body,revision:ref.current.revision},signal:controller.signal}));
+   if(!current())return false;
+   ref.current=saved;setData(saved);if(message)notify(message);return true;
+  }catch(e){
+   if(current()&&e instanceof ApiError&&e.status===400){notify(e.message,true);return false;}
+   if(current())setFailure(e instanceof ApiError&&e.status===409?'Le dossier a changé dans une autre session. Rechargez les données avant de recommencer.':e instanceof Error?e.message:'Enregistrement non confirmé.');
+   return false;
+  }finally{requests.current.delete(controller);if(current()){busy.current=false;setPending(false);}}
+ }
  const go=(path:string)=>{location.hash=path;};
  function exportData(){const at=now();downloadFile(JSON.stringify({...ref.current,exportedAt:at},null,2),`reparapid-sauvegarde-${at.slice(0,10)}.json`);if(!failure&&!busy.current)transact(s=>{s.settings.lastExportAt=at;},'Sauvegarde JSON exportée. Conservez-la dans un endroit sûr.');}
  function exportInventory(){const s=ref.current;const rows=[['Référence','Client','Marque','Modèle','Variante','Numéro de série','État','État esthétique','Date d’acquisition','Achat EUR','Valeur estimée EUR','Investissement hors temps EUR','Emplacement','Provenance','Accessoires','Notes','Archivée'],...s.consoles.map(c=>[c.code,s.clients.find(client=>client.id===c.clientId)?.name||'Collection de l’atelier',c.brand,c.model,c.variant,c.serial,STATES[c.state],c.condition,c.acquiredAt,c.purchasePrice.toFixed(2).replace('.',','),c.estimatedValue.toFixed(2).replace('.',','),consoleInvestment(s,c).toFixed(2).replace('.',','),c.location,c.source,c.accessories,c.notes,c.archived?'Oui':'Non'])];downloadFile('\uFEFF'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'),`inventaire-reparapid-${now().slice(0,10)}.csv`,'text/csv;charset=utf-8');notify('Inventaire complet exporté au format CSV.');}
  if(loading||fatal)return <div className="recovery" role="status"><h1>{loading?'Ouverture de l’atelier…':'L’atelier est indisponible.'}</h1><p>{loading?'Lecture des données protégées sur le serveur.':fatal}</p>{!loading&&<button className="btn primary" onClick={()=>void load()}>Réessayer</button>}</div>;
- return <AppContext.Provider value={{data,transact,notify,go,edit,ask,exportData,exportInventory,storageError:failure}}><div inert={pending||!!failure}>{children}</div>{(pending||failure)&&<div className="auth-operation" role="dialog" aria-modal="true" aria-label="Sauvegarde serveur"><section className="auth-card"><h2>{pending?'Enregistrement sur le serveur…':'Enregistrement non confirmé'}</h2><p>{pending?'La modification est en cours de validation.':failure}</p>{!pending&&<><p>Votre brouillon reste disponible dans cette page. Exportez-le avant de recharger les données du serveur. Aucun remplacement automatique ne sera effectué.</p><div className="button-row"><button className="btn primary" onClick={()=>downloadFile(JSON.stringify(ref.current,null,2),'reparapid-brouillon.json')}>Exporter le brouillon</button><button className="btn secondary" onClick={()=>{if(window.confirm('Recharger les données du serveur ? Le brouillon de cette page sera abandonné.'))void load();}}>Recharger le serveur</button></div></>}</section></div>}</AppContext.Provider>;
+ return <AppContext.Provider value={{data,transact,serverCommand,notify,go,edit,ask,exportData,exportInventory,storageError:failure}}><div inert={pending||!!failure}>{children}</div>{(pending||failure)&&<div className="auth-operation" role="dialog" aria-modal="true" aria-label="Sauvegarde serveur"><section className="auth-card"><h2>{pending?'Enregistrement sur le serveur…':'Enregistrement non confirmé'}</h2><p>{pending?'La modification est en cours de validation.':failure}</p>{!pending&&<><p>Votre brouillon reste disponible dans cette page. Exportez-le avant de recharger les données du serveur. Aucun remplacement automatique ne sera effectué.</p><div className="button-row"><button className="btn primary" onClick={()=>downloadFile(JSON.stringify(ref.current,null,2),'reparapid-brouillon.json')}>Exporter le brouillon</button><button className="btn secondary" onClick={()=>{if(window.confirm('Recharger les données du serveur ? Le brouillon de cette page sera abandonné.'))void load();}}>Recharger le serveur</button></div></>}</section></div>}</AppContext.Provider>;
 }
