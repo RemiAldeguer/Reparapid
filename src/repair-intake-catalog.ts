@@ -19,6 +19,7 @@ export const INTAKE_MODELS: readonly IntakeModel[] = [
   {id:'switch',brand:'Nintendo',model:'Switch',family:'Nintendo Switch',illustration:'switch'},
   {id:'switch-oled',brand:'Nintendo',model:'Switch OLED',family:'Nintendo Switch',illustration:'switch'},
   {id:'switch-lite',brand:'Nintendo',model:'Switch Lite',family:'Nintendo Switch',illustration:'switch'},
+  {id:'xbox-series',brand:'Microsoft',model:'Xbox Series',family:'Xbox',illustration:'playstation'},
   {id:'xbox-series-x',brand:'Microsoft',model:'Xbox Series X',family:'Xbox',illustration:'playstation'},
   {id:'xbox-series-s',brand:'Microsoft',model:'Xbox Series S',family:'Xbox',illustration:'playstation'},
   {id:'xbox-one',brand:'Microsoft',model:'Xbox One',family:'Xbox',illustration:'playstation'},
@@ -42,6 +43,26 @@ export const INTAKE_MODELS: readonly IntakeModel[] = [
   {id:'game-gear',brand:'Sega',model:'Game Gear',family:'Consoles rétro',illustration:'gamegear'},
   {id:'other',brand:'Autre',model:'Autre console',family:'Autre',illustration:'gameboy'},
 ];
+
+export interface IntakeModelGroup extends IntakeModel {modelIds: readonly string[];}
+const modelVariants: Readonly<Record<string, readonly string[]>> = {
+  ps5: ['ps5', 'ps5-digital', 'ps5-slim', 'ps5-pro'],
+  ps4: ['ps4', 'ps4-slim', 'ps4-pro'],
+  switch: ['switch', 'switch-oled', 'switch-lite'],
+  'xbox-series': ['xbox-series', 'xbox-series-x', 'xbox-series-s'],
+  'xbox-one': ['xbox-one', 'xbox-one-s', 'xbox-one-x'],
+  '3ds': ['3ds', '3ds-xl'],
+};
+const generalModelNames: Readonly<Record<string, string>> = {
+  '3ds': '3DS', '2ds': '2DS', ds: 'DS',
+  'game-boy': 'Game Boy', 'game-boy-advance': 'Game Boy Advance',
+};
+const variantIds = new Set(Object.entries(modelVariants).flatMap(([general, ids]) => ids.filter(id => id !== general)));
+/** Recognition comes first; exact variants remain optional on the fault step. */
+export const INTAKE_MODEL_GROUPS: readonly IntakeModelGroup[] = INTAKE_MODELS
+  .filter(model => !variantIds.has(model.id))
+  .map(model => ({...model, model: generalModelNames[model.id] || model.model, modelIds: modelVariants[model.id] || [model.id]}));
+export const intakeModelGroup = (modelId: string): IntakeModelGroup | undefined => INTAKE_MODEL_GROUPS.find(group => group.modelIds.includes(modelId));
 
 const STARTUP='La console ne s’allume plus';
 const DIGITAL_MODELS=new Set(['ps5-digital','ps5-pro','xbox-series-s']);

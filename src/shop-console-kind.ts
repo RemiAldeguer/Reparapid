@@ -13,7 +13,7 @@ export function shopConsoleKind(item: ShopConsoleItem): string {
   if (/psp|playstation portable/.test(model)) return 'psp';
   if (/playstation|ps\s*1/.test(model)) return 'ps1';
   if (/switch/.test(model)) return /lite/.test(model) ? 'switch-lite' : /oled/.test(model) ? 'switch-oled' : /switch\s*2/.test(model) ? 'switch-2' : 'switch';
-  if (/xbox/.test(model)) return /series\s*s/.test(model) ? 'xbox-series-s' : /series\s*x/.test(model) ? 'xbox-series-x' : /360/.test(model) ? 'xbox-360' : /one\s*s/.test(model) ? 'xbox-one-s' : /one\s*x/.test(model) ? 'xbox-one-x' : 'xbox-one';
+  if (/xbox/.test(model)) return /series\s*s/.test(model) ? 'xbox-series-s' : /series/.test(model) ? 'xbox-series-x' : /360/.test(model) ? 'xbox-360' : /one\s*s/.test(model) ? 'xbox-one-s' : /one\s*x/.test(model) ? 'xbox-one-x' : 'xbox-one';
   if (/wii\s*u/.test(model)) return 'wii-u';
   if (/wii/.test(model)) return 'wii';
   if (/game\s*cube/.test(model)) return 'gamecube';

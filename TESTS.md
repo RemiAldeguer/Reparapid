@@ -6,7 +6,19 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **22 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : en-tête allégé — 22 octobre 2026
+## Résultat courant : modèle général puis version facultative — 22 octobre 2026
+
+L’accueil et la première étape affichent **27 modèles généraux**, sans sous-modèles. Les versions connues sont choisies à l’étape 2 **Version et panne**, avec **Je ne sais pas** par défaut. Les recherches par variante retrouvent le modèle général ; les anciens liens de variantes restent valides. Un nouveau modèle générique **Xbox Series** évite d’inventer X ou S lorsqu’on ne sait pas. Les 38 anciens identifiants restent valides, le catalogue partagé passe à 39. La section **À chaque console, sa prochaine partie** et le champ **Accessoires prévus** sont retirés ; le contrat/API et les accessoires des anciens dossiers sont préservés.
+
+**598 tests réussis (553 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré. Ils couvrent les regroupements sans mélange de générations, la couverture des modèles, les demandes génériques sans accessoires sur Node et Worker, les pannes incompatibles et les illustrations partagées atelier/vitrine. TypeScript et build final : **117 modules**, **137 fichiers publics**, dont 123 pages de guides. Le warning historique de bundle supérieur à 500 kB reste présent.
+
+Recette sur SQLite **en mémoire**, un client fictif et deux demandes : une **PlayStation 5 Slim** précisément choisie et une **Xbox Series** sans version. Les deux dossiers sont en attente d’envoi, sans accessoires ni paiement, sans montant de réparation défini. Le passage PS5 vers Digital retire le symptôme disque ; le passage Switch OLED vers Lite retire le dock et garde le symptôme de démarrage. Le retour à l’étape 1 garde seulement le modèle général sélectionné ; changer de modèle réinitialise version et symptômes. Navigation clavier des radios vérifiée, poursuite possible sans version. Aucun compte ni dossier réel utilisé.
+
+Affichage contrôlé à **1280, 390 et 320 px**, sans débordement : 27 choix généraux, zéro variante affichée sur l’accueil et zéro ancienne section. Les versions sont lisibles à l’étape 2 et le champ accessoires est absent. Le portail confirme les deux modèles réellement enregistrés. Serveur arrêté après vérification, onglet créé fermé et viewport réinitialisé.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et sept routes/actions privées 401. Contrôle sur le site publié : 27 choix, aucune variante dans les cartes d’accueil, ancienne section absente ; étape 2 avec version facultative et sans champ accessoires. Capture enregistrée hors dépôt. Aucune migration ni modification des données D1 de production.
+
+## Résultat précédent : en-tête allégé — 22 octobre 2026
 
 Retrait du sous-titre **par Maxxi Games · Le Kremlin-Bicêtre** dans l’en-tête partagé de la vitrine, avec une prop du composant de marque. Le logo RépaRapid, son nom accessible et le lien d’accueil sont conservés. La signature du pied de page et les tutoriels restent identiques ; le logo Maxxi Games et l’intitulé **L’atelier de réparation de** sont toujours présents dans la section d’accueil suivante. Aucun métier, API, donnée ou asset n’est modifié ; aucune relance de la suite métier pour ce changement visuel.
 

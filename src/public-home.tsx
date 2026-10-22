@@ -6,7 +6,7 @@ import {guideManifest} from './repair-guides-manifest.mjs';
 import type {RepairGuideFamily} from './repair-guides-types';
 export {ShopConsoleArt} from './shop-console-art';
 import {clientApi, type IntakeShop} from './client-api';
-import {INTAKE_MODELS} from './repair-intake-catalog';
+import {INTAKE_MODELS, INTAKE_MODEL_GROUPS} from './repair-intake-catalog';
 import {ConsolePickerSearch} from './home-console-select';
 import {HomeRepairJourneyArt} from './home-repair-journey-art';
 import './public-home.css';
@@ -25,7 +25,6 @@ function contactSectionLink(event: MouseEvent<HTMLAnchorElement>) {
 export function StorefrontShell({children, compact = false, enableIntake = true}: {children: ReactNode; compact?: boolean; enableIntake?: boolean}) {
   return <div className="reparapid-site"><a className="rp-skip" href="#rp-main" onClick={event => sectionLink(event, 'rp-main')}>Aller au contenu</a><div className="rp-topline"><Icon name="wrench" size={14}/><span>Réparation de consoles · Le Kremlin-Bicêtre</span><a href="#/connexion">Accès magasin<Icon name="right" size={13}/></a></div><header className="rp-header rp-shell"><ReparapidBrand showPartner={false}/><nav aria-label="Navigation du site">{!compact && <a href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche</a>}<a href="/guides/">Tutoriels</a><a href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contact</a><a href="#/espace-client"><Icon name="user" size={17}/>Mon compte</a>{enableIntake && <a className="rp-button rp-primary" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={16}/></a>}</nav></header>{children}<footer className="rp-footer"><div className="rp-shell rp-footer-inner"><div><ReparapidBrand/><p>Votre prochaine partie commence ici.</p></div><nav aria-label="Liens utiles">{enableIntake && <a href="#/demande-reparation">Demander une réparation</a>}<a href="/guides/">Tutoriels de réparation</a><a href="#/espace-client">Mon espace client</a><a href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contactez-nous</a><a href="#/connexion">Connexion magasin</a></nav><p className="rp-legal-note">Les marques et modèles servent à identifier votre console.<br/>Reparapid est un service indépendant des fabricants.</p></div></footer></div>;
 }
-const consoleFamilies = [{brand: 'Sony', model: 'PlayStation 5', label: 'PlayStation', note: 'PS5 · PS4 · PS3', theme: 'playstation'}, {brand: 'Nintendo', model: 'Nintendo Switch', label: 'Nintendo', note: 'Switch · Wii · consoles portables', theme: 'nintendo'}, {brand: 'Microsoft', model: 'Xbox Series X', label: 'Xbox', note: 'Series X|S · One · 360', theme: 'xbox'}];
 const googleReviewsUrl = 'https://www.google.com/maps/search/?api=1&query=Reparapid%20Le%20Kremlin-Bicetre&query_place_id=ChIJIxKphttx5kcRw7EU2fbERBg';
 const googleDirectionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=Reparapid%20Le%20Kremlin-Bicetre&destination_place_id=ChIJIxKphttx5kcRw7EU2fbERBg';
 const publishedContact: IntakeShop = {shopName: 'RépaRapid · Maxxi Games', address: '30 bis, avenue de Fontainebleau', postalCode: '94270', city: 'Le Kremlin-Bicêtre', phone: '01 58 46 82 51', email: 'contact@reparapid.fr', addressConfirmed: true};
@@ -128,8 +127,8 @@ function HomeRepairGuides() {
 function HomeConsolePicker() {
   const [modelId, setModelId] = useState(''), [validation, setValidation] = useState(false);
   const modelRef = useRef<HTMLInputElement>(null), errorId = useId(), helpId = useId();
-  const model = INTAKE_MODELS.find(item => item.id === modelId);
-  const modelLabel = (item: typeof INTAKE_MODELS[number]) => item.id === 'psp' ? 'PlayStation Portable (PSP)' : item.id === 'ps-vita' ? 'PlayStation Vita (PS Vita)' : ['Nintendo', 'Sega'].includes(item.brand) && !item.model.toLocaleLowerCase('fr').includes(item.brand.toLocaleLowerCase('fr')) ? `${item.brand} ${item.model}` : item.model;
+  const model = INTAKE_MODEL_GROUPS.find(item => item.id === modelId);
+  const modelLabel = (item: typeof INTAKE_MODEL_GROUPS[number]) => item.id === 'psp' ? 'PlayStation Portable (PSP)' : item.id === 'ps-vita' ? 'PlayStation Vita (PS Vita)' : ['Nintendo', 'Sega'].includes(item.brand) && !item.model.toLocaleLowerCase('fr').includes(item.brand.toLocaleLowerCase('fr')) ? `${item.brand} ${item.model}` : item.model;
   function chooseConsole(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!model) {setValidation(true); modelRef.current?.focus(); return;}
@@ -137,9 +136,9 @@ function HomeConsolePicker() {
   }
   return <form className="rp-home-picker" aria-labelledby="rp-home-picker-title" onSubmit={chooseConsole}>
     <div className="rp-home-picker-heading"><span aria-hidden="true">01</span><div><span>ON COMMENCE ICI</span><h2 id="rp-home-picker-title">Quelle console réparer ?</h2></div></div>
-    <p id={helpId} className="rp-home-picker-help">Tapez son nom ou reconnaissez votre console dans les images.</p>
+    <p id={helpId} className="rp-home-picker-help">Choisissez simplement votre console. Sa version pourra être précisée ensuite, si vous la connaissez.</p>
     <div className="rp-home-picker-fields">
-      <ConsolePickerSearch label="Votre console" placeholder="PS5, Switch, Xbox…" value={modelId} inputRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={INTAKE_MODELS.map(item => ({value:item.id,label:modelLabel(item),searchLabel:[item.brand, item.model, item.family, item.id, item.id.replace(/-/g, '')].join(' '),visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}}/>
+      <ConsolePickerSearch label="Votre console" placeholder="PS5, Switch, Xbox…" value={modelId} inputRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={INTAKE_MODEL_GROUPS.map(item => ({value:item.id,label:modelLabel(item),searchLabel:[item.brand, item.model, item.family, ...INTAKE_MODELS.filter(model => item.modelIds.includes(model.id)).flatMap(model => [model.model, model.id, model.id.replace(/-/g, '')])].join(' '),visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}}/>
     </div>
     {validation && <p id={errorId} className="rp-home-picker-validation" role="alert">Choisissez votre console dans la liste, ou « Autre console ».</p>}
     <button type="submit" className="rp-button rp-primary rp-home-picker-submit">Choisir la panne<Icon name="arrow" size={18}/></button>
@@ -176,7 +175,6 @@ export function PublicHome() {
     <HomeRepairJourney/>
     <GoogleReviews/>
     <div className="rp-trust-strip"><div className="rp-shell"><span><Icon name="gamepad" size={20}/>Consoles de salon & portables</span><span><Icon name="wrench" size={20}/>Diagnostic à l’atelier</span><span><Icon name="user" size={20}/>Suivi dans votre compte</span></div></div>
-    <section className="rp-devices rp-shell" id="rp-devices" tabIndex={-1}><div className="rp-section-heading"><div><span className="rp-eyebrow">ON COMMENCE PAR VOTRE CONSOLE</span><h2>À chaque console,<br/>sa prochaine partie.</h2></div><p>Choisissez le modèle dans le formulaire.<br/>Les pannes proposées s’adaptent à votre console.</p></div><div className="rp-device-grid">{consoleFamilies.map(item => <a href={`#/demande-reparation?marque=${encodeURIComponent(item.brand)}`} className={`rp-device-card ${item.theme}`} key={item.brand}><span className="rp-device-art"><ShopConsoleArt item={item}/></span><span className="rp-device-copy"><span><strong>{item.label}</strong><small>{item.note}</small></span><span className="rp-circle-arrow"><Icon name="arrow" size={20}/></span></span></a>)}</div><p className="rp-model-note">Votre modèle n’est pas dans la liste ? Vous pouvez le renseigner librement.</p></section>
     <StoreCommitments/>
     <section className="rp-shop rp-shell" aria-labelledby="rp-shop-title">
       <figure className="rp-shop-photo"><img src="/maxxi-games-atelier.jpg" width="1536" height="1154" alt="Le comptoir et l’espace de réparation de Maxxi Games, avec l’affiche Atelier de réparation." loading="lazy" decoding="async"/><figcaption><span>RÉPARAPID, CHEZ MAXXI GAMES</span><strong>Votre atelier au Kremlin-Bicêtre.</strong></figcaption></figure>

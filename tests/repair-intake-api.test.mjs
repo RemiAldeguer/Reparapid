@@ -101,6 +101,18 @@ async function fixture(t, platform, {store = emptyStore()} = {}) {
 }
 
 for (const platform of ['node', 'worker']) {
+  test(`${platform}: a console request can leave its exact version and accessories unspecified`, async t => {
+    const f=await fixture(t,platform);
+    const request=intake({modelId:'xbox-series'});delete request.accessories;
+    const result=await f.signup(registration({intake:request}));
+    assert.equal(result.status,201,JSON.stringify(result.data));
+    const store=f.read(),repair=store.repairs.find(item=>item.id===result.data.repairId);
+    const console=store.consoles.find(item=>item.id===repair.consoleId);
+    assert.equal(console.model,'Xbox Series');assert.equal(console.variant,'');assert.equal(console.accessories,'');
+    const portal=await f.request('/api/client/portal',result.auth);
+    assert.equal(portal.status,200);assert.equal(portal.data.consoles[0].model,'Xbox Series');
+    assert.equal(portal.data.repairs[0].stage,'attente-envoi');assert.equal(portal.data.repairs[0].totalCost,null);
+  });
   test(`${platform}: public signup creates an isolated customer, authenticated order and printable summary`, async t => {
     const store = emptyStore();
     const old = createClient(store, {...customer, name: 'Identité privée préexistante', notes: 'PRIVATE_OLD_NOTE'});

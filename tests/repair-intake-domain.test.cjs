@@ -2,10 +2,43 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const d=require('./.compiled/domain.cjs');
 const intake=require('./.compiled/repair-intake-domain.cjs');
+const catalogue=require('./.compiled/repair-intake-catalog.cjs');
 
 const input=(overrides={})=>({requestId:'e2d4e5bc-a5df-40dd-9245-8f2872ac0d30',modelId:'ps5',customModel:'',selectedFaults:[intake.faultSuggestions('ps5')[0]],description:'',serial:'',accessories:'',...overrides});
 const repairPackage=(overrides={})=>({id:'synthetic-package',modelId:'ps5',fault:intake.faultSuggestions('ps5')[0],label:'Intervention fictive',amount:27.15,priceMode:'fixed',includes:'Pièces et intervention fictives, sous réserve du diagnostic.',published:true,...overrides});
 function customerStore(){const store=d.emptyStore();const client=d.createClient(store,{name:'Client fictif',email:'client@example.invalid',phone:'',address:'Adresse fictive',notes:'Note privée'});return {store,client};}
+
+test('General console choices cover every supported model once without mixing hardware generations',()=>{
+  const groups=catalogue.INTAKE_MODEL_GROUPS;
+  const covered=groups.flatMap(group=>group.modelIds);
+  assert.equal(new Set(covered).size,covered.length);
+  assert.deepEqual([...covered].sort(),catalogue.INTAKE_MODELS.map(model=>model.id).sort());
+  for(const id of ['ps5-digital','ps5-slim','ps5-pro','ps4-slim','switch-oled','switch-lite','xbox-one-x','xbox-series-s','3ds-xl'])assert.ok(!groups.some(group=>group.id===id));
+  for(const [modelId,general] of [['ps5-pro','ps5'],['switch-lite','switch'],['switch-2','switch-2'],['wii-u','wii-u'],['xbox-series-s','xbox-series'],['3ds-xl','3ds']])assert.equal(catalogue.intakeModelGroup(modelId).id,general);
+  assert.equal(catalogue.intakeModelGroup('missing'),undefined);
+  assert.ok(groups.every(group=>!/[\/]|Slim|Digital|OLED|\bXL\b/.test(group.model)));
+});
+
+test('An unspecified console version is accepted without inventing an exact Xbox Series or accessories',()=>{
+  const {store,client}=customerStore();
+  const request=input({modelId:'xbox-series',selectedFaults:[intake.faultSuggestions('xbox-series')[0]]});
+  delete request.accessories;
+  const result=intake.createPublicRepair(store,client.id,request);
+  assert.equal(result.console.model,'Xbox Series');assert.equal(result.console.variant,'');assert.equal(result.console.accessories,'');
+  assert.equal(result.repair.stage,'attente-envoi');assert.equal(result.repair.interventionCost,null);
+  assert.equal(d.validateStore(store).consoles[0].model,'Xbox Series');
+});
+
+test('Refining a general console into a version keeps only that hardware’s valid faults',()=>{
+  for(const [general,exact,removed] of [['ps5','ps5-digital','Les disques ne sont plus lus'],['switch','switch-lite','Aucune image sur le téléviseur / problème de dock'],['xbox-series','xbox-series-s','Les disques ne sont plus lus']]){
+    const symptoms=intake.faultSuggestions(general);
+    assert.ok(symptoms.includes(removed));
+    const selected=symptoms.filter(fault=>intake.faultSuggestions(exact).includes(fault));
+    assert.ok(!selected.includes(removed));assert.ok(selected.includes(intake.faultSuggestions(exact)[0]));
+    assert.equal(intake.validateIntakeInput(input({modelId:exact,selectedFaults:selected})).modelId,exact);
+    assert.throws(()=>intake.validateIntakeInput(input({modelId:exact,selectedFaults:[removed]})));
+  }
+});
 
 test('Intake models have stable unique ids and fault suggestions fit handheld/digital equipment',()=>{
   assert.equal(new Set(intake.INTAKE_MODELS.map(model=>model.id)).size,intake.INTAKE_MODELS.length);

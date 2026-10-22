@@ -119,7 +119,7 @@ test('Nintendo home consoles and their controllers preserve independent colours 
 });
 
 test('Every intake catalogue model uses the same product silhouette in the workshop and storefront', () => {
-  assert.equal(INTAKE_MODELS.length, 38);
+  assert.equal(INTAKE_MODELS.length, 39);
   for (const item of INTAKE_MODELS) {
     const mapped = workshopConsoleArtItem(item);
     assert.ok(mapped, item.id);
@@ -131,7 +131,7 @@ test('Workshop model aliases resolve to storefront art without losing brand or v
   for (const [model, expected] of [
     ['PS 5 Digital Edition', 'ps5-digital'], ['PS5 Slim', 'ps5-slim'], ['PlayStation 5 Pro', 'ps5-pro'],
     ['PS4 Pro', 'ps4-pro'], ['PS2', 'ps2'], ['PS Vita', 'vita'], ['Sony PlayStation Portable', 'psp'],
-    ['Microsoft Xbox Series X', 'xbox-series-x'], ['Xbox Series S', 'xbox-series-s'], ['Xbox One S', 'xbox-one-s'],
+    ['Microsoft Xbox Series', 'xbox-series-x'], ['Microsoft Xbox Series X', 'xbox-series-x'], ['Xbox Series S', 'xbox-series-s'], ['Xbox One S', 'xbox-one-s'],
     ['Nintendo Switch OLED', 'switch-oled'], ['Switch 2', 'switch-2'], ['GameBoy Color', 'gameboy-color'],
     ['GBA SP', 'advance-sp'], ['New Nintendo 2DS XL', '2ds-xl'], ['New 3DS LL', '3ds-xl'],
     ['DS Lite', 'ds'], ['DSi XL', 'ds'], ['Super NES', 'snes'], ['Mega Drive II', 'megadrive'],

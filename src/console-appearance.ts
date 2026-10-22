@@ -143,7 +143,7 @@ export function workshopConsoleArtItem(item: ConsoleVisualItem): ShopConsoleItem
     megadrive: 'Mega Drive', dreamcast: 'Dreamcast', gamegear: 'Game Gear',
   };
   const modernSony = /(^|[^a-z0-9])(?:playstation[ -]*[1-5]|ps[ -]*[1-5]|(?:ps[ -]*)?vita)(?=$|[^a-z0-9])/.test(model);
-  const xbox = /(^|[^a-z0-9])xbox[ -]*(?:360|one|series[ -]*[sx])(?=$|[^a-z0-9])/.test(model);
+  const xbox = /(^|[^a-z0-9])xbox[ -]*(?:360|one|series(?:[ -]*[sx])?)(?=$|[^a-z0-9])/.test(model);
   if (!kind && !modernSony && !xbox && model !== 'autre console') return null;
   // The storefront's generic Xbox fallback is an Xbox One, never the original Xbox.
   if (/xbox/.test(model) && !xbox) return null;

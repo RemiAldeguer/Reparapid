@@ -28,7 +28,17 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : en-tête allégé — 22 octobre 2026
+## Dernière reprise : modèles généraux et version facultative — 22 octobre 2026
+
+L’accueil et l’étape 1 proposent **27 modèles généraux**, regroupés par `INTAKE_MODEL_GROUPS` dans `src/repair-intake-catalog.ts`. Les versions PS5/PS4, Switch, Xbox One/Series et les formats 3DS connus sont proposés dans `IntakeSubmodel`, à l’étape 2 **Version et panne**. Le choix **Je ne sais pas** est sélectionné par défaut ; la demande peut être envoyée sans préciser la version. Les générations Switch 2/Switch et Wii U/Wii restent distinctes. Les recherches par nom de variante remontent seulement son modèle général. Les anciens liens directs vers une variante la présélectionnent toujours à l’étape 2.
+
+Les 38 identifiants existants restent valides. **Xbox Series** (`xbox-series`) devient la 39e entrée du catalogue partagé afin de conserver honnêtement une version inconnue, sans inventer X ou S ; Node et Worker utilisent la même validation. Une silhouette représentative de la gamme est utilisée sur la vitrine et dans l’atelier. Aucun schéma ni migration D1. Le changement de version retire les symptômes incompatibles tout en gardant les symptômes communs, puis recalcule les forfaits affichés. Changer de modèle général réinitialise version et symptômes sélectionnés.
+
+Le champ **Accessoires prévus** est supprimé du formulaire ; les nouvelles demandes de cette interface envoient la valeur vide existante. Le contrat serveur et les accessoires des anciens dossiers sont conservés. Le numéro de série reste facultatif. La section **À chaque console, sa prochaine partie** est retirée de l’accueil ; parcours et avis conservent leurs deuxième et troisième places.
+
+Validation : **598 tests réussis (553 + 45 Cloudflare)**, TypeScript et build de **117 modules / 137 fichiers**. Recette avec deux demandes fictives en mémoire (PS5 Slim et Xbox Series sans version), contrôles à 1280/390/320 px, pannes filtrées, clavier et absence d’accessoires vérifiés. Publication contrôlée sur **100 % du trafic**, neuf assets conformes, API publique 200 et sept routes/actions privées 401. Aucun changement des données D1 ; serveur arrêté, onglet créé fermé et viewport réinitialisé. Voir [TESTS.md](TESTS.md).
+
+## Reprise précédente : en-tête allégé — 22 octobre 2026
 
 La signature **par Maxxi Games · Le Kremlin-Bicêtre** est retirée sous le nom RépaRapid dans l’en-tête partagé de la vitrine. `ReparapidBrand` accepte `showPartner` (vrai par défaut) ; `StorefrontShell` le passe à faux uniquement dans son header. Le logo, le nom, le lien et son nom accessible restent identiques. Le pied de page et les tutoriels conservent leur signature ; l’identité **L’atelier de réparation de Maxxi Games** dans le hero est inchangée. Aucun métier, API, stockage ou asset supplémentaire.
 
