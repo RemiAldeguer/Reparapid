@@ -4,9 +4,17 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-Documentation mise à jour le **21 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **22 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : devis après diagnostic, retour et rachat — 21 octobre 2026
+## Résultat courant : en-tête allégé — 22 octobre 2026
+
+Retrait du sous-titre **par Maxxi Games · Le Kremlin-Bicêtre** dans l’en-tête partagé de la vitrine, avec une prop du composant de marque. Le logo RépaRapid, son nom accessible et le lien d’accueil sont conservés. La signature du pied de page et les tutoriels restent identiques ; le logo Maxxi Games et l’intitulé **L’atelier de réparation de** sont toujours présents dans la section d’accueil suivante. Aucun métier, API, donnée ou asset n’est modifié ; aucune relance de la suite métier pour ce changement visuel.
+
+TypeScript, revue ciblée indépendante et build de **116 modules** réussis, avec **137 fichiers publics**, dont 123 pages de guides. Recette à **1280, 390 et 320 px** : zéro signature dans le header, une dans le footer, identité du magasin dans le hero et aucun débordement horizontal. Le serveur de recette utilise uniquement SQLite en mémoire.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et sept routes/actions privées 401. La suppression est vérifiée dans le navigateur sur le site publié, avec Maxxi Games dans le hero et la signature du footer conservés. Capture enregistrée hors dépôt. La base de recette reste inchangée ; serveur arrêté, onglet créé fermé et viewport réinitialisé. Aucune migration ni modification D1.
+
+## Résultat précédent : devis après diagnostic, retour et rachat — 21 octobre 2026
 
 Le domaine et les API Node/Worker couvrent publication/version, accord et refus, console HS avec ou sans rachat, retour gratuit/payant, déclaration de virement, confirmation magasin et suivi d’expédition. Le devis accepté est repris en facturation et en encaissement, indépendamment des coûts internes. Les anciens reçus sans proposition restent lisibles et annulables ; la création d’un nouveau reçu avant accord est refusée. Aucun faux paiement de réparation n’est créé pour les frais de retour ou le rachat.
 

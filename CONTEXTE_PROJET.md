@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **19 octobre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **22 octobre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -28,7 +28,13 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : diagnostic, accord client et retour — 21 octobre 2026
+## Dernière reprise : en-tête allégé — 22 octobre 2026
+
+La signature **par Maxxi Games · Le Kremlin-Bicêtre** est retirée sous le nom RépaRapid dans l’en-tête partagé de la vitrine. `ReparapidBrand` accepte `showPartner` (vrai par défaut) ; `StorefrontShell` le passe à faux uniquement dans son header. Le logo, le nom, le lien et son nom accessible restent identiques. Le pied de page et les tutoriels conservent leur signature ; l’identité **L’atelier de réparation de Maxxi Games** dans le hero est inchangée. Aucun métier, API, stockage ou asset supplémentaire.
+
+TypeScript, revue ciblée et build de **116 modules / 137 fichiers** validés. Recette à 1280/390/320 px sans débordement, suppression dans le header et conservation du hero/footer contrôlées. Publication vérifiée sur **100 % du trafic Cloudflare**, neuf assets conformes, API publique 200 et sept routes/actions privées 401. Base de recette en mémoire inchangée, serveur arrêté, onglet créé fermé et viewport réinitialisé. Aucun changement de métier ni de données D1 ; voir [TESTS.md](TESTS.md).
+
+## Reprise précédente : diagnostic, accord client et retour — 21 octobre 2026
 
 Le magasin publie une **proposition au client** depuis l’onglet **Diagnostic** du dossier, distincte du diagnostic technique privé. Console réparable : description publique et prix total TTC (pièces comprises). Console irréparable : explication et offre facultative de rachat pour pièces. Le magasin saisit **les frais de retour pour chaque dossier**, y compris 0 pour un retour offert, et les instructions de virement si le montant est positif. Aucune coordonnée bancaire réelle n’est fournie par défaut ni présente dans le dépôt.
 
