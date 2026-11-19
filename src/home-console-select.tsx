@@ -22,6 +22,7 @@ export type HomeConsoleChoice = {value: string; label: string; searchLabel?: str
 type Props = {
   label?: string; placeholder?: string; value: string; options: HomeConsoleChoice[];
   onChange: (value: string) => void; inputRef: RefObject<HTMLInputElement | null>;
+  onConfirm?: (value: string) => void;
   disabled?: boolean; invalid?: boolean; errorId?: string; descriptionId?: string;
 };
 
@@ -30,7 +31,7 @@ function normalizeSearch(value: string) {
 }
 
 /** A visible, searchable group of native radios; typing never chooses a console. */
-export function ConsolePickerSearch({label = 'Votre console', placeholder = 'PS5, Switch, Xbox…', value, options, onChange, inputRef, disabled = false, invalid = false, errorId, descriptionId}: Props) {
+export function ConsolePickerSearch({label = 'Votre console', placeholder = 'PS5, Switch, Xbox…', value, options, onChange, onConfirm, inputRef, disabled = false, invalid = false, errorId, descriptionId}: Props) {
   const id = useId(), groupRef = useRef<HTMLFieldSetElement>(null);
   const [query, setQuery] = useState('');
   const words = normalizeSearch(query).split(' ').filter(Boolean);
@@ -72,7 +73,14 @@ export function ConsolePickerSearch({label = 'Votre console', placeholder = 'PS5
         {filtered.map(option => <label key={option.value} className={`console-picker-option${value === option.value ? ' is-selected' : ''}`}>
           <input type="radio" name={`${id}-console`} value={option.value} checked={value === option.value}
             aria-invalid={invalid || undefined} aria-describedby={invalid ? errorId : undefined}
-            onChange={() => onChange(option.value)}/>
+            onChange={() => onChange(option.value)}
+            onClick={event => {if (event.detail > 0) onConfirm?.(option.value);}}
+            onKeyDown={event => {
+              // Arrow keys explore the native group; Enter/Space confirm a choice.
+              if (onConfirm && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault(); onChange(option.value); onConfirm(option.value);
+              }
+            }}/>
           <span className="console-picker-option-visual" aria-hidden="true">{option.visual}</span>
           <span className="console-picker-option-label">{option.label}</span>
         </label>)}
@@ -80,7 +88,7 @@ export function ConsolePickerSearch({label = 'Votre console', placeholder = 'PS5
         <p>Aucun modèle ne correspond à « {query.trim()} ».</p>
         <p>Essayez un autre nom ou renseignez votre modèle à l’étape suivante.</p>
         <div><button type="button" onClick={clearSearch}>Voir toutes les consoles</button>
-          {other && <button type="button" onClick={() => {onChange(other.value); clearSearch();}}>{other.label}</button>}
+          {other && <button type="button" onClick={() => {onChange(other.value); clearSearch(); onConfirm?.(other.value);}}>{other.label}</button>}
         </div>
       </div>}
     </fieldset>

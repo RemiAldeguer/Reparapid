@@ -124,21 +124,29 @@ const featuredGuides = [
 function HomeRepairGuides() {
   return <section className="rp-home-guides rp-shell" aria-labelledby="rp-home-guides-title"><div className="rp-section-heading"><div><span className="rp-eyebrow">LES BONS GESTES, AVANT L’ATELIER</span><h2 id="rp-home-guides-title">Comprendre la panne.<br/>Essayer, pas à pas.</h2></div><p>{guideManifest.length} tutoriels pour les consoles et smartphones.<br/>Des contrôles simples aux démontages expliqués.</p></div><div className="rp-home-guide-grid">{featuredGuides.map(guide => <a className="rp-home-guide-card" href={`/guides/${guide.slug}/`} key={guide.slug}><div className="rp-home-guide-art"><GuideDeviceArt device={{family: (guide.family || (guide.brand === 'Sony' ? 'PlayStation' : 'Nintendo')) as RepairGuideFamily, model: guide.model}}/></div><div className="rp-home-guide-copy"><span>{guide.model}</span><h3>{guide.title}</h3><p>{guide.note}</p><strong>Lire le tutoriel<Icon name="arrow" size={16}/></strong></div></a>)}</div><a className="rp-button rp-outline" href="/guides/">Tous les tutoriels de réparation<Icon name="arrow" size={17}/></a></section>;
 }
+const homeConsolePriority = ['ps5', 'switch-2', 'xbox-series'];
+const homeConsoleModels = [
+  ...homeConsolePriority.flatMap(id => INTAKE_MODEL_GROUPS.filter(model => model.id === id)),
+  ...INTAKE_MODEL_GROUPS.filter(model => !homeConsolePriority.includes(model.id)),
+];
 function HomeConsolePicker() {
   const [modelId, setModelId] = useState(''), [validation, setValidation] = useState(false);
   const modelRef = useRef<HTMLInputElement>(null), errorId = useId(), helpId = useId();
   const model = INTAKE_MODEL_GROUPS.find(item => item.id === modelId);
+  function openConsole(value: string) {
+    if (INTAKE_MODEL_GROUPS.some(item => item.id === value)) window.location.hash = `/demande-reparation?modele=${encodeURIComponent(value)}`;
+  }
   const modelLabel = (item: typeof INTAKE_MODEL_GROUPS[number]) => item.id === 'psp' ? 'PlayStation Portable (PSP)' : item.id === 'ps-vita' ? 'PlayStation Vita (PS Vita)' : ['Nintendo', 'Sega'].includes(item.brand) && !item.model.toLocaleLowerCase('fr').includes(item.brand.toLocaleLowerCase('fr')) ? `${item.brand} ${item.model}` : item.model;
   function chooseConsole(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!model) {setValidation(true); modelRef.current?.focus(); return;}
-    window.location.hash = `/demande-reparation?modele=${encodeURIComponent(model.id)}`;
+    openConsole(model.id);
   }
   return <form className="rp-home-picker" aria-labelledby="rp-home-picker-title" onSubmit={chooseConsole}>
     <div className="rp-home-picker-heading"><span aria-hidden="true">01</span><div><span>ON COMMENCE ICI</span><h2 id="rp-home-picker-title">Quelle console réparer ?</h2></div></div>
-    <p id={helpId} className="rp-home-picker-help">Choisissez simplement votre console. Sa version pourra être précisée ensuite, si vous la connaissez.</p>
+    <p id={helpId} className="rp-home-picker-help">Cliquez sur votre console pour décrire sa panne. Vous pourrez préciser sa version ensuite, si vous la connaissez.</p>
     <div className="rp-home-picker-fields">
-      <ConsolePickerSearch label="Votre console" placeholder="PS5, Switch, Xbox…" value={modelId} inputRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={INTAKE_MODEL_GROUPS.map(item => ({value:item.id,label:modelLabel(item),searchLabel:[item.brand, item.model, item.family, ...INTAKE_MODELS.filter(model => item.modelIds.includes(model.id)).flatMap(model => [model.model, model.id, model.id.replace(/-/g, '')])].join(' '),visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}}/>
+      <ConsolePickerSearch label="Votre console" placeholder="PS5, Switch, Xbox…" value={modelId} inputRef={modelRef} invalid={validation} errorId={errorId} descriptionId={helpId} options={homeConsoleModels.map(item => ({value:item.id,label:modelLabel(item),searchLabel:[item.brand, item.model, item.family, ...INTAKE_MODELS.filter(model => item.modelIds.includes(model.id)).flatMap(model => [model.model, model.id, model.id.replace(/-/g, '')])].join(' '),visual:<ShopConsoleArt item={item} small/>}))} onChange={value => {setModelId(value); setValidation(false);}} onConfirm={openConsole}/>
     </div>
     {validation && <p id={errorId} className="rp-home-picker-validation" role="alert">Choisissez votre console dans la liste, ou « Autre console ».</p>}
     <button type="submit" className="rp-button rp-primary rp-home-picker-submit">Choisir la panne<Icon name="arrow" size={18}/></button>

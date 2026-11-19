@@ -4,9 +4,21 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-Documentation mise à jour le **22 octobre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **19 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : modèle général puis version facultative — 22 octobre 2026
+## Résultat courant : grille de trois consoles et clic direct — 19 novembre 2026
+
+La vue d’accueil présente les 27 modèles sur trois colonnes au-dessus de 680 px, avec **PS5, Switch 2, Xbox Series** en tête ; deux colonnes sont conservées sur les petits écrans. L’ordre du catalogue partagé et celui du formulaire restent identiques. Revue indépendante : 27 identifiants uniques, aucun modèle manquant ou supplémentaire, pas de mutation du catalogue. L’ordre du DOM correspond à l’ordre visuel et reste préservé par la recherche.
+
+Le clic sur une console ouvre directement **Version et panne**, depuis l’accueil ou l’étape 1, sans seconde validation. Reproduction avant changement : cliquer PS5 laissait le formulaire à l’étape 1 ; après changement, clic sur texte, radio et illustration testés. Les flèches natives parcourent les choix sans navigation, puis Entrée/Espace confirment ; les boutons restent une alternative. « Autre console » reste à l’étape 1 pour renseigner son modèle, y compris depuis la recherche sans résultat. Un retour suivi d’un clic sur la même famille garde la PS5 Slim et son symptôme ; changer de famille les réinitialise.
+
+TypeScript, build et contrôles des assets réussis : **117 modules**, **137 fichiers publics**, dont 123 pages de guides. Le warning historique de bundle supérieur à 500 kB reste présent. La suite métier/API n’est pas relancée pour ce changement de présentation et de navigation cliente ; les **598 tests du 22 octobre** restent le résultat antérieur.
+
+Recette sur SQLite en mémoire : **1440, 1024 et 768 px** donnent trois colonnes ; **390 et 320 px** en donnent deux. Aucun débordement horizontal, ordre demandé conservé à toutes ces largeurs. Les sélections par clavier, clic mobile, recherche sans résultat, modèle personnalisé et conservation des choix ont été vérifiées. La base reste strictement inchangée, sans client ni dossier créé ; serveur arrêté, onglet de recette fermé et viewport réinitialisé.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : neuf assets conformes au build, API publique 200 et sept routes/actions privées 401. Sur le site publié : 27 cartes, trois colonnes, PS5/Switch 2/Xbox Series en tête, puis clic PS5 arrivant directement à l’étape 2. Capture conservée hors dépôt. Aucune migration ni modification des données D1. Retour possible par nouvelle publication du commit précédent, sans restauration de base.
+
+## Résultat précédent : modèle général puis version facultative — 22 octobre 2026
 
 L’accueil et la première étape affichent **27 modèles généraux**, sans sous-modèles. Les versions connues sont choisies à l’étape 2 **Version et panne**, avec **Je ne sais pas** par défaut. Les recherches par variante retrouvent le modèle général ; les anciens liens de variantes restent valides. Un nouveau modèle générique **Xbox Series** évite d’inventer X ou S lorsqu’on ne sait pas. Les 38 anciens identifiants restent valides, le catalogue partagé passe à 39. La section **À chaque console, sa prochaine partie** et le champ **Accessoires prévus** sont retirés ; le contrat/API et les accessoires des anciens dossiers sont préservés.
 

@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **22 octobre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **19 novembre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -28,7 +28,15 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : modèles généraux et version facultative — 22 octobre 2026
+## Dernière reprise : grille priorisée et passage direct à la panne — 19 novembre 2026
+
+La grille d’accueil affiche trois colonnes au-dessus de 680 px et deux sur mobile. L’ordre demandé commence par **PS5, Switch 2, Xbox Series**. Le modèle général Xbox Series reste représenté par la silhouette X ; sa version X/S est toujours facultative à l’étape 2. L’ordre est construit dans la vue `HomeConsolePicker`, sans modifier le catalogue canonique ni l’ordre du formulaire complet. Les 27 choix, la recherche par nom/variante et les identifiants sont conservés.
+
+Le clic sur une console ouvre directement **Version et panne**, depuis l’accueil ou l’étape 1, sans passage obligatoire par le bouton de poursuite. Les textes annoncent cette action. Les flèches restent des sélections natives sans changement d’étape ; Entrée/Espace confirment, et les boutons restent disponibles comme alternative. « Autre console » reste à l’étape 1 pour saisir son modèle. Recliquer une même famille après retour conserve version et symptômes ; choisir une autre famille les réinitialise. Aucun POST de demande, compte ou paiement ne se déclenche au choix d’une console.
+
+Validation : TypeScript, revue indépendante et build de **117 modules / 137 fichiers**. Recette à 1440/1024/768 px (trois colonnes) et 390/320 px (deux), clics directs, clavier, cas Autre et préservation des choix vérifiés. Publication sur **100 % du trafic**, neuf assets conformes, API publique 200 et sept routes/actions privées 401 ; parcours publié contrôlé. Base de recette en mémoire inchangée, serveur arrêté, onglet créé fermé et viewport réinitialisé. La suite métier n’est pas relancée pour cette navigation visuelle. Aucun changement de métier serveur, de contrat d’API ou de données D1 ; voir [TESTS.md](TESTS.md). Le retour à l’affichage antérieur se fait par restauration du commit précédent et nouvelle publication avec la configuration privée, sans réinitialisation de base.
+
+## Reprise précédente : modèles généraux et version facultative — 22 octobre 2026
 
 L’accueil et l’étape 1 proposent **27 modèles généraux**, regroupés par `INTAKE_MODEL_GROUPS` dans `src/repair-intake-catalog.ts`. Les versions PS5/PS4, Switch, Xbox One/Series et les formats 3DS connus sont proposés dans `IntakeSubmodel`, à l’étape 2 **Version et panne**. Le choix **Je ne sais pas** est sélectionné par défaut ; la demande peut être envoyée sans préciser la version. Les générations Switch 2/Switch et Wii U/Wii restent distinctes. Les recherches par nom de variante remontent seulement son modèle général. Les anciens liens directs vers une variante la présélectionnent toujours à l’étape 2.
 
