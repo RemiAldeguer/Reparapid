@@ -184,6 +184,34 @@ function assertPair(f, revision, repairId, eventType, {prefix = '', workshopId, 
 async function successful(f, result) {assert.equal(result.status, 200, JSON.stringify(result.data)); await f.drain(); return result.data;}
 
 export function registerLifecycleMailTests(platform) {
+  test(`${platform}: the root shop uses the same canonical public contact before settings are saved`, async t => {
+    const f = await fixture(t, platform), store = f.read();
+    delete store.settings.publicIntake; f.replace(store);
+    const contact = publicIntakeSettings(store).email;
+    const status = await f.request('/api/admin/notifications', f.admin);
+    assert.equal(status.status, 200); assert.equal(status.data.shopRecipient, contact);
+    assert.equal(status.data.shopRecipientMissing, false);
+    const publicSettings = await f.request('/api/public/repair-intake');
+    assert.equal(publicSettings.data.shop.email, contact);
+    await successful(f, await f.publish());
+    assertPair(f, 1, f.publicId, 'proposal-published', {storeEmail: contact});
+    assert.equal(f.sent.length, 2);
+    assert.equal(Object.hasOwn(f.read().settings, 'publicIntake'), false, 'notification projection never persists defaults');
+  });
+
+  test(`${platform}: a tenant without a saved contact never inherits the root shop contact`, async t => {
+    const f = await fixture(t, platform), tenant = f.provision(), store = f.read(tenant.prefix);
+    delete store.settings.publicIntake; f.replace(store, tenant.prefix);
+    const status = await f.request('/api/admin/notifications', tenant.admin);
+    assert.equal(status.status, 200); assert.equal(status.data.shopRecipient, '');
+    assert.equal(status.data.shopRecipientMissing, true);
+    await successful(f, await f.publish(offer(), tenant.admin, store.revision));
+    const rows = f.rows(tenant.prefix);
+    assert.equal(rows.length, 1); assert.equal(rows[0].payload.audience, 'client');
+    assert.equal(rows[0].recipient, f.clients[0].email);
+    assert.equal(f.rows().length, 0);
+  });
+
   test(`${platform}: signup and a second public request each notify client and shop once`, async t => {
     const f = await fixture(t, platform), firstIntake = intake();
     const input = {customer, password, intake: firstIntake};

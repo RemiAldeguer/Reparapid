@@ -11,7 +11,7 @@ import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from './client-part-availability.mjs';
 import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
   applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from './repair-proposals.mjs';
-import { repairNotifications, NOTIFICATION_PREFERENCES_SCHEMA } from './repair-notifications.mjs';
+import { repairNotifications, notificationStoreView, NOTIFICATION_PREFERENCES_SCHEMA } from './repair-notifications.mjs';
 import { notificationConfiguration, deliverNotifications } from './notification-delivery.mjs';
 import { nodeNotificationRepository, notificationBatches, insertNotificationsSQL } from './notification-storage.mjs';
 import { notificationAdminRequest, NotificationError } from './notification-admin.mjs';
@@ -76,15 +76,16 @@ export function createApplication({ databasePath, origin, distPath, production =
   }
   const notificationRepo = nodeNotificationRepository(db);
   const mailConfig = notificationConfiguration(notificationEnv);
+  const notificationView = store => notificationStoreView(store, {workshopId, publicIntakeSettings});
   function enqueueRepairNotifications(before, after) {
     if (!mailConfig.configured) return;
-    const events = repairNotifications(before, after, {origin: mailConfig.portalOrigin, workshopId, now: now()});
+    const events = repairNotifications(before, notificationView(after), {origin: mailConfig.portalOrigin, workshopId, now: now()});
     for (const batch of notificationBatches(events)) db.prepare(insertNotificationsSQL).run(batch);
   }
   let notificationJob, notificationTimer, platformNotificationJob;
   const processOwnNotifications = () => {
     if (!notificationJob) notificationJob = deliverNotifications(notificationRepo, {
-      config: mailConfig, readStore: () => workshop(),
+      config: mailConfig, readStore: () => notificationView(workshop()),
       fetch: notificationFetch, now,
     }).finally(() => {notificationJob = undefined;});
     return notificationJob;
@@ -561,7 +562,7 @@ export function createApplication({ databasePath, origin, distPath, production =
       const notificationResponse = await notificationAdminRequest({
         pathname, method: req.method, searchParams: new URL(req.url, origin).searchParams,
         readJSON: max => readJSON(req, max), repo: notificationRepo, config: mailConfig,
-        readStore: workshop,
+        readStore: () => notificationView(workshop()),
         tokenHash: auth.token_hash, idleMs, now, dispatch: dispatchNotifications,
       });
       if (notificationResponse) return json(res, 200, notificationResponse);
@@ -601,7 +602,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             throw new HttpError(409, 'Votre version de l’atelier est ancienne. Rechargez la page avant de modifier les pièces demandées au client.');
           }
           const notifications = mode === 'edit' && mailConfig.configured
-            ? repairNotifications(before, data, {origin: mailConfig.portalOrigin, workshopId, now: now()}) : [];
+            ? repairNotifications(before, notificationView(data), {origin: mailConfig.portalOrigin, workshopId, now: now()}) : [];
           const changed = db.prepare('UPDATE workshop SET revision = ?, data = ? WHERE id = 1 AND revision = ?')
             .run(data.revision, JSON.stringify(data), body.revision);
           if (!changed.changes) throw new HttpError(409, 'L’atelier a changé dans une autre session. Rechargez les données avant de réessayer.');

@@ -287,3 +287,23 @@ test('A completed repair asks the recipient to contact the shop about collection
   assert.match(message.text, /Contactez l’atelier.*retrait.*retour/);
   assert.match(message.html, /Contactez l’atelier.*retrait.*retour/);
 });
+
+test('The notification store view resolves only the root shop missing its explicit public contact', () => {
+  const {notificationStoreView} = notificationDomain;
+  assert.equal(typeof notificationStoreView, 'function');
+  const store = fixture(), before = structuredClone(store);
+  const canonical = {email: 'canonical-shop@example.invalid', shopName: 'Contact public canonique'};
+  let calls = 0;
+  const publicIntakeSettings = input => {assert.equal(input, store); calls++; return canonical;};
+  const view = notificationStoreView(store, {publicIntakeSettings});
+  assert.notEqual(view, store); assert.notEqual(view.settings, store.settings);
+  assert.equal(view.settings.publicIntake, canonical); assert.equal(view.clients, store.clients);
+  assert.deepEqual(store, before); assert.equal(calls, 1);
+  const tenant = notificationStoreView(store, {workshopId: '11111111-1111-4111-8111-111111111111', publicIntakeSettings});
+  assert.equal(tenant, store); assert.equal(calls, 1);
+  for (const email of ['', 'explicit@example.invalid']) {
+    const configured = {...store, settings: {...store.settings, publicIntake: {email}}};
+    assert.equal(notificationStoreView(configured, {publicIntakeSettings}), configured);
+    assert.equal(calls, 1);
+  }
+});

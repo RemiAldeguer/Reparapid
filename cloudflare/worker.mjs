@@ -8,7 +8,7 @@ import { clientPortal, clientAccess, clientUser } from '../server/client-portal.
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from '../server/client-part-availability.mjs';
 import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
   applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from '../server/repair-proposals.mjs';
-import { repairNotifications } from '../server/repair-notifications.mjs';
+import { repairNotifications, notificationStoreView } from '../server/repair-notifications.mjs';
 import { notificationConfiguration, deliverNotifications } from '../server/notification-delivery.mjs';
 import { d1NotificationRepository } from '../server/notification-storage.mjs';
 import { notificationAdminRequest, NotificationError } from '../server/notification-admin.mjs';
@@ -192,10 +192,12 @@ async function handle(request, env, headers, url, secure, configured, context) {
   await initWorkshop(db, {upgradeNotifications: !!workshopId});
   const notificationRepo = d1NotificationRepository(db);
   const mailConfig = notificationConfiguration(env);
+  const notificationView = store => notificationStoreView(store, {workshopId, publicIntakeSettings});
+  const readNotificationStore = async () => notificationView(await readWorkshop(db));
   const notificationsFor = (before, after, at) => mailConfig.configured
-    ? repairNotifications(before, {...after, revision: before.revision + 1}, {origin: mailConfig.portalOrigin, workshopId, now: at}) : [];
+    ? repairNotifications(before, notificationView({...after, revision: before.revision + 1}), {origin: mailConfig.portalOrigin, workshopId, now: at}) : [];
   const dispatchNotifications = () => {
-    const task = deliverNotifications(notificationRepo, {config: mailConfig, readStore: () => readWorkshop(db), limit: 2})
+    const task = deliverNotifications(notificationRepo, {config: mailConfig, readStore: readNotificationStore, limit: 2})
       .catch(error => console.error('Traitement des notifications interrompu.', error.name));
     if (context?.waitUntil) context.waitUntil(task);
   };
@@ -630,7 +632,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
   const notificationResponse = await notificationAdminRequest({
     pathname, method: request.method, searchParams: url.searchParams,
     readJSON: max => readJSON(request, max), repo: notificationRepo, config: mailConfig,
-    readStore: () => readWorkshop(db),
+    readStore: readNotificationStore,
     tokenHash: auth.token_hash, idleMs: IDLE_MS, dispatch: dispatchNotifications,
   });
   if (notificationResponse) return json(headers, 200, notificationResponse);
@@ -674,7 +676,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
     }
     let notifications = [];
     if (mode === 'edit' && mailConfig.configured) {
-      notifications = repairNotifications(before, data, {origin: mailConfig.portalOrigin, workshopId, now: at});
+      notifications = notificationsFor(before, data, at);
     }
     const changed = await saveWorkshop(db, {
       expectedRevision: body.revision, data, tokenHash: auth.token_hash, now: at, idleMs: IDLE_MS,
@@ -705,7 +707,8 @@ export default {
   async scheduled(_controller, env) {
     const config = notificationConfiguration(env);
     if (!env.DB || !config.configured) return;
-    await deliverNotifications(d1NotificationRepository(env.DB), {config, readStore: () => readWorkshop(env.DB)});
+    await deliverNotifications(d1NotificationRepository(env.DB), {config,
+      readStore: async () => notificationStoreView(await readWorkshop(env.DB), {publicIntakeSettings})});
     const rows = (await env.DB.prepare('SELECT id FROM saas_workshops ORDER BY created_at').all()).results;
     for (const row of rows) {
       const db = scopedDatabase(env.DB, row.id, {kind: 'd1'});

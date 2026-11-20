@@ -7,11 +7,14 @@ import {createApplication} from '../server/application.mjs';
 import {digest} from '../server/security.mjs';
 import worker from '../cloudflare/worker.mjs';
 import {emptyStore, createClient, createClientRepairs, validateStore, moveRepair, setRepairInterventionCost, setRepairPayment} from '../tests/.compiled/domain.cjs';
+import {publicIntakeSettings} from './.compiled/repair-intake-domain.cjs';
 
 const fakeKey = 're_SYNTHETIC_NOT_A_REAL_EMAIL_CREDENTIAL';
 const nativeFetch = globalThis.fetch;
 function fixtureStore() {
   const store = emptyStore();
+  // These legacy customer-only scenarios explicitly opt out of shop emails.
+  store.settings.publicIntake = {...publicIntakeSettings(store), email: ''};
   const makeClient = (name, email) => createClient(store, {name, email, phone: '', address: '', notes: 'PRIVATE_CLIENT_NOTE'});
   const a = makeClient('Client A', 'a@example.invalid'), b = makeClient('Client B', 'b@example.invalid');
   const c = makeClient('Sans adresse', '');

@@ -112,6 +112,13 @@ export function notificationRecipient(value) {
   return address.length <= 254 && /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(address) ? address : '';
 }
 
+// The root storefront has a canonical contact even before settings are saved.
+// Reuse its domain projection without persisting it or sharing it with tenants.
+export function notificationStoreView(store, {workshopId, publicIntakeSettings}) {
+  if (workshopId != null || Object.hasOwn(store.settings, 'publicIntake')) return store;
+  return {...store, settings: {...store.settings, publicIntake: publicIntakeSettings(store)}};
+}
+
 function repairEvents(previous, repair) {
   if (!previous) return ['created'];
   const events = [], oldProposal = previous.proposal, proposal = repair.proposal;
