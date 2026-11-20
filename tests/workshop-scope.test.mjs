@@ -8,6 +8,8 @@ import {REGISTRATION_SCHEMA, submitRegistrationRequest, reviewRegistrationReques
 import {SAAS_SCHEMA, workshopId, workshopPrefix, scopedSQL, scopedDatabase,
   provisioningStatements} from '../server/workshop-scope.mjs';
 import {emptyStore} from './.compiled/domain.cjs';
+import {createApplication} from '../server/application.mjs';
+import {initWorkshop} from '../cloudflare/database.mjs';
 
 const firstId = '00000000-0000-4000-8000-111111111111';
 const secondId = '00000000-0000-4000-8000-222222222222';
@@ -125,6 +127,32 @@ test('SQL lexer fails closed on malformed quotes, comments, NUL and another name
 });
 
 for (const kind of ['node', 'd1']) {
+  test(`${kind}: upgrading an existing tenant preserves its data, outbox and saved notification preferences`, async t => {
+    const f = fixture(t, kind); await f.register(); await f.approve(firstId);
+    const scoped = scopedDatabase(kind === 'node' ? f.db : d1Adapter(f.db), firstId, {kind});
+    const rootBefore = f.rootData();
+    const namespace = workshopPrefix(firstId);
+    const tenantBefore = f.db.prepare(`SELECT * FROM ${namespace}workshop`).all();
+    f.db.exec(`DROP TABLE ${namespace}notification_preferences`);
+    f.db.prepare(`INSERT INTO ${namespace}repair_notifications
+      (id,client_id,console_id,repair_id,recipient,payload,created_at,next_attempt_at)
+      VALUES('synthetic-old','client','console','repair','client@example.invalid','{}',1,1)`).run();
+    const upgrade = async () => {
+      if (kind === 'node') createApplication({database: scoped, platformDatabase: f.db,
+        workshopId: firstId, origin: 'http://127.0.0.1:3040', notificationPollingMs: 0});
+      else await initWorkshop(scoped, {upgradeNotifications: true});
+    };
+    await upgrade();
+    const preferences = JSON.stringify({client: {created: false}});
+    f.db.prepare(`UPDATE ${namespace}notification_preferences SET payload=? WHERE id=1`).run(preferences);
+    await upgrade();
+    assert.equal(f.db.prepare(`SELECT payload FROM ${namespace}notification_preferences`).get().payload, preferences);
+    assert.equal(f.db.prepare(`SELECT status FROM ${namespace}repair_notifications`).get().status, 'pending');
+    assert.deepEqual(f.db.prepare(`SELECT * FROM ${namespace}workshop`).all(), tenantBefore);
+    assert.equal(f.rootData(), rootBefore);
+    assert.equal(f.db.prepare('SELECT payload FROM notification_preferences').get().payload, '{}');
+  });
+
   test(`${kind}: provisioning creates two independent workshops while preserving the original`, async t => {
     const f = fixture(t, kind), original = f.rootData();
     await f.register(); await f.approve(firstId);
@@ -140,6 +168,13 @@ for (const kind of ['node', 'd1']) {
     assert.equal((await first('SELECT * FROM admin')).email, input.email);
     assert.equal((await second('SELECT * FROM admin')).email, 'second@example.invalid');
     assert.equal((await first('SELECT * FROM admin')).role, 'admin');
+    assert.deepEqual(JSON.parse((await first('SELECT payload FROM notification_preferences WHERE id=1')).payload), {});
+    const preferences = JSON.stringify({shop: {created: false}});
+    if (kind === 'node') a.prepare('UPDATE notification_preferences SET payload=? WHERE id=1').run(preferences);
+    else await a.prepare('UPDATE notification_preferences SET payload=? WHERE id=1').bind(preferences).run();
+    assert.equal((await first('SELECT payload FROM notification_preferences WHERE id=1')).payload, preferences);
+    assert.deepEqual(JSON.parse((await second('SELECT payload FROM notification_preferences WHERE id=1')).payload), {});
+    assert.deepEqual(JSON.parse(f.db.prepare('SELECT payload FROM notification_preferences WHERE id=1').get().payload), {});
     const table = kind === 'node' ? 'workshop' : 'workshop_chunks';
     const firstStore = JSON.parse((await first(`SELECT data FROM ${table}`)).data);
     const secondStore = JSON.parse((await second(`SELECT data FROM ${table}`)).data);

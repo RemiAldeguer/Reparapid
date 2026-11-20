@@ -13,6 +13,7 @@ function fixture(t) {
   sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0001_initial.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0002_client_accounts.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0003_email_notifications.sql', import.meta.url), 'utf8'));
+  sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0005_notification_preferences.sql', import.meta.url), 'utf8'));
   const db = {
     batches: [],
     reads: [],

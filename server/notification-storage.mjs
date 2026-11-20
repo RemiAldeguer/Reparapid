@@ -1,3 +1,24 @@
+import {REPAIR_STAGE_LABELS, NOTIFICATION_EVENTS} from './repair-notifications.mjs';
+
+// Static SQL only; event names are read from the immutable message snapshot.
+// Legacy rows have neither audience nor eventType and remain client messages.
+export function notificationPreferenceSQL(payloadExpression = 'repair_notifications.payload') {
+  const safe = `(CASE WHEN json_valid(${payloadExpression}) THEN ${payloadExpression} ELSE '{}' END)`;
+  const legacy = `CASE json_extract(${safe},'$.newStage') ${Object.entries(REPAIR_STAGE_LABELS)
+    .map(([key, label]) => `WHEN '${label.replaceAll("'", "''")}' THEN '${key}'`).join(' ')} ELSE '' END`;
+  // Never place arbitrary persisted strings in a JSON path: malformed metadata
+  // must fail only its own message, rather than abort the delivery queue.
+  const audience = `CASE WHEN json_extract(${safe},'$.version')=2 AND json_extract(${safe},'$.audience')='shop' THEN 'shop' ELSE 'client' END`;
+  const event = `CASE WHEN json_extract(${safe},'$.version') IS NULL THEN ${legacy}
+    ELSE CASE json_extract(${safe},'$.eventType') ${NOTIFICATION_EVENTS.map(({key}) => `WHEN '${key}' THEN '${key}'`).join(' ')} ELSE '' END END`;
+  return `COALESCE((SELECT json_extract(p.payload, '$.' || (${audience})
+    || '."' || (${event}) || '"')
+    FROM notification_preferences p WHERE p.id=1),1) <> 0`;
+}
+
+export const notificationEnabledSQL = `EXISTS (SELECT 1 FROM notification_settings WHERE id=1 AND enabled=1)
+  AND ${notificationPreferenceSQL()}`;
+
 // These adapters let the same delivery code run against local SQLite and D1.
 export function nodeNotificationRepository(db) {
   return {
@@ -48,4 +69,5 @@ export const insertNotificationsSQL = `INSERT OR IGNORE INTO repair_notification
     json_extract(value,'$.recipient'),json_extract(value,'$.payload'),
     json_extract(value,'$.created_at'),json_extract(value,'$.next_attempt_at')
   FROM json_each(?)
-  WHERE EXISTS (SELECT 1 FROM notification_settings WHERE id=1 AND enabled=1)`;
+  WHERE EXISTS (SELECT 1 FROM notification_settings WHERE id=1 AND enabled=1)
+    AND ${notificationPreferenceSQL("json_extract(value,'$.payload')")}`;

@@ -20,6 +20,7 @@ async function fixture(t) {
   sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0002_client_accounts.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0003_email_notifications.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0004_saas_registrations.sql', import.meta.url), 'utf8'));
+  sqlite.exec(readFileSync(new URL('../cloudflare/migrations/0005_notification_preferences.sql', import.meta.url), 'utf8'));
   sqlite.prepare("INSERT INTO admin(id,email,password_hash,role) VALUES(1,'admin@example.invalid',?,'admin')").run(passwordHash);
   const db = {
     beforeBatch: undefined,

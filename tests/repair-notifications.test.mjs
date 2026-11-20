@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { NOTIFICATION_SCHEMA, repairNotifications, renderRepairNotification } from '../server/repair-notifications.mjs';
+import * as notificationDomain from '../server/repair-notifications.mjs';
 
 const options = { origin: 'https://clinique.example', now: 1780000000000 };
 const fixture = () => ({
@@ -37,9 +38,10 @@ test('An existing repair stage transition creates one deterministic, minimal not
   const before = fixture(), after = changed(before);
   const [row] = repairNotifications(before, after, options);
   assert.deepEqual(row, {
-    id: 'repair-status:5:repair-a', client_id: 'client-a', console_id: 'console-a', repair_id: 'repair-a',
+    id: 'repair-event:5:repair-a:reparation:client', client_id: 'client-a', console_id: 'console-a', repair_id: 'repair-a',
     recipient: 'camille@example.invalid',
     payload: JSON.stringify({
+      version: 2, audience: 'client', eventType: 'reparation',
       clientName: 'Camille', workshopName: 'La Clinique Rétro', consoleName: 'Nintendo DS Lite', consoleCode: 'CRT-001',
       repairCode: 'REP-001', oldStage: 'Diagnostic', newStage: 'Réparation en cours', portalUrl: 'https://clinique.example/#/espace-client',
     }),
@@ -65,7 +67,7 @@ test('Multiple consoles and clients retain distinct repair events and correct re
   assert.ok(!rows[2].payload.includes('Camille'));
 });
 
-test('Initialization, new repairs and ordinary edits do not create stage emails', () => {
+test('Ordinary edits remain silent and new repairs produce only a creation event', () => {
   const before = fixture(), after = structuredClone(before);
   after.revision++;
   after.repairs[0].diagnosis = 'Changed diagnosis';
@@ -74,8 +76,9 @@ test('Initialization, new repairs and ordinary edits do not create stage emails'
   after.clients[0].email = 'other@example.invalid';
   assert.deepEqual(repairNotifications(before, after, options), []);
   after.repairs.push({ id: 'new-repair', consoleId: 'console-a', code: 'REP-004', stage: 'terminee' });
-  assert.deepEqual(repairNotifications(before, after, options), []);
-  assert.deepEqual(repairNotifications({ clients: [], consoles: [], repairs: [] }, after, options), []);
+  const rows = repairNotifications(before, after, options);
+  assert.equal(rows.length, 1); assert.equal(JSON.parse(rows[0].payload).eventType, 'created');
+  assert.equal(repairNotifications({ clients: [], consoles: [], repairs: [] }, after, options).length, 4);
 });
 
 test('Legacy ordering aliases do not notify during migration and real transitions use the canonical label', () => {
@@ -166,7 +169,9 @@ test('The renderer rejects modified or unsafe links instead of placing them in a
 
 test('The additive local schema and D1 migration have identical defaults and constraints', () => {
   const migration = readFileSync(new URL('../cloudflare/migrations/0003_email_notifications.sql', import.meta.url), 'utf8');
-  assert.equal(migration.trim(), NOTIFICATION_SCHEMA.trim());
+  const preferencesMigration = readFileSync(new URL('../cloudflare/migrations/0005_notification_preferences.sql', import.meta.url), 'utf8');
+  const normalized = sql => sql.replace(/--[^\n]*/g, '').replace(/\s+/g, ' ').trim();
+  assert.equal(normalized(migration + preferencesMigration), normalized(NOTIFICATION_SCHEMA));
   const db = new DatabaseSync(':memory:');
   try {
     db.exec(NOTIFICATION_SCHEMA); db.exec(NOTIFICATION_SCHEMA);
@@ -193,4 +198,92 @@ test('A console received after awaiting shipment produces the correct client sta
   assert.equal(rows.length, 1);
   assert.equal(JSON.parse(rows[0].payload).oldStage, 'En attente d’envoi');
   assert.equal(JSON.parse(rows[0].payload).newStage, 'Réception');
+});
+
+test('Lifecycle events project one private-safe message per audience to contact addresses', () => {
+  const before = fixture(), after = changed(before);
+  after.settings.publicIntake = {email: ' SHOP@EXAMPLE.INVALID '};
+  const rows = repairNotifications(before, after, options);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(row => row.recipient), ['camille@example.invalid', 'shop@example.invalid']);
+  assert.equal(new Set(rows.map(row => row.id)).size, 2);
+  for (const row of rows) {
+    const payload = JSON.parse(row.payload);
+    assert.equal(payload.version, 2); assert.equal(payload.eventType, 'reparation');
+    assert.ok(['client', 'shop'].includes(payload.audience));
+    assert.ok(!JSON.stringify(row).includes('PRIVATE'));
+    assert.match(renderRepairNotification(payload).text, /Réparation en cours/);
+  }
+  assert.match(JSON.parse(rows[1].payload).portalUrl, /#\/repairs\/repair-a$/);
+});
+
+test('A newly created repair notifies both audiences without requiring an earlier client', () => {
+  const after = fixture(); after.settings.publicIntake = {email: 'shop@example.invalid'};
+  after.repairs = [after.repairs[0]]; after.repairs[0].stage = 'attente-envoi';
+  const before = {...fixture(), clients: [], consoles: [], repairs: []};
+  const rows = repairNotifications(before, after, options);
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every(row => JSON.parse(row.payload).eventType === 'created'));
+  assert.match(renderRepairNotification(JSON.parse(rows[0].payload)).text, /demande.*enregistrée/i);
+  assert.match(renderRepairNotification(JSON.parse(rows[0].payload)).text, /imprimez.*fiche/i);
+});
+
+test('Proposal events include each accepted lifecycle action and do not duplicate decision stage moves', () => {
+  const proposal = {id: 'proposal-a', kind: 'repair', repairAmount: 45, returnFee: 10, buybackAmount: null,
+    decision: 'pending', publishedAt: '2026-10-01T10:00:00.000Z', decidedAt: '', transferDeclaredAt: '', returnPaidAt: '', returnedAt: '', buybackCompletedAt: '',
+    description: 'PUBLIC_EXPLANATION', bankInstructions: 'PRIVATE_BANK_INSTRUCTIONS', tracking: ''};
+  const before = fixture(); before.repairs = [before.repairs[0]];
+  before.settings.publicIntake = {email: 'shop@example.invalid'};
+  const published = changed(before); published.repairs[0].stage = 'diagnostic'; published.repairs[0].proposal = proposal;
+  assert.deepEqual(repairNotifications(before, published, options).map(row => JSON.parse(row.payload).eventType), ['proposal-published', 'proposal-published']);
+  const decided = structuredClone(published); decided.revision++; decided.repairs[0].stage = 'abandonnee';
+  decided.repairs[0].proposal.decision = 'return'; decided.repairs[0].proposal.decidedAt = '2026-10-02T10:00:00.000Z';
+  const rows = repairNotifications(published, decided, options);
+  assert.equal(rows.length, 2); assert.ok(rows.every(row => JSON.parse(row.payload).eventType === 'proposal-decided'));
+  assert.ok(rows.every(row => !JSON.stringify(row).includes('PRIVATE')));
+  for (const [field, eventType] of [['transferDeclaredAt', 'return-transfer-declared'], ['returnPaidAt', 'return-payment-confirmed'], ['returnedAt', 'return-dispatched'], ['buybackCompletedAt', 'buyback-completed']]) {
+    const next = structuredClone(decided); next.revision++; next.repairs[0].proposal[field] = '2026-10-03T10:00:00.000Z';
+    if (field === 'returnedAt') next.repairs[0].proposal.tracking = 'SYNTHETIC-TRACKING';
+    const events = repairNotifications(decided, next, options);
+    assert.equal(events.length, 2); assert.ok(events.every(row => JSON.parse(row.payload).eventType === eventType));
+    assert.match(renderRepairNotification(JSON.parse(events[0].payload)).text, /retour|rachat/i);
+  }
+  assert.deepEqual(repairNotifications(decided, structuredClone(decided), options), []);
+});
+
+test('Preferences default each event and audience to true and reject unrecognized user options', () => {
+  const {normalizeNotificationPreferences, validateNotificationPreferences, NOTIFICATION_EVENTS} = notificationDomain;
+  assert.equal(typeof normalizeNotificationPreferences, 'function');
+  const defaults = normalizeNotificationPreferences();
+  assert.ok(NOTIFICATION_EVENTS.length >= 15);
+  for (const audience of ['client', 'shop']) assert.ok(NOTIFICATION_EVENTS.every(({key}) => defaults[audience][key] === true));
+  assert.equal(validateNotificationPreferences({shop: {created: false}}).shop.created, false);
+  for (const invalid of [null, [], {admin: {}}, {shop: {typo: true}}, {client: {created: 0}}, {shop: 'all'}]) {
+    assert.throws(() => validateNotificationPreferences(invalid), /préférences/i);
+  }
+});
+
+test('Persisted legacy client stage payloads retain their original message contract', () => {
+  const payload = {clientName: 'Camille', workshopName: 'Atelier', consoleName: 'Nintendo DS Lite', consoleCode: 'CRT-001',
+    repairCode: 'REP-001', oldStage: 'Diagnostic', newStage: 'Réparation en cours', portalUrl: 'https://clinique.example/#/espace-client'};
+  const message = renderRepairNotification(payload);
+  assert.equal(message.subject, 'Atelier · Nintendo DS Lite : Réparation en cours');
+  assert.match(message.text, /Ancien statut : Diagnostic\nNouveau statut : Réparation en cours/);
+  assert.match(message.html, /Si vous ne disposez pas encore d’un accès/);
+});
+
+test('A new repair cannot notify while an existing console changes owner in the same save', () => {
+  const before = fixture(), after = structuredClone(before); after.revision++;
+  after.settings.publicIntake = {email: 'shop@example.invalid'};
+  after.consoles[0].clientId = 'client-b';
+  after.repairs.push({id: 'new-repair', consoleId: 'console-a', code: 'REP-004', stage: 'reception'});
+  assert.deepEqual(repairNotifications(before, after, options), []);
+});
+
+test('A completed repair asks the recipient to contact the shop about collection or return', () => {
+  const before = fixture(), after = changed(before); after.repairs[0].stage = 'terminee';
+  const message = renderRepairNotification(JSON.parse(repairNotifications(before, after, options)[0].payload));
+  assert.match(message.text, /Nouveau statut : Terminée/);
+  assert.match(message.text, /Contactez l’atelier.*retrait.*retour/);
+  assert.match(message.html, /Contactez l’atelier.*retrait.*retour/);
 });

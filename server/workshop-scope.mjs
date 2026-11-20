@@ -21,7 +21,7 @@ CREATE INDEX IF NOT EXISTS saas_session_index_expires_at
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const scopedNames = new Set([
   'admin', 'sessions', 'limits', 'workshop', 'workshop_chunks', 'client_accounts',
-  'client_sessions', 'notification_settings', 'repair_notifications',
+  'client_sessions', 'notification_settings', 'notification_preferences', 'repair_notifications',
   'sessions_expires_at', 'sessions_seen_at', 'limits_expires_at',
   'client_sessions_client_id', 'client_sessions_expires_at', 'client_sessions_seen_at',
   'repair_notifications_delivery', 'repair_notifications_client_created',
@@ -156,6 +156,9 @@ const sharedDDL = [
   `CREATE INDEX IF NOT EXISTS client_sessions_seen_at ON client_sessions(seen_at)`,
   `CREATE TABLE IF NOT EXISTS notification_settings (
     id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN(0,1)))`,
+  `CREATE TABLE IF NOT EXISTS notification_preferences (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    payload TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(payload)))`,
   `CREATE TABLE IF NOT EXISTS repair_notifications (
     id TEXT PRIMARY KEY,client_id TEXT NOT NULL,console_id TEXT NOT NULL,repair_id TEXT NOT NULL,
     recipient TEXT NOT NULL,payload TEXT NOT NULL,
@@ -210,6 +213,7 @@ export function provisioningStatements(registration, {at, guard, store}, kind = 
   insert("INSERT INTO admin(id,email,password_hash,role) SELECT 1,?,?,'admin'",
     [registration.email, registration.password_hash]);
   insert('INSERT INTO notification_settings(id,enabled) SELECT 1,1', []);
+  insert("INSERT INTO notification_preferences(id,payload) SELECT 1,'{}'", []);
   if (kind === 'node') insert('INSERT INTO workshop(id,revision,data) SELECT 1,0,?', [data]);
   else {
     const generation = `initial_${id.replaceAll('-', '')}`;

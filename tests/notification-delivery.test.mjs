@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {NOTIFICATION_SCHEMA} from '../server/repair-notifications.mjs';
 import {notificationConfiguration, deliverNotifications, notificationStatus} from '../server/notification-delivery.mjs';
+import {nodeNotificationRepository, insertNotificationsSQL} from '../server/notification-storage.mjs';
+import {notificationAdminRequest} from '../server/notification-admin.mjs';
 
 const env = {RESEND_API_KEY: 'synthetic-secret-for-tests', MAIL_FROM: 'La Clinique Rétro <reparations@clinic.example>', MAIL_REPLY_TO: 'atelier@example.invalid', MAIL_PORTAL_ORIGIN: 'https://clinic.example'};
 const config = notificationConfiguration(env);
@@ -10,12 +12,14 @@ const start = Date.UTC(2026, 9, 6, 10);
 
 function fixture(t, count = 1) {
   const db = new DatabaseSync(':memory:'); db.exec(NOTIFICATION_SCHEMA); t.after(() => db.close());
+  db.exec('CREATE TABLE workshop(id INTEGER PRIMARY KEY,revision INTEGER NOT NULL); INSERT INTO workshop VALUES(1,7);');
   const repo = {
     async run(sql, parameters = []) {return {changes: Number(db.prepare(sql).run(...parameters).changes)};},
     async first(sql, parameters = []) {return db.prepare(sql).get(...parameters);},
     async all(sql, parameters = []) {return db.prepare(sql).all(...parameters);},
   };
   const store = {
+    revision: 7,
     clients: [{id: 'client-a', name: '<Client A>', email: 'client.a@example.invalid', notes: 'PRIVATE_CLIENT_NOTE'}, {id: 'client-b', email: 'client.b@example.invalid'}],
     consoles: [{id: 'console-a', clientId: 'client-a', brand: 'Nintendo', model: 'DS Lite', notes: 'PRIVATE_CONSOLE_NOTE'}],
     repairs: [{id: 'repair-a', consoleId: 'console-a', stage: 'diagnostic', diagnosis: 'PRIVATE_DIAGNOSIS'}],
@@ -197,4 +201,154 @@ test('status preserves the known cancellation reasons written by pause and works
   const status = await notificationStatus(f.repo, config);
   assert.equal(status.counts.cancelled, 2);
   assert.deepEqual(status.recent.map(row => row.error).sort(), [...reasons].sort());
+});
+
+function lifecycle(f, audience = 'shop', eventType = 'diagnostic') {
+  f.store.settings = {publicIntake: {email: 'shop@example.invalid'}};
+  return {...f.payload, version: 2, audience, eventType,
+    portalUrl: audience === 'shop' ? 'https://clinic.example/#/repairs/repair-a' : f.payload.portalUrl};
+}
+
+test('Shop messages use the contact address and cancel after a change of contact or console owner', async t => {
+  for (const mutation of ['none', 'contact', 'owner']) await t.test(mutation, async child => {
+    const f = fixture(child, 0), contents = lifecycle(f);
+    f.insert('shop-event', {recipient: 'shop@example.invalid', contents});
+    if (mutation === 'contact') f.store.settings.publicIntake.email = 'other@example.invalid';
+    if (mutation === 'owner') f.store.consoles[0].clientId = 'client-b';
+    let sent;
+    const counts = await f.send({fetch: async (_url, options) => {sent = JSON.parse(options.body); return Response.json({id: 'shop-receipt'});}});
+    assert.equal(counts[mutation === 'none' ? 'sent' : 'cancelled'], 1);
+    if (mutation === 'none') assert.deepEqual(sent.to, ['shop@example.invalid']);
+    else assert.equal(sent, undefined);
+  });
+});
+
+test('Event preferences filter insertion separately for each audience and default missing keys to true', async t => {
+  const f = fixture(t, 0), shop = lifecycle(f), client = lifecycle(f, 'client');
+  f.db.prepare('UPDATE notification_preferences SET payload=? WHERE id=1').run(JSON.stringify({shop: {diagnostic: false}}));
+  const rows = [shop, client].map((payload, index) => ({id: `preference-${index}`, client_id: 'client-a', console_id: 'console-a', repair_id: 'repair-a',
+    recipient: index ? 'client.a@example.invalid' : 'shop@example.invalid', payload: JSON.stringify(payload), created_at: start, next_attempt_at: start}));
+  f.db.prepare(insertNotificationsSQL).run(JSON.stringify(rows));
+  assert.equal(f.db.prepare('SELECT count(*) AS total FROM repair_notifications').get().total, 1);
+  assert.equal(f.get('preference-1').recipient, 'client.a@example.invalid');
+});
+
+test('Disabling an event cancels a previously queued message without consuming an attempt', async t => {
+  const f = fixture(t, 0), contents = lifecycle(f);
+  f.insert('disabled-event', {recipient: 'shop@example.invalid', contents});
+  f.db.prepare('UPDATE notification_preferences SET payload=? WHERE id=1').run(JSON.stringify({shop: {diagnostic: false}}));
+  let calls = 0;
+  const result = await f.send({fetch: async () => {calls++; return Response.json({id: 'unexpected'});}});
+  assert.equal(result.cancelled, 1); assert.equal(calls, 0); assert.equal(f.get('disabled-event').attempts, 0);
+});
+
+test('Preferences changed after a claim cancel its message before the provider call', async t => {
+  const f = fixture(t, 0), contents = lifecycle(f);
+  f.insert('claimed-event', {recipient: 'shop@example.invalid', contents});
+  let calls = 0;
+  await f.send({readStore: async () => {f.db.prepare('UPDATE notification_preferences SET payload=?').run(JSON.stringify({shop: {diagnostic: false}})); return f.store;},
+    fetch: async () => {calls++; return Response.json({id: 'unexpected'});}});
+  assert.equal(calls, 0); assert.equal(f.get('claimed-event').status, 'cancelled'); assert.equal(f.get('claimed-event').attempts, 0);
+});
+
+test('Client history omits shop messages and exposes event labels without raw payloads', async t => {
+  const f = fixture(t, 0);
+  f.insert('client', {contents: lifecycle(f, 'client', 'reparation')});
+  f.insert('shop', {contents: lifecycle(f, 'shop'), recipient: 'shop@example.invalid'});
+  const summary = await notificationStatus(f.repo, config, {clientId: 'client-a', readStore: async () => f.store});
+  assert.equal(summary.recent.length, 1); assert.equal(summary.counts.pending, 1);
+  assert.equal(summary.recent[0].audience, 'client'); assert.equal(summary.recent[0].eventType, 'reparation');
+  assert.equal(summary.recent[0].eventLabel, 'Réparation en cours');
+  assert.equal(summary.shopRecipient, 'shop@example.invalid'); assert.equal(summary.shopRecipientMissing, false);
+  assert.equal(summary.preferences.shop.created, true); assert.ok(summary.events.some(event => event.key === 'created'));
+});
+
+test('Admin can save preferences before mail setup and retry a namespaced legacy failure', async t => {
+  const f = fixture(t, 0), repo = nodeNotificationRepository(f.db);
+  f.db.exec(`CREATE TABLE admin(id INTEGER PRIMARY KEY,role TEXT); CREATE TABLE sessions(token_hash TEXT,admin_id INTEGER,expires_at INTEGER,seen_at INTEGER);`);
+  f.db.prepare("INSERT INTO admin VALUES(1,'admin')").run();
+  f.db.prepare("INSERT INTO sessions VALUES('synthetic-session',1,?,?)").run(start + 3600000, start);
+  const call = (body, patch = {}) => notificationAdminRequest({pathname: '/api/admin/notifications', method: 'PUT', searchParams: new URLSearchParams(),
+    readJSON: async () => body, repo, config: notificationConfiguration({}), tokenHash: 'synthetic-session', idleMs: 3600000, now: () => start, dispatch() {}, readStore: async () => f.store, ...patch});
+  const summary = await call({preferences: {shop: {created: false}}});
+  assert.equal(summary.preferences.shop.created, false);
+  await assert.rejects(call({preferences: {shop: {typo: false}}}), error => error.status === 400);
+  const id = '11111111-1111-4111-8111-111111111111:repair-status:4:repair-a';
+  f.insert(id, {status: 'failed'});
+  const result = await call({id}, {pathname: '/api/admin/notifications/retry', method: 'POST', config});
+  assert.deepEqual(result, {ok: true}); assert.equal(f.get(id).status, 'pending');
+});
+
+test('Admin preference edits cancel only matching messages and roll back on cancellation failure', async t => {
+  const f = fixture(t, 0), repo = nodeNotificationRepository(f.db);
+  f.db.exec(`CREATE TABLE admin(id INTEGER PRIMARY KEY,role TEXT); CREATE TABLE sessions(token_hash TEXT,admin_id INTEGER,expires_at INTEGER,seen_at INTEGER);
+    INSERT INTO admin VALUES(1,'admin');`);
+  f.db.prepare('INSERT INTO sessions VALUES(?,1,?,?)').run('admin-token', start + 60000, start);
+  f.insert('shop', {recipient: 'shop@example.invalid', contents: lifecycle(f)});
+  f.insert('client', {contents: lifecycle(f, 'client')});
+  const request = () => notificationAdminRequest({pathname: '/api/admin/notifications', method: 'PUT', repo, config,
+    readJSON: async () => ({preferences: {shop: {diagnostic: false}}}), tokenHash: 'admin-token', idleMs: 60000, now: () => start, readStore: async () => f.store});
+  f.db.exec("CREATE TRIGGER cancel_failure BEFORE UPDATE OF status ON repair_notifications BEGIN SELECT RAISE(ABORT,'synthetic cancellation failure'); END");
+  await assert.rejects(request, /synthetic cancellation failure/);
+  assert.equal(JSON.parse(f.db.prepare('SELECT payload FROM notification_preferences').get().payload).shop, undefined);
+  assert.equal(f.get('shop').status, 'pending');
+  f.db.exec('DROP TRIGGER cancel_failure');
+  await request(); assert.equal(f.get('shop').status, 'cancelled'); assert.equal(f.get('client').status, 'pending');
+});
+
+test('Malformed versioned metadata fails one message without blocking the rest of the queue', async t => {
+  const f = fixture(t, 0), contents = lifecycle(f);
+  f.insert('a-invalid', {recipient: 'shop@example.invalid', contents: {...contents, eventType: '"unsafe', audience: '"unsafe'}});
+  f.insert('b-valid');
+  const result = await f.send({fetch: async () => Response.json({id: 'valid-receipt'})});
+  assert.equal(result.failed, 1); assert.equal(result.sent, 1);
+});
+
+test('A workshop revision changed after ownership validation prevents stale legacy and lifecycle sends', async t => {
+  for (const [audience, mutation] of [['legacy', 'contact'], ['client', 'owner'], ['shop', 'contact'], ['shop', 'owner']]) {
+    await t.test(`${audience}: ${mutation}`, async child => {
+      const f = fixture(child, 0);
+      const contents = audience === 'legacy' ? f.payload : lifecycle(f, audience);
+      f.insert('raced-event', {contents, recipient: audience === 'shop' ? 'shop@example.invalid' : 'client.a@example.invalid'});
+      const originalRun = f.repo.run.bind(f.repo);
+      let changed = false, calls = 0;
+      child.mock.method(f.repo, 'run', async (sql, parameters) => {
+        if (!changed && sql.startsWith('UPDATE repair_notifications SET attempts=attempts+1')) {
+          changed = true;
+          f.db.prepare('UPDATE workshop SET revision=revision+1 WHERE id=1').run();
+          f.store.revision++;
+          if (mutation === 'owner') f.store.consoles[0].clientId = 'client-b';
+          else if (audience === 'shop') f.store.settings.publicIntake.email = 'changed@example.invalid';
+          else f.store.clients[0].email = 'changed@example.invalid';
+        }
+        return originalRun(sql, parameters);
+      });
+      const fetch = async () => {calls++; return Response.json({id: 'unexpected-stale-recipient'});};
+      const first = await f.send({fetch});
+      assert.equal(changed, true); assert.equal(first.claimed, 1); assert.equal(calls, 0);
+      assert.equal(f.get('raced-event').status, 'pending'); assert.equal(f.get('raced-event').attempts, 0);
+      assert.equal(f.get('raced-event').claim_token, '');
+      const next = await f.send({fetch});
+      assert.equal(next.cancelled, 1); assert.equal(calls, 0); assert.equal(f.get('raced-event').attempts, 0);
+    });
+  }
+});
+
+test('Malformed metadata keeps a safe audience in the administrative history', async t => {
+  const f = fixture(t, 0);
+  f.insert('bad-shop', {contents: {...lifecycle(f), eventType: 'unknown'}, status: 'failed'});
+  f.insert('bad-json', {contents: '{invalid', status: 'failed'});
+  const summary = await notificationStatus(f.repo, config);
+  assert.equal(summary.recent.find(row => row.id === 'bad-shop').audience, 'shop');
+  assert.equal(summary.recent.find(row => row.id === 'bad-json').audience, 'client');
+});
+
+test('Malformed audience paths cannot interrupt unrelated queued mail', async t => {
+  for (const audience of ['', '.', '[']) await t.test(JSON.stringify(audience), async child => {
+    const f = fixture(child, 0);
+    f.insert('a-invalid', {contents: {...lifecycle(f), audience}});
+    f.insert('b-valid');
+    const result = await f.send({fetch: async () => Response.json({id: 'valid-receipt'})});
+    assert.equal(result.failed, 1); assert.equal(result.sent, 1);
+  });
 });

@@ -1,5 +1,6 @@
 import { emptyStore } from '../src/domain.ts';
 import { notificationBatches, insertNotificationsSQL } from '../server/notification-storage.mjs';
+import { NOTIFICATION_PREFERENCES_SCHEMA } from '../server/repair-notifications.mjs';
 
 // D1 limits a single TEXT value to 2 MB. A UTF-16 chunk of this size is at
 // most 750 KB in UTF-8; a surrogate pair always stays in the same chunk.
@@ -9,7 +10,12 @@ const MAX_STORE_BYTES = 20 * 1024 * 1024;
 const encoder = new TextEncoder();
 export class StoreSizeError extends Error {}
 
-export async function initWorkshop(db) {
+export async function initWorkshop(db, {upgradeNotifications = false} = {}) {
+  // Root D1 uses migrations. Existing tenant namespaces are extended lazily;
+  // CREATE/INSERT OR IGNORE keeps their preferences and outbox untouched.
+  if (upgradeNotifications) for (const sql of NOTIFICATION_PREFERENCES_SCHEMA.split(';').filter(sql => sql.trim())) {
+    await db.prepare(sql).run();
+  }
   await db.prepare('INSERT OR IGNORE INTO workshop(id, revision, generation) VALUES(1, 0, NULL)').run();
 }
 
@@ -155,10 +161,10 @@ export async function saveWorkshop(db, { expectedRevision, data, tokenHash, now,
 
 // The caller builds a fresh snapshot with the single domain action. Authorization
 // and the workshop revision are checked again at the atomic publication boundary.
-export function saveClientWorkshop(db, {expectedRevision, data, tokenHash, clientId, csrf, now, idleMs}) {
-  return saveWorkshop(db, {expectedRevision, data, tokenHash, now, idleMs, clientAuth: {clientId, csrf}});
+export function saveClientWorkshop(db, {expectedRevision, data, tokenHash, clientId, csrf, now, idleMs, notifications = []}) {
+  return saveWorkshop(db, {expectedRevision, data, tokenHash, now, idleMs, notifications, clientAuth: {clientId, csrf}});
 }
 
-export function saveRegistrationWorkshop(db, {expectedRevision, data, tokenHash, now, registration}) {
-  return saveWorkshop(db, {expectedRevision, data, tokenHash, now, registration});
+export function saveRegistrationWorkshop(db, {expectedRevision, data, tokenHash, now, registration, notifications = []}) {
+  return saveWorkshop(db, {expectedRevision, data, tokenHash, now, registration, notifications});
 }

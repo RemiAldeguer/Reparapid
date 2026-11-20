@@ -1,4 +1,5 @@
-import {renderRepairNotification} from './repair-notifications.mjs';
+import {renderRepairNotification, notificationMetadata, notificationRecipient, normalizeNotificationPreferences, NOTIFICATION_EVENTS} from './repair-notifications.mjs';
+import {notificationEnabledSQL} from './notification-storage.mjs';
 
 const LEASE_MS = 60_000;
 const MAX_ATTEMPTS = 6;
@@ -16,6 +17,7 @@ const ERRORS = {
   recipient: 'Le client ou le destinataire de cette réparation a changé.',
   paused: 'Les notifications ont été mises en pause.',
   restored: 'L’atelier a été restauré ou réinitialisé.',
+  preference: 'Cet e-mail a été désactivé dans les préférences de notification.',
 };
 const SAFE_ERRORS = new Set(Object.values(ERRORS));
 
@@ -78,11 +80,20 @@ async function claim(repo, now) {
     RETURNING *`, [token, now + LEASE_MS, now, now, now, now]);
 }
 
-function ownsNotification(store, row) {
+function ownsNotification(store, row, payload) {
   const client = store?.clients?.find(item => item.id === row.client_id);
   const console = store?.consoles?.find(item => item.id === row.console_id);
   const repair = store?.repairs?.find(item => item.id === row.repair_id);
-  return client && address(client.email) === row.recipient && console?.clientId === row.client_id && repair?.consoleId === row.console_id;
+  const {audience} = notificationMetadata(payload);
+  const recipient = audience === 'shop' ? store?.settings?.publicIntake?.email : client?.email;
+  return client && address(recipient) === row.recipient && console?.clientId === row.client_id && repair?.consoleId === row.console_id;
+}
+
+async function cancelDisabled(repo, counts) {
+  const result = await repo.run(`UPDATE repair_notifications SET status='cancelled',claim_token='',lease_until=0,
+    error=CASE WHEN EXISTS(SELECT 1 FROM notification_settings WHERE id=1 AND enabled=0)
+      THEN ? ELSE ? END WHERE status='pending' AND NOT (${notificationEnabledSQL})`, [ERRORS.paused, ERRORS.preference]);
+  counts.cancelled += Number(result.changes || 0);
 }
 
 async function retry(repo, row, error, now, counts) {
@@ -104,6 +115,7 @@ export async function deliverNotifications(repo, {config, readStore, fetch: fetc
   if (!config?.configured) return counts;
   const limit = Math.max(0, Math.min(20, Number.isFinite(batch) ? Math.floor(batch) : 5));
   for (let index = 0; index < limit; index++) {
+    await cancelDisabled(repo, counts);
     let time = clock();
     const row = await claim(repo, time);
     if (!row) break;
@@ -119,12 +131,15 @@ export async function deliverNotifications(repo, {config, readStore, fetch: fetc
       continue;
     }
     let store;
-    try {store = await readStore();}
+    try {
+      store = await readStore();
+      if (!Number.isSafeInteger(store?.revision) || store.revision < 0) throw new Error('Invalid workshop revision');
+    }
     catch {
       if ((await finish(repo, row, {status: 'pending', error: ERRORS.unavailable, nextAttemptAt: clock() + 60_000}, clock())).changes) counts.pending++;
       break;
     }
-    if (!ownsNotification(store, row)) {
+    if (!ownsNotification(store, row, payload)) {
       if ((await finish(repo, row, {status: 'cancelled', error: ERRORS.recipient}, clock())).changes) counts.cancelled++;
       continue;
     }
@@ -133,12 +148,15 @@ export async function deliverNotifications(repo, {config, readStore, fetch: fetc
       if ((await finish(repo, row, {status: 'failed', error: Number(row.attempts) >= MAX_ATTEMPTS ? ERRORS.exhausted : ERRORS.expired}, time)).changes) counts.failed++;
       continue;
     }
-    // Check the settings again after reading the current workshop. Disabling
-    // notifications prevents an already-claimed message from starting its send.
+    // Authorization uses the exact workshop snapshot whose ownership and
+    // contact were checked. A concurrent publication releases this claim for
+    // a fresh check without consuming an attempt or starting a provider call.
     const attempted = await repo.run(`UPDATE repair_notifications SET attempts=attempts+1
       WHERE id=? AND status='pending' AND claim_token=? AND lease_until>?
-        AND EXISTS(SELECT 1 FROM notification_settings WHERE id=1 AND enabled=1)`, [row.id, row.claim_token, time + 10_000]);
+        AND EXISTS(SELECT 1 FROM workshop WHERE id=1 AND revision=?)
+        AND ${notificationEnabledSQL}`, [row.id, row.claim_token, time + 10_000, store.revision]);
     if (!attempted.changes) {
+      await cancelDisabled(repo, counts);
       await repo.run("UPDATE repair_notifications SET claim_token='',lease_until=0 WHERE id=? AND claim_token=? AND status='pending'", [row.id, row.claim_token]);
       break;
     }
@@ -175,11 +193,17 @@ export async function deliverNotifications(repo, {config, readStore, fetch: fetc
   return counts;
 }
 
-export async function notificationStatus(repo, config, {clientId} = {}) {
+export async function notificationStatus(repo, config, {clientId, readStore} = {}) {
   const scoped = typeof clientId === 'string' && !!clientId;
-  const where = scoped ? 'WHERE client_id=?' : '';
+  const where = scoped ? `WHERE client_id=? AND COALESCE(json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.audience'),'client')='client'` : '';
   const parameters = scoped ? [clientId] : [];
   const settings = await repo.first('SELECT enabled FROM notification_settings WHERE id=1', []);
+  const preferenceRow = await repo.first('SELECT payload FROM notification_preferences WHERE id=1', []);
+  let preferences;
+  try {preferences = normalizeNotificationPreferences(JSON.parse(preferenceRow?.payload || '{}'));}
+  catch {preferences = normalizeNotificationPreferences();}
+  const store = readStore ? await readStore() : undefined;
+  const shopRecipient = notificationRecipient(store?.settings?.publicIntake?.email);
   const counts = {pending: 0, sent: 0, failed: 0, cancelled: 0};
   for (const row of await repo.all(`SELECT status, COUNT(*) AS total FROM repair_notifications ${where} GROUP BY status`, parameters)) {
     if (Object.hasOwn(counts, row.status)) counts[row.status] = Number(row.total);
@@ -187,9 +211,13 @@ export async function notificationStatus(repo, config, {clientId} = {}) {
   const rows = await repo.all(`SELECT * FROM repair_notifications ${where} ORDER BY created_at DESC,id DESC LIMIT 20`, parameters);
   return {
     configured: !!config?.configured, provider: 'resend', sender: config?.from || '', replyTo: config?.replyTo || '', issue: config?.issue || '', enabled: !!settings?.enabled, counts,
+    events: NOTIFICATION_EVENTS, preferences, shopRecipient, shopRecipientMissing: !shopRecipient,
     recent: rows.map(row => {
       const payload = parsePayload(row);
+      let metadata;
+      try {metadata = notificationMetadata(payload);} catch {metadata = {audience: payload?.audience === 'shop' ? 'shop' : 'client', eventType: '', eventLabel: ''};}
       return {id: row.id, clientId: row.client_id, consoleId: row.console_id, repairId: row.repair_id, to: row.recipient,
+        ...metadata,
         consoleName: typeof payload?.consoleName === 'string' ? payload.consoleName : '', repairCode: typeof payload?.repairCode === 'string' ? payload.repairCode : '', stage: typeof payload?.newStage === 'string' ? payload.newStage : '',
         status: row.status, attempts: Number(row.attempts), createdAt: Number(row.created_at), sentAt: row.sent_at === null ? null : Number(row.sent_at), error: row.error ? (SAFE_ERRORS.has(row.error) ? row.error : 'Une erreur est survenue lors de l’envoi.') : ''};
     }),

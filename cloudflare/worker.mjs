@@ -189,9 +189,11 @@ async function handle(request, env, headers, url, secure, configured, context) {
     if (declared !== workshopId) throw new HttpError(401, 'Connexion à cet atelier requise.');
   }
   if (workshopId) db = scopedDatabase(platformDB, workshopId, {kind: 'd1'});
-  await initWorkshop(db);
+  await initWorkshop(db, {upgradeNotifications: !!workshopId});
   const notificationRepo = d1NotificationRepository(db);
   const mailConfig = notificationConfiguration(env);
+  const notificationsFor = (before, after, at) => mailConfig.configured
+    ? repairNotifications(before, {...after, revision: before.revision + 1}, {origin: mailConfig.portalOrigin, workshopId, now: at}) : [];
   const dispatchNotifications = () => {
     const task = deliverNotifications(notificationRepo, {config: mailConfig, readStore: () => readWorkshop(db), limit: 2})
       .catch(error => console.error('Traitement des notifications interrompu.', error.name));
@@ -284,6 +286,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
       await globalThrottle('repair-signup-email:' + await digest(input.customer.email), 3, HOUR);
       const encoded = await withHash(() => hashPassword(input.password));
       const current = await readWorkshop(db), previousRevision = current.revision;
+      const before = structuredClone(current);
       const reserved = await db.prepare('SELECT 1 FROM client_accounts WHERE email=? UNION ALL SELECT 1 FROM admin WHERE email=? UNION ALL SELECT 1 FROM saas_workshops WHERE email=?')
         .bind(input.customer.email, input.customer.email, input.customer.email).first();
       if (reserved) throw new HttpError(409, 'Cette adresse possède déjà un accès. Connectez-vous avec votre compte existant.');
@@ -292,6 +295,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
       validateStore(current);
       const value = token(), csrf = token(), key = await digest(value), at = Date.now(), expires = at + SESSION_MS;
       const changed = await saveRegistrationWorkshop(db, {expectedRevision: previousRevision, data: current, tokenHash: key, now: at,
+        notifications: notificationsFor(before, current, at),
         registration: {clientId: client.id, email: input.customer.email, passwordHash: encoded, csrf, expiresAt: expires}});
       if (!changed) {
         const duplicate = await db.prepare('SELECT 1 FROM client_accounts WHERE email=? UNION ALL SELECT 1 FROM admin WHERE email=? UNION ALL SELECT 1 FROM saas_workshops WHERE email=?')
@@ -300,6 +304,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
         throw new HttpError(409, 'L’atelier a changé. Réessayez votre demande.');
       }
       headers.set('Set-Cookie', clientCookie(value, Math.floor(SESSION_MS / 1000)));
+      dispatchNotifications();
       return json(headers, 201, {session: clientUser({email: input.customer.email, client_id: client.id, csrf, expires_at: expires}, client.name), repairId: repair.id, repairCode: repair.code});
     }
     throw new HttpError(404, 'Route introuvable.');
@@ -402,15 +407,19 @@ async function handle(request, env, headers, url, secure, configured, context) {
       const fresh = await clientSession(false);
       if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
       const current = fresh.store;
+      const before = structuredClone(current);
       if (applyClientProposal(current, fresh.row.client_id, repairId, input, proposalActions)) {
         validateStore(current);
+        const at = Date.now();
         const changed = await saveClientWorkshop(db, {expectedRevision: current.revision, data: current,
-          tokenHash: fresh.row.token_hash, clientId: fresh.row.client_id, csrf: fresh.row.csrf, now: Date.now(), idleMs: IDLE_MS});
+          tokenHash: fresh.row.token_hash, clientId: fresh.row.client_id, csrf: fresh.row.csrf, now: at, idleMs: IDLE_MS,
+          notifications: notificationsFor(before, current, at)});
         if (!changed) {
           const checked = await clientSession(false);
           if (!equal(request.headers.get('X-CSRF-Token'), checked.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
           throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
         }
+        dispatchNotifications();
       }
       return json(headers, 200, clientPortal(current, fresh.row.client_id, repairTotalCost));
     }
@@ -421,16 +430,20 @@ async function handle(request, env, headers, url, secure, configured, context) {
       const fresh = await clientSession(false);
       if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
       const current = fresh.store, previousCount = current.repairs.length;
+      const before = structuredClone(current);
       const {repair} = createPublicRepair(current, fresh.row.client_id, input);
       if (current.repairs.length !== previousCount) {
         validateStore(current);
+        const at = Date.now();
         const changed = await saveClientWorkshop(db, {expectedRevision: current.revision, data: current,
-          tokenHash: fresh.row.token_hash, clientId: fresh.row.client_id, csrf: fresh.row.csrf, now: Date.now(), idleMs: IDLE_MS});
+          tokenHash: fresh.row.token_hash, clientId: fresh.row.client_id, csrf: fresh.row.csrf, now: at, idleMs: IDLE_MS,
+          notifications: notificationsFor(before, current, at)});
         if (!changed) {
           const checked = await clientSession(false);
           if (!equal(request.headers.get('X-CSRF-Token'), checked.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
           throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
         }
+        dispatchNotifications();
       }
       return json(headers, 200, {repairId: repair.id, repairCode: repair.code});
     }
@@ -474,16 +487,20 @@ async function handle(request, env, headers, url, secure, configured, context) {
     if (!equal(request.headers.get('X-CSRF-Token'), fresh.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
     const current = await readWorkshop(db);
     if (current.revision !== input.revision) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
+    const before = structuredClone(current);
     if (applyAdminProposal(current, repairId, input, proposalActions)) {
       validateStore(current);
+      const at = Date.now();
       const changed = await saveWorkshop(db, {expectedRevision: input.revision, data: current,
-        tokenHash: fresh.token_hash, adminCsrf: fresh.csrf, now: Date.now(), idleMs: IDLE_MS});
+        tokenHash: fresh.token_hash, adminCsrf: fresh.csrf, now: at, idleMs: IDLE_MS,
+        notifications: notificationsFor(before, current, at)});
       if (!changed) {
         const checked = await session(false);
         if (!equal(request.headers.get('X-CSRF-Token'), checked.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
         throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
       }
       current.revision++;
+      dispatchNotifications();
     }
     return json(headers, 200, current);
   }
@@ -613,6 +630,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
   const notificationResponse = await notificationAdminRequest({
     pathname, method: request.method, searchParams: url.searchParams,
     readJSON: max => readJSON(request, max), repo: notificationRepo, config: mailConfig,
+    readStore: () => readWorkshop(db),
     tokenHash: auth.token_hash, idleMs: IDLE_MS, dispatch: dispatchNotifications,
   });
   if (notificationResponse) return json(headers, 200, notificationResponse);
@@ -689,6 +707,10 @@ export default {
     if (!env.DB || !config.configured) return;
     await deliverNotifications(d1NotificationRepository(env.DB), {config, readStore: () => readWorkshop(env.DB)});
     const rows = (await env.DB.prepare('SELECT id FROM saas_workshops ORDER BY created_at').all()).results;
-    for (const row of rows) {const db = scopedDatabase(env.DB, row.id, {kind: 'd1'}); await deliverNotifications(d1NotificationRepository(db), {config, readStore: () => readWorkshop(db), limit: 2});}
+    for (const row of rows) {
+      const db = scopedDatabase(env.DB, row.id, {kind: 'd1'});
+      await initWorkshop(db, {upgradeNotifications: true});
+      await deliverNotifications(d1NotificationRepository(db), {config, readStore: () => readWorkshop(db), limit: 2});
+    }
   },
 };

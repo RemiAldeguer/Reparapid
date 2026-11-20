@@ -6,7 +6,21 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **19 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : grille de trois consoles et clic direct — 19 novembre 2026
+## Résultat courant : e-mails client/magasin et préférences — 20 novembre 2026
+
+**657 tests réussis : 597 Node/domaine/API et 60 Cloudflare**, aucun échec ni test ignoré. Les nouveaux scénarios reproduits rouges puis verts couvrent les deux audiences sur la création (inscription initiale et deuxième demande incluses), les étapes, les propositions et leurs versions, l’accord/refus, le virement déclaré/reçu, le retour expédié et le rachat finalisé. Une décision ne double pas le changement de statut ; les répétitions et conflits ne produisent aucun nouvel envoi.
+
+Contrôles supplémentaires : préférences strictes par audience/événement, pause, annulation sélective atomique, adresse manquante ou modifiée, transfert de propriétaire, session/origine/CSRF, ateliers distincts avec identifiants identiques et historique client filtré. Les erreurs d’insertion magasin après insertion client annulent toute la sauvegarde, y compris le compte et la session à l’inscription. Une erreur d’annulation annule aussi les préférences. Une modification de révision entre lecture du propriétaire/contact et tentative empêche le départ sans consommer d’essai. Les anciens messages et identifiants d’atelier restent lisibles/relançables ; les métadonnées malformées échouent seules et ne bloquent ni file ni interface.
+
+TypeScript et build final réussis : **117 modules**, **137 fichiers publics**, dont 123 guides. Warning historique de bundle supérieur à 500 kB conservé. Audit npm : zéro vulnérabilité dans les dépendances de production ; cinq alertes hautes existantes dans les outils de développement Vite/Wrangler et leurs dépendances, hors bundle Worker servi. Aucune dépendance ajoutée ou mise à jour dans cette évolution.
+
+Recette navigateur sur SQLite **en mémoire**, avec un administrateur, un client et un dossier fictifs : 32 cases (16 événements × deux destinataires), sauvegarde et rechargement, brouillon gardé à l’actualisation, navigation clavier, pause/reprise et sauvegarde pendant la pause. L’historique affiche les deux audiences ; une ligne invalide ne casse pas le panneau et n’affiche pas de relance. Contrôles à **1280, 390 et 320 px** sans débordement horizontal. Capture hors dépôt. Base métier strictement inchangée, deux appels au transport simulé et **zéro envoi réel** ; serveur arrêté, onglet de recette fermé et viewport réinitialisé.
+
+Les cinq migrations sont validées dans une D1 locale séparée. La migration additive **0005_notification_preferences.sql** est appliquée à la production Reparapid dédiée avec la configuration privée ; révision/génération de l’atelier et nombre de messages existants inchangés. Les namespaces anciens et nouveaux sont couverts par les tests SQLite/D1 ; l’extension paresseuse ne remplace pas leurs préférences. Aucun compte ni dossier de production créé ou modifié pour la recette.
+
+Publication confirmée sur **100 % du trafic Cloudflare** : dix assets conformes au build (favicon inclus), API publique 200 avec allowlist et neuf routes/actions privées 401, dont préférences et relance. Le service d’envoi reste **À configurer** : absence vérifiée des secrets `RESEND_API_KEY` et `MAIL_FROM`, sans lecture de secrets ni test d’envoi réel. L’origine des liens est configurée côté serveur. Les préférences peuvent être préparées ; aucun historique ne sera rejoué à l’activation. Un retour au commit précédent conserve la table additive ; garder les envois non configurés ou en pause avant ce retour, sans restaurer la base métier.
+
+## Résultat précédent : grille de trois consoles et clic direct — 19 novembre 2026
 
 La vue d’accueil présente les 27 modèles sur trois colonnes au-dessus de 680 px, avec **PS5, Switch 2, Xbox Series** en tête ; deux colonnes sont conservées sur les petits écrans. L’ordre du catalogue partagé et celui du formulaire restent identiques. Revue indépendante : 27 identifiants uniques, aucun modèle manquant ou supplémentaire, pas de mutation du catalogue. L’ordre du DOM correspond à l’ordre visuel et reste préservé par la recherche.
 

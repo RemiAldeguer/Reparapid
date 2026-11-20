@@ -11,7 +11,7 @@ import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from './client-part-availability.mjs';
 import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
   applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from './repair-proposals.mjs';
-import { repairNotifications } from './repair-notifications.mjs';
+import { repairNotifications, NOTIFICATION_PREFERENCES_SCHEMA } from './repair-notifications.mjs';
 import { notificationConfiguration, deliverNotifications } from './notification-delivery.mjs';
 import { nodeNotificationRepository, notificationBatches, insertNotificationsSQL } from './notification-storage.mjs';
 import { notificationAdminRequest, NotificationError } from './notification-admin.mjs';
@@ -67,6 +67,8 @@ export function createApplication({ databasePath, origin, distPath, production =
   }
   if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Origine HTTP(S) requise.');
   const db = database || openDatabase(databasePath);
+  // Older tenant namespaces receive this additive extension on first use.
+  if (workshopId) db.exec(NOTIFICATION_PREFERENCES_SCHEMA);
   const platformDB = platformDatabase || db, children = new Map();
   function child(id) {
     if (!children.has(id)) children.set(id, createApplication({origin, distPath, production, now, sessionMs, idleMs, notificationEnv, notificationFetch, notificationPollingMs: 0, database: scopedDatabase(platformDB, id, {kind: 'node'}), platformDatabase: platformDB, workshopId: id, hashLimiter: withHash}));
@@ -74,6 +76,11 @@ export function createApplication({ databasePath, origin, distPath, production =
   }
   const notificationRepo = nodeNotificationRepository(db);
   const mailConfig = notificationConfiguration(notificationEnv);
+  function enqueueRepairNotifications(before, after) {
+    if (!mailConfig.configured) return;
+    const events = repairNotifications(before, after, {origin: mailConfig.portalOrigin, workshopId, now: now()});
+    for (const batch of notificationBatches(events)) db.prepare(insertNotificationsSQL).run(batch);
+  }
   let notificationJob, notificationTimer, platformNotificationJob;
   const processOwnNotifications = () => {
     if (!notificationJob) notificationJob = deliverNotifications(notificationRepo, {
@@ -191,6 +198,7 @@ export function createApplication({ databasePath, origin, distPath, production =
               .get(input.customer.email, input.customer.email, input.customer.email);
             if (reserved) throw new HttpError(409, 'Cette adresse possède déjà un accès. Connectez-vous avec votre compte existant.');
             const current = workshop(), previousRevision = current.revision;
+            const before = structuredClone(current);
             if (!Number.isSafeInteger(previousRevision) || previousRevision < 0 || previousRevision >= 1e9) throw new HttpError(409, 'L’atelier ne peut pas être modifié.');
             // Never claim an existing workshop customer by matching an email.
             client = createClient(current, input.customer);
@@ -206,8 +214,10 @@ export function createApplication({ databasePath, origin, distPath, production =
               .run(client.id, input.customer.email, encoded, now(), now());
             db.prepare('INSERT INTO client_sessions(token_hash,client_id,csrf,expires_at,seen_at) VALUES(?,?,?,?,?)')
               .run(digest(value), client.id, csrf, expires, now());
+            enqueueRepairNotifications(before, current);
             db.exec('COMMIT');
           } catch (error) {db.exec('ROLLBACK'); throw error;}
+          dispatchNotifications();
           res.setHeader('Set-Cookie', clientCookie(value, Math.floor(sessionMs / 1000)));
           return json(res, 201, {session: clientUser({email: input.customer.email, client_id: client.id, csrf, expires_at: expires}, client.name), repairId: repair.id, repairCode: repair.code});
         }
@@ -343,6 +353,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             const fresh = clientSession(req, false);
             if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
             current = fresh.store; clientId = fresh.row.client_id;
+            const before = structuredClone(current);
             if (applyClientProposal(current, clientId, repairId, input, proposalActions)) {
               validateStore(current);
               const previousRevision = current.revision;
@@ -352,9 +363,11 @@ export function createApplication({ databasePath, origin, distPath, production =
               if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
               const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, previousRevision);
               if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
+              enqueueRepairNotifications(before, current);
             }
             db.exec('COMMIT');
           } catch (error) {db.exec('ROLLBACK'); throw error;}
+          dispatchNotifications();
           return json(res, 200, clientPortal(current, clientId, repairTotalCost));
         }
         if (pathname === '/api/client/repair-intake' && req.method === 'POST') {
@@ -367,6 +380,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             const fresh = clientSession(req, false);
             if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
             const current = fresh.store, previousRevision = current.revision;
+            const before = structuredClone(current);
             const previousCount = current.repairs.length;
             ({repair} = createPublicRepair(current, fresh.row.client_id, input));
             if (current.repairs.length !== previousCount) {
@@ -377,9 +391,11 @@ export function createApplication({ databasePath, origin, distPath, production =
               if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
               const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, previousRevision);
               if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
+              enqueueRepairNotifications(before, current);
             }
             db.exec('COMMIT');
           } catch (error) {db.exec('ROLLBACK'); throw error;}
+          dispatchNotifications();
           return json(res, 200, {repairId: repair.id, repairCode: repair.code});
         }
         const sheet = pathname.match(/^\/api\/client\/repair-intake\/([^/]+)\/sheet$/);
@@ -427,6 +443,7 @@ export function createApplication({ databasePath, origin, distPath, production =
           const fresh = session(req, false);
           if (!equal(req.headers['x-csrf-token'], fresh.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
           current = workshop();
+          const before = structuredClone(current);
           if (current.revision !== input.revision) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
           if (applyAdminProposal(current, repairId, input, proposalActions)) {
             validateStore(current);
@@ -435,9 +452,11 @@ export function createApplication({ databasePath, origin, distPath, production =
             if (Buffer.byteLength(serialized) > 20 * 1024 * 1024) throw new HttpError(413, 'L’atelier dépasse 20 Mio.');
             const saved = db.prepare('UPDATE workshop SET revision=?,data=? WHERE id=1 AND revision=?').run(current.revision, serialized, input.revision);
             if (!saved.changes) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
+            enqueueRepairNotifications(before, current);
           }
           db.exec('COMMIT');
         } catch (error) {db.exec('ROLLBACK'); throw error;}
+        dispatchNotifications();
         return json(res, 200, current);
       }
       if (pathname === '/api/admin/invoice-source' && req.method === 'GET') {
@@ -542,6 +561,7 @@ export function createApplication({ databasePath, origin, distPath, production =
       const notificationResponse = await notificationAdminRequest({
         pathname, method: req.method, searchParams: new URL(req.url, origin).searchParams,
         readJSON: max => readJSON(req, max), repo: notificationRepo, config: mailConfig,
+        readStore: workshop,
         tokenHash: auth.token_hash, idleMs, now, dispatch: dispatchNotifications,
       });
       if (notificationResponse) return json(res, 200, notificationResponse);

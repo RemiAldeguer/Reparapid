@@ -187,14 +187,18 @@ for (const platform of ['node', 'worker']) {
     assert.ok(statusA.data.recent.every(row => !('payload' in row) && !('claimToken' in row) && !('providerId' in row)));
   });
 
-  test(`${platform}: ordinary edits, new repairs, console collection and missing emails produce no queue`, async t => {
+  test(`${platform}: ordinary edits, collection and missing emails stay silent while new client repairs notify`, async t => {
     const f = await fixture(t, platform), draft = structuredClone(f.store);
     draft.repairs.find(repair => repair.id === f.aRepairs[0].id).diagnosis = 'Changed private diagnosis';
-    createClientRepairs(draft, f.a.id, [{brand: 'Nintendo', model: 'Game Boy Advance', serial: '', accessories: '', title: 'Nouveau dossier', symptoms: '', priority: 'normale', dueDate: ''}]);
     moveRepair(draft, f.cRepairs[0].id, 'diagnostic'); moveRepair(draft, f.cRepairs[1].id, 'diagnostic');
-    assert.equal((await f.save(draft, 0)).status, 200); await f.drain();
+    const edited = await f.save(draft, 0); assert.equal(edited.status, 200); await f.drain();
     assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM repair_notifications').get().n, 0);
     assert.equal(f.sent.length, 0);
+    const next = structuredClone(edited.data);
+    createClientRepairs(next, f.a.id, [{brand: 'Nintendo', model: 'Game Boy Advance', serial: '', accessories: '', title: 'Nouveau dossier', symptoms: '', priority: 'normale', dueDate: ''}]);
+    assert.equal((await f.save(next, edited.data.revision)).status, 200); await f.drain();
+    assert.equal(f.sent.length, 1); assert.deepEqual(f.sent[0].body.to, [f.a.email]);
+    assert.equal(JSON.parse(f.sqlite.prepare('SELECT payload FROM repair_notifications').get().payload).eventType, 'created');
   });
 
   test(`${platform}: recording and cancelling a payment leaves repair stages unchanged and never sends status emails`, async t => {
