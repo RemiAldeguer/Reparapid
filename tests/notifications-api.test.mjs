@@ -109,6 +109,58 @@ async function fixture(t, platform, {configured = true, legacyStage = false} = {
 }
 
 for (const platform of ['node', 'worker']) {
+  test(`${platform}: email previews require an admin and never queue, send or edit business data`, async t => {
+    const f = await fixture(t, platform), path = '/api/admin/notifications/preview?event=diagnostic&audience=client';
+    assert.equal((await f.request(path)).status, 401);
+    assert.equal((await f.request(path, f.client)).status, 401);
+    assert.equal((await f.request(path, {...f.auth, headers: {'Sec-Fetch-Site': 'cross-site'}})).status, 403);
+    const initial = f.storedStore();
+    const sessions = f.sqlite.prepare('SELECT * FROM sessions').all();
+    const settings = f.sqlite.prepare('SELECT * FROM notification_settings').all();
+    const preferences = f.sqlite.prepare('SELECT * FROM notification_preferences').all();
+    const preview = await f.request(path, {cookie: f.auth.cookie});
+    assert.equal(preview.status, 200, 'a read-only preview does not require a CSRF token');
+    assert.equal(preview.data.sample, true);
+    assert.equal(preview.data.recipient, 'camille@example.invalid');
+    assert.ok(preview.data.html.includes('RépaRapid · Maxxi Games'));
+    assert.ok(!JSON.stringify(preview.data).includes('PRIVATE'));
+    assert.ok(!JSON.stringify(preview.data).includes(fakeKey));
+    assert.ok(!JSON.stringify(preview.data).includes('a@example.invalid'));
+    for (const event of ['created', 'attente-envoi', 'reception', 'diagnostic', 'attente-pieces', 'reparation', 'tests',
+      'terminee', 'irreparable', 'abandonnee', 'proposal-published', 'proposal-decided', 'return-transfer-declared',
+      'return-payment-confirmed', 'return-dispatched', 'buyback-completed', 'withdrawal-requested']) {
+      for (const audience of ['client', 'shop']) {
+        const result = await f.request(`/api/admin/notifications/preview?event=${event}&audience=${audience}`, f.auth);
+        assert.equal(result.status, 200); assert.equal(result.data.audience, audience);
+      }
+    }
+    assert.deepEqual(f.sqlite.prepare('SELECT * FROM sessions').all(), sessions, 'preview reads do not extend the admin session');
+    assert.equal((await f.request(path, {...f.auth, method: 'POST', body: {}})).status, 405);
+    assert.equal((await f.request(path, {cookie: f.auth.cookie, method: 'POST', body: {}})).status, 403);
+    await f.drain();
+    assert.deepEqual(f.storedStore(), initial);
+    assert.deepEqual(f.sqlite.prepare('SELECT * FROM notification_settings').all(), settings);
+    assert.deepEqual(f.sqlite.prepare('SELECT * FROM notification_preferences').all(), preferences);
+    assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM repair_notifications').get().n, 0);
+    assert.equal(f.sent.length, 0);
+  });
+
+  test(`${platform}: preview validates query parameters and works before mail setup`, async t => {
+    const f = await fixture(t, platform, {configured: false}), path = '/api/admin/notifications/preview';
+    const preview = await f.request(path + '?event=proposal-decided&audience=shop&variant=return', f.auth);
+    assert.equal(preview.status, 200);
+    assert.equal(preview.data.variant, 'return');
+    assert.match(preview.data.text, /Le retour de la console est demandé/);
+    for (const query of ['', '?event=unknown&audience=client', '?event=tests&audience=admin',
+      '?event=tests&event=diagnostic&audience=client', '?event=tests&audience=client&clientId=other',
+      '?event=tests&audience=client&variant=return']) {
+      assert.equal((await f.request(path + query, f.auth)).status, 400);
+    }
+    await f.drain();
+    assert.equal(f.sent.length, 0);
+    assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM repair_notifications').get().n, 0);
+  });
+
   test(`${platform}: legacy ordering stages read as waiting for parts without writes or migration emails`, async t => {
     const f = await fixture(t, platform, {legacyStage: true});
     const source = structuredClone(f.store), id = f.aRepairs[0].id;

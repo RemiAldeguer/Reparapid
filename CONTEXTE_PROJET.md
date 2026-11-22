@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **20 novembre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **22 novembre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -28,7 +28,33 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : e-mails du cycle de réparation et préférences — 20 novembre 2026
+## Dernière reprise : conditions, rétractation, réseaux et espace e-mails — 22 novembre 2026
+
+L’utilisateur a confirmé que l’exploitant est **VESTY GAMES 3**, SARL, enseigne **Maxxi Games** : SIREN **799 620 570**, SIRET **799 620 570 00017**, **RCS Créteil**, siège **30–30 bis avenue de Fontainebleau, 94270 Le Kremlin-Bicêtre**. La destination des colis reste le **30 bis** dans les coordonnées d’envoi. Les contacts publics existants sont conservés. Source d’identité : [Annuaire des entreprises](https://annuaire-entreprises.data.gouv.fr/etablissement/79962057000017). Aucun capital, numéro de TVA ou nom de directeur de publication non confirmé n’est inventé.
+
+Les pages publiques **CGU**, **CGV**, **Mentions légales** et **Rétractation** sont reliées depuis le pied de page de la vitrine, du portail principal et des guides. `src/legal-content.mjs` partage la version **2026-11-22**, les textes, le formulaire type et les références officielles avec le serveur. `src/legal-pages.tsx` fournit sommaire, impression et téléchargement texte. Les CGV suivent le parcours réel : demande sans commande payante, diagnostic et devis distincts, accord, frais de retour par dossier, virement manuel, console irréparable et rachat pour pièces, restitution, délais, garanties applicables et rétractation. Elles n’inventent ni garantie commerciale générale, ni transfert de propriété par silence, ni pénalité automatique de rétractation.
+
+**À compléter par le magasin :** médiateur effectivement choisi, coordonnées et site du médiateur, capital social, TVA si applicable, directeur de publication et information détaillée sur les traitements de données. À la question du médiateur, l’utilisateur a répondu « je ne sais pas laisse pour l’instant » : l’information manquante est signalée dans les textes, sans prétendre remplir l’obligation. Aucune nouvelle confirmation n’est nécessaire pour ce choix déjà donné. La publication de ces textes ne doit pas être présentée comme une certification juridique complète.
+
+Le nouvel accord de réparation du **magasin principal seulement** exige des CGV actuelles et une acceptation explicite. Le bouton payant annonce l’obligation de paiement ; le zéro conserve son libellé gratuit. La demande de commencement anticipé reste facultative et distincte, avec reconnaissance de la perte du droit seulement à l’exécution complète. `server/repair-proposals.mjs` injecte le document et la version serveur ; le client ne peut pas envoyer son propre document, son identité ou un horodatage. `RepairProposal.legal` conserve ces éléments et les déclarations à la date de l’accord. Une nouvelle version des conditions ne réécrit pas une preuve existante ; une répétition de décision est sans effet. Les ateliers distincts conservent leurs propres contrats, et les anciens accords restent lisibles sans justificatif fabriqué rétroactivement.
+
+Le portail propose une confirmation texte avec devis, conditions acceptées et formulaire de rétractation (`src/legal-receipts.ts`). Les téléchargements manuels relisent **POST `/api/client/portal`**, JSON vide, après contrôle d’une session fraîche et du CSRF, puis vérifient encore la session locale avant de préparer le fichier. Le document utilise la preuve figée, pas les CGV courantes. Pour une fiche historique sans adresse de contact, l’adresse du compte authentifié peut servir à la preuve ; une adresse de fiche renseignée reste prioritaire. Ce repli concerne les accords et déclarations, sans modifier implicitement les coordonnées d’envoi des notifications.
+
+**Rétractation :** le propriétaire peut notifier sa décision depuis un devis de réparation accepté, y compris ancien, puis télécharger l’accusé. `requestRepairWithdrawal` conserve référence, horodatage, identité et déclaration ; répétition sans nouvel effet. Aucun calcul automatique de l’expiration, refus fondé sur la seule clôture technique ou remboursement automatique n’est introduit. Étape, stock, coûts, paiement et décision initiale restent conservés ; le magasin traite les conséquences avec le client. Une alerte persistante apparaît dans le dossier et les demandes du site ; les actions rapides de progression sont retirées pour ce dossier. Sans commencement anticipé demandé, la progression rapide vers l’intervention renvoie au dossier pour **vérification manuelle du délai applicable**. La transition manuelle reste disponible : aucun calendrier juridique n’est calculé par le logiciel.
+
+La section **Les réseaux de Maxxi Games** (`src/maxxi-social.tsx`, `.css`) présente uniquement les comptes vérifiés [Instagram](https://www.instagram.com/maxxigames_kremlinbicetre/) et [TikTok](https://www.tiktok.com/@maxxigameskremlinbicetre). Liens externes simples, aucun widget ou suivi social incorporé, aucun compteur inventé. Le parcours et les avis gardent leurs deuxième et troisième places sur l’accueil.
+
+**Nouvelle demande d’interface e-mails :** les préférences quittent le panneau complet des réglages pour un onglet **E-mails** (`#/emails`), avec activation/désactivation par événement pour **Client** et **Magasin**, aperçu du modèle réellement utilisé et choix des scénarios disponibles. Le catalogue comprend désormais **17 événements / 34 choix**, avec la rétractation. Un aperçu est un exemple fictif en lecture seule, pas un envoi de test ni une boîte de réception des messages entrants. Préférences et aperçus restent utilisables avant configuration du fournisseur. L’adresse du magasin reste son contact public ; aucune clé ou donnée privée ne doit passer dans le navigateur pour configurer le service.
+
+Validation finale : **694 tests réussis (632 Node/domaine/API + 62 Cloudflare)**, aucun échec ni test ignoré. TypeScript et build de **123 modules / 137 fichiers publics**, dont 123 guides, réussis. Le warning historique de bundle supérieur à 500 kB reste présent ; aucune dépendance n’est ajoutée ou mise à jour. Les scénarios couvrent les preuves immuables, consentements, contacts historiques, sessions fraîches d’export, propriétaires, ateliers, rétractations et les aperçus des 17 événements pour les deux audiences.
+
+Recette réelle sur SQLite en mémoire : accords fictifs payant et gratuit, démarrage anticipé facultatif, rétractation et accusés texte, signalement magasin, 34 interrupteurs, sauvegarde/rechargement et brouillon préservé, aperçu HTML/texte et variante rachat magasin. Contrôles à 1280/390/320 px sans débordement. Le défilement d’un aperçu long sur mobile a été corrigé et vérifié au clavier, sans modifier la CSP globale ; les liens d’aperçu restent neutralisés et l’iframe isolée. Aucun paiement ni e-mail réel. Les serveurs de recette sont arrêtés ; captures hors dépôt.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : dix assets principaux et le catalogue des guides identiques au build par SHA-256, API publique 200 avec allowlist, douze routes/actions privées refusées anonymement en 401, dont aperçu et source documentaire. Version des CGV et comptes sociaux vérifiés dans le navigateur publié. Révision/génération de la D1 et nombre de messages de la file inchangés ; aucune migration ni donnée métier modifiée. Voir [TESTS.md](TESTS.md).
+
+Ces métadonnées facultatives n’imposent aucune nouvelle migration SQL. Préserver la D1 dédiée et la file existante ; utiliser seulement la configuration privée `.wrangler/reparapid.production.jsonc` pour une publication autorisée. Une ancienne version qui ignore les nouveaux champs de preuve ne constitue pas un retour sûr sans vérification de leur conservation ; conserver une sauvegarde privée et privilégier une correction compatible. Le service réel d’e-mail reste non configuré (`RESEND_API_KEY` et `MAIL_FROM` absents lors du dernier contrôle), sans envoi réel effectué pour cette reprise.
+
+## Reprise précédente : e-mails du cycle de réparation et préférences — 20 novembre 2026
 
 La file de notification couvre désormais la création d’un dossier (inscription publique et nouvelle demande incluses), chaque changement d’étape, les propositions après diagnostic et leur remplacement, le choix du client, la déclaration puis la confirmation du virement de retour, l’expédition du retour et la finalisation du rachat pour pièces. Chaque événement produit au plus un message par audience ; le changement de statut induit par un refus/rachat ne double pas le message de décision. Une action idempotente ne crée aucun envoi. Les imports/restaurations et réinitialisations continuent à annuler la file sans produire d’événements.
 
@@ -429,8 +455,13 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | src/console-handheld-art.tsx, src/ui.tsx | SVG des consoles, visuels, icônes et composants génériques |
 | src/nintendo-model-picker.tsx | Suggestions Nintendo ; les champs de modèle restent libres |
 | src/admin-settings.tsx | Réglages, sauvegardes, restauration, démo, compte admin |
-| src/email-notifications.tsx, .css | Configuration apparente et historique des notifications |
+| src/email-notifications.tsx, .css | Espace E-mails, préférences par audience/événement, aperçus et historique ; suivi limité sur les fiches clients |
 | src/public-home.tsx, .css | Vitrine RépaRapid, shell public partagé, engagements, avis et section contact préparant un mailto |
+| src/maxxi-social.tsx, .css | Liens Instagram et TikTok vérifiés de Maxxi Games, sans widget incorporé |
+| src/legal-content.mjs, .d.mts | CGU/CGV/mentions, version, identité confirmée, sources et modèle de rétractation partagés |
+| src/legal-pages.tsx, .css | Pages publiques de conditions, mentions et rétractation, sommaire, impression et texte téléchargeable |
+| src/legal-receipts.ts | Documents privés fondés sur les preuves figées d’accord et de rétractation |
+| src/repair-proposal-client.tsx, src/repair-proposal-admin.tsx | Devis partagé, choix, consentements, documents et avertissements de traitement du dossier |
 | src/repair-guides-content.ts, src/repair-guides-types.ts | Contenu des 24 tutoriels, sections, modèles, difficultés, exemples, FAQ et sources |
 | src/repair-guides-manifest.mjs, .d.mts | Slugs publics exacts, chemins générés, domaine canonique et date éditoriale partagés avec les hôtes |
 | src/repair-guides.tsx, .css | Catalogue, articles, navigation HTML, métadonnées et données structurées rendus pendant le build |
@@ -449,11 +480,13 @@ Le serveur ne sert pas les sources, bases ou exports privés. En production, les
 | server/client-portal.mjs | Liste explicite des champs autorisés dans le portail |
 | server/client-part-availability.mjs | Validation stricte du signalement client |
 | server/repair-intake.mjs | Validation des coordonnées d’inscription, fiche publique filtrée et protection des métadonnées d’envoi |
+| server/repair-proposals.mjs | Frontière stricte des décisions, conditions injectées par le serveur et protection des preuves contre les sauvegardes ordinaires |
 | server/registration-requests.mjs | Inscription, revue et données publiques limitées |
-| server/repair-notifications.mjs | Détection des changements de statut et schema notifications |
+| server/repair-notifications.mjs | Catalogue et préférences des événements du cycle, détection des changements et modèles de mails |
 | server/notification-storage.mjs | File persistante, lots et dépôt atomique des notifications |
 | server/notification-delivery.mjs | Configuration Resend, envoi, claim, reprises et assainissement des erreurs |
-| server/notification-admin.mjs | Statut, activation / pause et relance depuis l’admin |
+| server/notification-admin.mjs | Statut, préférences, activation / pause, aperçu fictif et relance depuis l’admin |
+| server/notification-preview.mjs | Exemples entièrement fictifs par événement, audience et variante ; réutilise le modèle réel sans lire de dossier ni envoyer |
 | server/response-security.mjs | En-têtes communs à Node et Worker |
 | server/public-assets.mjs | Liste explicite des assets et tutoriels publics, chemins canoniques et alias 308 partagés entre Node et Worker |
 | cloudflare/worker.mjs, database.mjs, security.mjs | Routes, stockage D1 et hachage adaptés à Workers |
@@ -481,9 +514,11 @@ Le dossier art-fadist/ existe aussi dans cette copie mais ne constitue pas l’e
 | /robots.txt, /sitemap.xml | Consignes d’exploration et liste des 26 URL publiques canoniques |
 | #/accueil?section=rp-contact | Section Contactez-nous, accessible depuis le portail et les éléments publics partagés |
 | #/demande-reparation | Modèle, pannes et compte ; création du dossier En attente d’envoi |
+| #/cgu, #/cgv, #/mentions-legales, #/retractation | Conditions, identité de l’exploitant et droits du client, pages publiques du magasin principal |
 | #/connexion | Connexion atelier ; une connexion valide redirige vers le dashboard |
 | #/dashboard | Dashboard / Ma synthèse |
 | #/website-requests | Demandes créées depuis la vitrine et progression ; magasin principal seulement |
+| #/emails | Préférences Client/Magasin, aperçu des modèles et historique des envois du magasin connecté |
 | #/clients | Répertoire clients |
 | #/clients/ID | Fiche client, consoles, dossiers, accès et notifications |
 | #/inventory | Inventaire de consoles, cartes ou liste |
@@ -814,7 +849,8 @@ Les liens clients incluent le contexte UUID et le portail transmet X-Workshop-ID
 | GET | /api/admin/invoice-source | Store courant pour factures, CSRF requis même en GET |
 | GET / POST / DELETE | /api/admin/client-access/CLIENT_ID | Consulter / créer ou remplacer / désactiver l’accès client |
 | GET | /api/admin/notifications | Configuration apparente et historique ; filtre clientId possible |
-| PUT | /api/admin/notifications | Activation ou pause |
+| PUT | /api/admin/notifications | Activation / pause et/ou préférences strictes par audience et événement |
+| GET | /api/admin/notifications/preview | Exemple fictif du modèle, selon événement, audience et variante autorisés ; aucune mise en file |
 | POST | /api/admin/notifications/retry | Relance d’un échec récent |
 | GET | /api/super-admin/registrations | Liste de demandes, filtre status |
 | POST | /api/super-admin/registrations/ID/review | Approbation / refus |
@@ -825,6 +861,8 @@ Les liens clients incluent le contexte UUID et le portail transmet X-Workshop-ID
 | GET | /api/client/repair-intake/REPAIR_ID/sheet | Fiche d’envoi filtrée du propriétaire, magasin principal uniquement |
 | POST | /api/client/auth/logout | Déconnexion client |
 | GET | /api/client/portal | Projection limitée au client authentifié |
+| POST | /api/client/portal | Même projection fraîche pour document privé ; corps JSON vide et CSRF requis |
+| POST | /api/client/repairs/REPAIR_ID/proposal | Décision sur une version précise, consentement serveur ou notification de rétractation ; propriétaire et CSRF vérifiés |
 | POST | /api/client/repairs/REPAIR_ID/parts/PART_ID/available | Signalement de disponibilité, corps JSON vide {} seulement |
 
 Consulter les handlers pour les champs complets et les contraintes. Une réponse 401 retire les vues privées. Le 403 du GET de source facture retire également la vue, car il signifie notamment qu’une session ne correspond plus au CSRF capturé.
@@ -893,6 +931,8 @@ Une donnée légitimement affichée à un utilisateur reste observable dans son 
 Limites : pas de MFA, pas d’équipe de plusieurs admins par atelier, pas de connexion sociale ni récupération automatique par e-mail. Le stockage n’est pas chiffré par l’application. Ces contrôles ne valent pas audit externe.
 
 ## 17. Notifications par e-mail
+
+L’onglet **E-mails** (`#/emails`) centralise les choix Client/Magasin et les aperçus. Le GET d’aperçu utilise le même rendu que la livraison, avec données fictives uniquement ; il ne lit aucun dossier client et n’envoie rien. Les choix de modèle ne donnent pas accès à des champs de diagnostic interne, de prix ou de coordonnées bancaires. L’état de configuration et l’historique restent distincts de l’activation de chaque événement.
 
 Transport HTTP Resend, sans SDK applicatif supplémentaire. Variables côté serveur :
 
@@ -1178,6 +1218,7 @@ Ces identifiants sont des publications de cette session, pas des commits Git. Ne
 - Deployment : plan Cloudflare, quotas et délivrabilité du fournisseur sont des paramètres externes à revérifier, pas des garanties de cette documentation.
 - Git / CI : dépôt indépendant Reparapid et workflow de tests/build ; aucun résultat de CI distante ne doit être déduit des résultats locaux.
 - Référencement : indexation et classement Google non vérifiés, Search Console non consultée ; domaine canonique workers.dev tant que le domaine principal conserve WordPress.
+- Conditions : médiateur, capital, TVA si applicable et directeur de publication restent à compléter par VESTY GAMES 3 ; les textes ne certifient pas une conformité complète. Vérifier manuellement le délai avant intervention et traiter les suites d’une rétractation ; aucune décision juridique ou remboursement automatique.
 
 Il n’y a pas de nouvelle demande de développement à inventer à partir de cette liste. Elle explique le périmètre actuel et les points à préciser si une future demande les concerne.
 

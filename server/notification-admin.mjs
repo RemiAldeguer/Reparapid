@@ -1,6 +1,7 @@
 import {notificationStatus} from './notification-delivery.mjs';
 import {validateNotificationPreferences, NOTIFICATION_EVENTS} from './repair-notifications.mjs';
 import {notificationEnabledSQL} from './notification-storage.mjs';
+import {notificationPreview} from './notification-preview.mjs';
 
 export class NotificationError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -13,7 +14,11 @@ const sessionGuard = `EXISTS(SELECT 1 FROM sessions s JOIN admin a ON a.id=s.adm
 // write also checks the session in SQL, after its body has finished arriving.
 export async function notificationAdminRequest({pathname, method, searchParams, readJSON, repo,
   config, tokenHash, idleMs, now: clock = Date.now, dispatch, readStore}) {
-  if (!['/api/admin/notifications', '/api/admin/notifications/retry'].includes(pathname)) return null;
+  if (!['/api/admin/notifications', '/api/admin/notifications/retry', '/api/admin/notifications/preview'].includes(pathname)) return null;
+  if (pathname === '/api/admin/notifications/preview' && method === 'GET') {
+    try {return notificationPreview(searchParams);}
+    catch (error) {throw new NotificationError(400, error.message);}
+  }
   if (pathname === '/api/admin/notifications' && method === 'GET') {
     const clientId = searchParams.get('clientId') || undefined;
     if (clientId && !/^[A-Za-z0-9_-]{1,120}$/.test(clientId)) throw new NotificationError(400, 'Client invalide.');

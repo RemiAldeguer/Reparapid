@@ -440,7 +440,7 @@ export function createApplication({ databasePath, origin, distPath, production =
         }
         throw new HttpError(404, 'Route introuvable.');
       }
-      const auth = session(req, !(pathname === '/api/admin/notifications' && req.method === 'GET'));
+      const auth = session(req, !(req.method === 'GET' && ['/api/admin/notifications', '/api/admin/notifications/preview'].includes(pathname)));
       if (mutation && !equal(req.headers['x-csrf-token'], auth.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
       const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/proposal$/);
       if (proposalRoute) {

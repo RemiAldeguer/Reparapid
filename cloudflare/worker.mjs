@@ -483,7 +483,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
     }
     throw new HttpError(404, 'Route introuvable.');
   }
-  const auth = await session(!(pathname === '/api/admin/notifications' && request.method === 'GET'));
+  const auth = await session(!(request.method === 'GET' && ['/api/admin/notifications', '/api/admin/notifications/preview'].includes(pathname)));
   if (mutation && !equal(request.headers.get('X-CSRF-Token'), auth.csrf)) {
     throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
   }
