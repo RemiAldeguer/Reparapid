@@ -1,0 +1,22 @@
+.rp-social{padding:68px 0;background:#181818;color:#fff;scroll-margin-top:24px}
+.rp-social .rp-eyebrow{color:#e4a7a2}
+.rp-social .rp-section-heading>p{color:#c5c5c5;max-width:430px}
+.rp-social-accounts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;list-style:none;margin:0;padding:0}
+.rp-social-accounts>li{min-width:0}
+.rp-social-account{height:100%;display:grid;grid-template-columns:56px minmax(0,1fr);gap:20px;padding:28px;border:1px solid #ffffff25;border-radius:10px;background:#ffffff04;transition:border-color .15s,background .15s}
+.rp-social-logo{display:grid;place-items:center;width:56px;height:56px;border-radius:10px;background:#b2141424;color:#f09389}
+.rp-social-logo>svg{display:block;width:32px;height:32px}
+.rp-social-account-copy{min-width:0}
+.rp-social-account h3{font-size:25px;line-height:1.4;font-weight:650;letter-spacing:-.3px}
+.rp-social-store{display:block;color:#d0d0d0;font-size:11px;margin-top:6px}
+.rp-social-handle{display:block;color:#aaa;font-size:12px;overflow-wrap:anywhere;margin-top:3px}
+.rp-social-account-action{grid-column:2;display:flex;align-items:center;gap:10px;min-height:24px;color:#f09389;font-family:'Oxanium',Arial,sans-serif;font-size:12px;font-weight:650}
+.rp-social-account-action>svg{width:17px;height:17px;flex-shrink:0}
+.rp-social-account:hover{border-color:#e17f73;background:#ffffff09}
+.rp-social-account:hover .rp-social-account-action{text-decoration:underline;text-underline-offset:4px}
+.reparapid-site .rp-social-account:focus-visible{outline-color:#fff}
+.rp-social-note{margin-top:20px;font-size:10px;color:#aaa}
+@media(max-width:1000px){.rp-social-accounts{gap:20px}.rp-social-account{padding:24px;column-gap:16px}}
+@media(max-width:680px){.rp-social{padding:43px 0;scroll-margin-top:16px}.rp-social-accounts{grid-template-columns:minmax(0,1fr);gap:16px}.rp-social-account{padding:24px}.rp-social-account h3{font-size:23px}.rp-social .rp-section-heading>p{font-size:12px}.rp-social-store{font-size:11px}.rp-social-note{margin-top:16px}}
+@media(max-width:360px){.rp-social-account{padding:20px;grid-template-columns:44px minmax(0,1fr);column-gap:12px}.rp-social-logo{width:44px;height:44px;border-radius:8px}.rp-social-logo>svg{width:28px;height:28px}.rp-social-account-action{grid-column:1/-1}.rp-social-handle{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.rp-social-account{transition:none}}

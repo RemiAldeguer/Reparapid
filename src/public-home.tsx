@@ -9,6 +9,7 @@ import {clientApi, type IntakeShop} from './client-api';
 import {INTAKE_MODELS, INTAKE_MODEL_GROUPS} from './repair-intake-catalog';
 import {ConsolePickerSearch} from './home-console-select';
 import {HomeRepairJourneyArt} from './home-repair-journey-art';
+import {MaxxiSocial} from './maxxi-social';
 import './public-home.css';
 import './reparapid-brand.css';
 
@@ -22,8 +23,11 @@ function sectionLink(event: MouseEvent<HTMLAnchorElement>, id: string) {
 function contactSectionLink(event: MouseEvent<HTMLAnchorElement>) {
   if (document.getElementById('rp-contact')) sectionLink(event, 'rp-contact');
 }
+function socialSectionLink(event: MouseEvent<HTMLAnchorElement>) {
+  if (document.getElementById('rp-social')) sectionLink(event, 'rp-social');
+}
 export function StorefrontShell({children, compact = false, enableIntake = true}: {children: ReactNode; compact?: boolean; enableIntake?: boolean}) {
-  return <div className="reparapid-site"><a className="rp-skip" href="#rp-main" onClick={event => sectionLink(event, 'rp-main')}>Aller au contenu</a><div className="rp-topline"><Icon name="wrench" size={14}/><span>Réparation de consoles · Le Kremlin-Bicêtre</span><a href="#/connexion">Accès magasin<Icon name="right" size={13}/></a></div><header className="rp-header rp-shell"><ReparapidBrand showPartner={false}/><nav aria-label="Navigation du site">{!compact && <a href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche</a>}<a href="/guides/">Tutoriels</a><a href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contact</a><a href="#/espace-client"><Icon name="user" size={17}/>Mon compte</a>{enableIntake && <a className="rp-button rp-primary" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={16}/></a>}</nav></header>{children}<footer className="rp-footer"><div className="rp-shell rp-footer-inner"><div><ReparapidBrand/><p>Votre prochaine partie commence ici.</p></div><nav aria-label="Liens utiles">{enableIntake && <a href="#/demande-reparation">Demander une réparation</a>}<a href="/guides/">Tutoriels de réparation</a><a href="#/espace-client">Mon espace client</a><a href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contactez-nous</a><a href="#/connexion">Connexion magasin</a></nav><p className="rp-legal-note">Les marques et modèles servent à identifier votre console.<br/>Reparapid est un service indépendant des fabricants.</p></div></footer></div>;
+  return <div className="reparapid-site"><a className="rp-skip" href="#rp-main" onClick={event => sectionLink(event, 'rp-main')}>Aller au contenu</a><div className="rp-topline"><Icon name="wrench" size={14}/><span>Réparation de consoles · Le Kremlin-Bicêtre</span><a href="#/connexion">Accès magasin<Icon name="right" size={13}/></a></div><header className="rp-header rp-shell"><ReparapidBrand showPartner={false}/><nav aria-label="Navigation du site">{!compact && <a href="#rp-how" onClick={event => sectionLink(event, 'rp-how')}>Comment ça marche</a>}<a href="/guides/">Tutoriels</a><a href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contact</a><a href="#/espace-client"><Icon name="user" size={17}/>Mon compte</a>{enableIntake && <a className="rp-button rp-primary" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={16}/></a>}</nav></header>{children}<footer className="rp-footer"><div className="rp-shell rp-footer-inner"><div><ReparapidBrand/><p>Votre prochaine partie commence ici.</p></div><nav aria-label="Liens utiles">{enableIntake && <a href="#/demande-reparation">Demander une réparation</a>}<a href="/guides/">Tutoriels de réparation</a><a href="#/espace-client">Mon espace client</a><a href="#/accueil?section=rp-contact" onClick={contactSectionLink}>Contactez-nous</a><a href="#/accueil?section=rp-social" onClick={socialSectionLink}>Réseaux sociaux</a><a href="#/connexion">Connexion magasin</a></nav><p className="rp-legal-note">RépaRapid est exploité par VESTY GAMES 3, sous l’enseigne Maxxi Games.<br/>Les marques et modèles identifient les appareils ; le service est indépendant des fabricants.</p><nav className="rp-footer-legal" aria-label="Informations légales"><span>© 2026 Maxxi Games · VESTY GAMES 3</span><a href="#/cgu">CGU</a><a href="#/cgv">CGV</a><a href="#/mentions-legales">Mentions légales</a><a href="#/retractation">Exercer mon droit de rétractation</a></nav></div></footer></div>;
 }
 const googleReviewsUrl = 'https://www.google.com/maps/search/?api=1&query=Reparapid%20Le%20Kremlin-Bicetre&query_place_id=ChIJIxKphttx5kcRw7EU2fbERBg';
 const googleDirectionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=Reparapid%20Le%20Kremlin-Bicetre&destination_place_id=ChIJIxKphttx5kcRw7EU2fbERBg';
@@ -99,7 +103,6 @@ function StoreContact({shop}: {shop: IntakeShop | null}) {
           {contact.email && <div className="rp-contact-row"><span className="rp-contact-icon"><Icon name="mail" size={21}/></span><div><h3>Par e-mail</h3><a href={`mailto:${encodeURIComponent(contact.email)}`}>{contact.email}</a></div></div>}
           <div className="rp-contact-row"><span className="rp-contact-icon"><Icon name="location" size={21}/></span><div><h3>À l’atelier</h3>{contact.address ? <address>{contact.address}<br/>{contact.postalCode} {contact.city}</address> : <p>{contact.city || 'Contactez le magasin pour connaître l’adresse.'}</p>}<a className="rp-contact-directions" href={googleDirectionsUrl} target="_blank" rel="noopener noreferrer">Préparer mon itinéraire<Icon name="arrow" size={15}/></a></div></div>
           <div className="rp-contact-hours"><Icon name="clock" size={20}/><div><strong>Du mardi au samedi · 10 h – 20 h</strong><p>Hors fermetures exceptionnelles.</p></div></div>
-          <div className="rp-contact-social"><span>Retrouvez Maxxi Games</span><a href="https://www.instagram.com/maxxigames_kremlinbicetre/" target="_blank" rel="noopener noreferrer">Instagram<Icon name="arrow" size={13}/></a><a href="https://www.tiktok.com/@maxxigameskremlinbicetre" target="_blank" rel="noopener noreferrer">TikTok<Icon name="arrow" size={13}/></a></div>
         </div>
         <form className="rp-contact-form" onSubmit={openEmail} aria-labelledby="rp-contact-form-title">
           <h3 id="rp-contact-form-title">Écrivez-nous.</h3>
@@ -161,7 +164,7 @@ export function PublicHome() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const sectionId = new URLSearchParams(window.location.hash.split('?')[1]).get('section');
-        if (sectionId !== 'rp-contact' && sectionId !== 'rp-how') return;
+        if (sectionId !== 'rp-contact' && sectionId !== 'rp-how' && sectionId !== 'rp-social') return;
         const section = document.getElementById(sectionId);
         section?.scrollIntoView({block: 'start'});
         section?.focus({preventScroll: true});
@@ -199,6 +202,7 @@ export function PublicHome() {
       </div>
     </section>
     <HomeRepairGuides/>
+    <MaxxiSocial/>
     <StoreContact shop={shop}/>
     <section className="rp-final-cta"><div className="rp-shell"><div><span className="rp-eyebrow">LA PARTIE N’EST PAS FINIE.</span><h2>On regarde votre panne ?</h2></div><a className="rp-button rp-light" href="#/demande-reparation">Réparer ma console<Icon name="arrow" size={19}/></a></div></section>
   </main></StorefrontShell>;

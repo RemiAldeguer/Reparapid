@@ -11,6 +11,7 @@ import {AuthGate} from './auth';
 import {ClientPortal} from './client-portal';
 import {PublicHome} from './public-home';
 import {RepairIntake} from './repair-intake';
+import {LegalPage, WithdrawalPage} from './legal-pages';
 import './select-controls.css';
 const root=document.getElementById('root');
 if(!root)throw new Error('Élément racine introuvable.');
@@ -20,6 +21,10 @@ function RouteGate() {
   const route = hash.split('?')[0].replace(/\/$/, '');
   if (!route || route === '#' || route === '#/accueil') return <PublicHome/>;
   if (route === '#/demande-reparation') return <RepairIntake/>;
+  if (route === '#/cgu') return <LegalPage kind="cgu"/>;
+  if (route === '#/cgv') return <LegalPage kind="cgv"/>;
+  if (route === '#/mentions-legales') return <LegalPage kind="mentions"/>;
+  if (route === '#/retractation') return <WithdrawalPage/>;
   return route === '#/espace-client' ? <ClientPortal/> : <AuthGate><App/></AuthGate>;
 }
 createRoot(root).render(<ErrorBoundary><RouteGate/></ErrorBoundary>);
