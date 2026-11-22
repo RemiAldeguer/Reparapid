@@ -1,8 +1,14 @@
 import React, {useState} from 'react';
-import {dateFmt, money, type Repair, type RepairProposalInput} from './domain';
+import {dateFmt, timeFmt, money, type Repair, type RepairProposalInput} from './domain';
 import {useApp} from './store';
 import {Badge, Field, Icon, Panel} from './ui';
 import './repair-proposal-admin.css';
+
+export function RepairWithdrawalNotice({repair}: {repair: Repair}) {
+  const withdrawal = repair.proposal?.withdrawal;
+  if (!withdrawal) return null;
+  return <aside className="proposal-withdrawal-notice" aria-label="Rétractation reçue"><Icon name="alert" size={22}/><div><strong>Rétractation reçue</strong><p>Déclaration reçue le {dateFmt(withdrawal.requestedAt, true)} à {timeFmt(withdrawal.requestedAt)}. Interrompez les travaux et contactez le client pour organiser les suites et tout remboursement dû.</p><small>La déclaration est conservée dans le diagnostic. Les suites sont à traiter par le magasin.</small></div></aside>;
+}
 
 export function RepairProposalAdmin({repair}: {repair: Repair}) {
   const {data, serverCommand, ask, notify} = useApp();
@@ -30,8 +36,8 @@ export function RepairProposalAdmin({repair}: {repair: Repair}) {
       body: `${kind === 'repair' ? `Réparation proposée : ${money(input.repairAmount!)} TTC, pièces et intervention comprises.` : `Console irréparable.${input.buybackAmount !== null ? ` Offre de rachat pour pièces : ${money(input.buybackAmount)}.` : ''}`} Frais de retour si le client le demande : ${money(input.returnFee)}. Le client pourra répondre dans son espace.`,
       label: 'Publier dans l’espace client', run: () => {void serverCommand(endpoint, {action: 'publish', ...input}, 'Proposition publiée dans l’espace client.').then(ok => {if (ok) setEditing(false);});}});
   }
-  const title = !proposal ? 'Proposition au client' : proposal.decision === 'pending' ? 'Réponse du client attendue' : proposal.decision === 'repair' ? 'Réparation acceptée' : proposal.decision === 'return' ? 'Retour de la console' : 'Rachat pour pièces';
-  return <Panel title={title} aside={<Badge tone={proposal?.decision === 'pending' ? 'amber' : proposal ? 'green' : 'blue'}>{proposal ? 'Espace client' : 'À préparer'}</Badge>}>
+  const title = !proposal ? 'Proposition au client' : proposal.withdrawal ? 'Rétractation reçue' : proposal.decision === 'pending' ? 'Réponse du client attendue' : proposal.decision === 'repair' ? 'Réparation acceptée' : proposal.decision === 'return' ? 'Retour de la console' : 'Rachat pour pièces';
+  return <Panel title={title} aside={<Badge tone={proposal?.withdrawal || proposal?.decision === 'pending' ? 'amber' : proposal ? 'green' : 'blue'}>{proposal ? 'Espace client' : 'À préparer'}</Badge>}>
     <div className="panel-body proposal-admin">
       <p className="proposal-admin-intro">Ce bloc est partagé avec le client. Les observations du diagnostic technique restent internes à l’atelier.</p>
       {proposal && <>
@@ -41,7 +47,10 @@ export function RepairProposalAdmin({repair}: {repair: Repair}) {
           <div><dt>Frais de retour</dt><dd>{money(proposal.returnFee)}</dd></div></dl><small>Publiée le {dateFmt(proposal.publishedAt, true)}{proposal.decidedAt && ` · Choix enregistré le ${dateFmt(proposal.decidedAt, true)}`}</small>
         </div>
         {proposal.decision === 'pending' && <div className="notice"><Icon name="clock" size={18}/><span>Le client peut {proposal.kind === 'repair' ? 'accepter la réparation ou la refuser et demander le retour' : proposal.buybackAmount !== null ? 'accepter le rachat ou demander le retour' : 'demander le retour'}. Attendez son choix avant d’intervenir.</span></div>}
-        {proposal.decision === 'repair' && <div className="notice"><Icon name="check" size={18}/><span>Accord du client enregistré pour {money(proposal.repairAmount!)} TTC. Vous pouvez lancer la réparation. Le devis accepté reste fixe ; le bilan interne des pièces et du temps est conservé séparément.</span></div>}
+        {proposal.decision === 'repair' && !proposal.withdrawal && <div className="notice"><Icon name="check" size={18}/><span>Accord du client enregistré pour {money(proposal.repairAmount!)} TTC. Vérifiez les conditions de démarrage ci-dessous avant toute intervention. Le devis accepté reste fixe ; le bilan interne des pièces et du temps est conservé séparément.</span></div>}
+        {proposal.legal && <section className="proposal-admin-legal" aria-label="CGV et conditions de démarrage acceptées"><h3>Accord et conditions acceptées</h3><dl><div><dt>Version des CGV</dt><dd>{proposal.legal.version}</dd></div><div><dt>Acceptation enregistrée</dt><dd>{dateFmt(proposal.legal.acceptedAt, true)} à {timeFmt(proposal.legal.acceptedAt)}</dd></div><div><dt>Client</dt><dd>{proposal.legal.customerName}<br/><a href={`mailto:${encodeURIComponent(proposal.legal.customerEmail)}`}>{proposal.legal.customerEmail}</a></dd></div></dl>{proposal.legal.earlyStartRequested && proposal.legal.earlyStartAcknowledged ? <p><strong>Démarrage anticipé demandé expressément par le client.</strong> Sa reconnaissance porte sur la perte du droit de rétractation à l’exécution complète de la prestation. L’accord seul n’éteint pas ce droit.</p> : <p><strong>Attendre l’expiration du délai de rétractation avant intervention.</strong> Aucune demande de démarrage anticipé n’est enregistrée.</p>}<details><summary>Texte des CGV conservé avec l’accord</summary><p className="prewrap" tabIndex={0} aria-label="Texte des CGV acceptées">{proposal.legal.document}</p></details></section>}
+        {proposal.decision === 'repair' && !proposal.legal && <p className="notice">Aucun justificatif de CGV ou de démarrage anticipé n’est enregistré pour cette proposition. Vérifiez les conditions de l’accord avec le client avant d’intervenir.</p>}
+        {proposal.withdrawal && <section className="proposal-admin-withdrawal" aria-label="Déclaration de rétractation conservée"><h3>Déclaration de rétractation</h3><p>Reçue le {dateFmt(proposal.withdrawal.requestedAt, true)} à {timeFmt(proposal.withdrawal.requestedAt)} de <strong>{proposal.withdrawal.customerName}</strong> · <a href={`mailto:${encodeURIComponent(proposal.withdrawal.customerEmail)}`}>{proposal.withdrawal.customerEmail}</a>.</p><blockquote>{proposal.withdrawal.statement}</blockquote><p>Interrompez les travaux et contactez le client pour organiser les suites et tout remboursement dû. La réception de cette déclaration ne modifie pas automatiquement l’étape, les pièces, la facturation ou les paiements du dossier.</p><small>Référence de la déclaration : <span className="mono">{proposal.withdrawal.id}</span></small></section>}
         {proposal.decision === 'return' && <section className="proposal-admin-operation" aria-label="Virement et expédition du retour">
           <h3><Icon name="package" size={19}/>Retour demandé par le client</h3>
           {proposal.returnFee > 0 ? <>

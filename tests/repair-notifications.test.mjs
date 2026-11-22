@@ -251,6 +251,19 @@ test('Proposal events include each accepted lifecycle action and do not duplicat
   assert.deepEqual(repairNotifications(decided, structuredClone(decided), options), []);
 });
 
+test('A withdrawal notifies each audience once without copying the legal file or declaration contact', () => {
+  const before = fixture(); before.settings.publicIntake = {email: 'shop@example.invalid'};
+  before.repairs[0].proposal = {id: 'proposal-test', kind: 'repair', decision: 'repair', legal: {document: 'PRIVATE_LEGAL_RECORD'}};
+  const after = structuredClone(before); after.revision++;
+  after.repairs[0].proposal.withdrawal = {id: 'withdrawal-test', requestedAt: '2026-11-22T10:00:00.000Z', customerEmail: 'PRIVATE_DECLARATION_EMAIL'};
+  const events = repairNotifications(before, after, options);
+  assert.equal(events.length, 2);
+  assert.ok(events.every(row => JSON.parse(row.payload).eventType === 'withdrawal-requested'));
+  assert.ok(events.every(row => !row.payload.includes('PRIVATE_')));
+  assert.match(renderRepairNotification(JSON.parse(events[0].payload)).text, /rétractation/i);
+  assert.deepEqual(repairNotifications(after, structuredClone(after), options), []);
+});
+
 test('Preferences default each event and audience to true and reject unrecognized user options', () => {
   const {normalizeNotificationPreferences, validateNotificationPreferences, NOTIFICATION_EVENTS} = notificationDomain;
   assert.equal(typeof normalizeNotificationPreferences, 'function');

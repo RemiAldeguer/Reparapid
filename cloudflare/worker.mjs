@@ -1,7 +1,7 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../src/domain.ts';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal } from '../src/domain.ts';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../src/repair-intake-domain.ts';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
@@ -20,7 +20,7 @@ import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId
 
 const HOUR = 3600000;
 const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
-  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal};
 const SESSION_MS = 8 * HOUR;
 const IDLE_MS = HOUR / 2;
 let hashing = 0;
@@ -401,16 +401,23 @@ async function handle(request, env, headers, url, secure, configured, context) {
     if (pathname === '/api/client/portal' && request.method === 'GET') {
       return json(headers, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
     }
+    if (pathname === '/api/client/portal' && request.method === 'POST') {
+      const body = await readJSON(request, 1024);
+      if (Object.keys(body).length) throw new HttpError(400, 'La source du document n’accepte aucun champ.');
+      const fresh = await clientSession(false);
+      if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+      return json(headers, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost));
+    }
     const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/proposal$/);
     if (proposalRoute) {
       if (request.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
       const repairId = proposalRepairId(proposalRoute[1]);
-      const input = clientProposalRequest(await readJSON(request, 1024));
+      const input = clientProposalRequest(await readJSON(request, 1024), {requireLegal: !workshopId});
       const fresh = await clientSession(false);
       if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
       const current = fresh.store;
       const before = structuredClone(current);
-      if (applyClientProposal(current, fresh.row.client_id, repairId, input, proposalActions)) {
+      if (applyClientProposal(current, fresh.row.client_id, repairId, input, proposalActions, {requireLegal: !workshopId, accountEmail: fresh.row.email})) {
         validateStore(current);
         const at = Date.now();
         const changed = await saveClientWorkshop(db, {expectedRevision: current.revision, data: current,

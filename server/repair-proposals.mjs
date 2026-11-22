@@ -1,5 +1,7 @@
 // Shared HTTP boundary for the diagnostic proposal workflow. Domain operations
 // are injected by each host; no client receives the internal workshop snapshot.
+import {LEGAL_VERSION, LEGAL_CGV_TEXT} from '../src/legal-content.mjs';
+
 // The bounded public explanation and banking text may contain four-byte UTF-8.
 export const REPAIR_PROPOSAL_BODY_LIMIT = 40 * 1024;
 export class RepairProposalError extends Error {
@@ -25,12 +27,27 @@ export function proposalRepairId(value) {
   if (!/^[A-Za-z0-9_-]{1,120}$/.test(id || '')) throw new RepairProposalError(404, 'Dossier introuvable.');
   return id;
 }
-export function clientProposalRequest(body) {
-  object(body, ['proposalId', 'action']);
-  if (!['repair', 'return', 'buyback', 'declare-transfer'].includes(body.action)) {
+function legalConsent(value) {
+  object(value, ['version', 'accepted', 'earlyStartRequested', 'earlyStartAcknowledged']);
+  if (typeof value.version !== 'string' || !value.version.trim() || value.version.length > 100
+    || value.accepted !== true || typeof value.earlyStartRequested !== 'boolean'
+    || typeof value.earlyStartAcknowledged !== 'boolean'
+    || value.earlyStartRequested !== value.earlyStartAcknowledged) {
+    throw new RepairProposalError(400, 'Acceptez explicitement les conditions et vérifiez votre choix d’exécution anticipée.');
+  }
+  return {version: value.version, accepted: true, earlyStartRequested: value.earlyStartRequested,
+    earlyStartAcknowledged: value.earlyStartAcknowledged};
+}
+export function clientProposalRequest(body, {requireLegal = true} = {}) {
+  object(body, ['proposalId', 'action', ...(requireLegal ? ['legal'] : [])]);
+  if (!['repair', 'return', 'buyback', 'declare-transfer', ...(requireLegal ? ['withdraw'] : [])].includes(body.action)) {
     throw new RepairProposalError(400, 'Choix de diagnostic invalide.');
   }
-  return {proposalId: identifier(body.proposalId), action: body.action};
+  if (body.action !== 'repair') object(body, ['proposalId', 'action']);
+  // Old bundles may replay an already recorded choice. Only application of a
+  // new root agreement requires the current document; history is never rewritten.
+  return {proposalId: identifier(body.proposalId), action: body.action,
+    ...(body.legal === undefined ? {} : {legal: legalConsent(body.legal)})};
 }
 export function adminProposalRequest(body) {
   object(body, ['revision', 'action', 'kind', 'description', 'repairAmount', 'buybackAmount', 'returnFee', 'bankInstructions', 'proposalId', 'tracking']);
@@ -61,12 +78,28 @@ export function assertProposalOwner(store, clientId, repairId) {
     throw new RepairProposalError(404, 'Dossier introuvable.');
   }
 }
-export function applyClientProposal(store, clientId, repairId, request, actions) {
+export function applyClientProposal(store, clientId, repairId, request, actions, {requireLegal = true, accountEmail} = {}) {
   assertProposalOwner(store, clientId, repairId);
+  if (!requireLegal && (request.legal !== undefined || request.action === 'withdraw')) {
+    throw new RepairProposalError(400, 'Ces conditions concernent uniquement l’atelier RépaRapid de Maxxi Games au Kremlin-Bicêtre.');
+  }
   try {
-    return request.action === 'declare-transfer'
-      ? actions.declareRepairReturnTransfer(store, repairId, request.proposalId)
-      : actions.decideRepairProposal(store, repairId, request.proposalId, request.action);
+    if (request.action === 'withdraw') return actions.requestRepairWithdrawal(store, clientId, repairId, request.proposalId, accountEmail);
+    if (request.action === 'declare-transfer') return actions.declareRepairReturnTransfer(store, repairId, request.proposalId);
+    let legal;
+    if (requireLegal && request.action === 'repair') {
+      const proposal = store.repairs.find(item => item.id === repairId)?.proposal;
+      if (proposal?.id === request.proposalId && proposal.decision === 'repair') {
+        return actions.decideRepairProposal(store, repairId, request.proposalId, request.action);
+      }
+      if (!request.legal || request.legal.version !== LEGAL_VERSION) {
+        throw new RepairProposalError(409, 'Les conditions de réparation doivent être acceptées dans leur version actuelle. Rechargez le dossier avant de confirmer.');
+      }
+      const consent = legalConsent(request.legal);
+      legal = {version: LEGAL_VERSION, document: LEGAL_CGV_TEXT, earlyStartRequested: consent.earlyStartRequested,
+        earlyStartAcknowledged: consent.earlyStartAcknowledged};
+    }
+    return actions.decideRepairProposal(store, repairId, request.proposalId, request.action, legal, accountEmail);
   } catch (error) {throw new RepairProposalError(409, error.message);}
 }
 export function applyAdminProposal(store, repairId, request, actions) {
@@ -80,7 +113,7 @@ export function applyAdminProposal(store, repairId, request, actions) {
 }
 
 const proposalKeys = ['id', 'kind', 'description', 'repairAmount', 'buybackAmount', 'returnFee', 'bankInstructions', 'publishedAt',
-  'decision', 'decidedAt', 'transferDeclaredAt', 'returnPaidAt', 'returnedAt', 'tracking', 'buybackCompletedAt'];
+  'decision', 'decidedAt', 'transferDeclaredAt', 'returnPaidAt', 'returnedAt', 'tracking', 'buybackCompletedAt', 'legal', 'withdrawal'];
 const proposalValue = proposal => proposal === undefined ? undefined : JSON.stringify(proposalKeys.map(key => proposal?.[key]));
 // Dedicated actions own the proposal and its client decision. A normal Store
 // save may change other fields, but cannot create, replace or silently omit it.
@@ -121,5 +154,15 @@ export function publicRepairProposal(proposal) {
     publishedAt: proposal.publishedAt, decision: proposal.decision, decidedAt: proposal.decidedAt,
     transferDeclaredAt: proposal.transferDeclaredAt, returnPaidAt: proposal.returnPaidAt,
     returnedAt: proposal.returnedAt, tracking: proposal.tracking, buybackCompletedAt: proposal.buybackCompletedAt,
+    ...(proposal.legal === undefined ? {} : {legal: {
+      version: proposal.legal.version, acceptedAt: proposal.legal.acceptedAt, document: proposal.legal.document,
+      earlyStartRequested: proposal.legal.earlyStartRequested, earlyStartAcknowledged: proposal.legal.earlyStartAcknowledged,
+      customerName: proposal.legal.customerName, customerEmail: proposal.legal.customerEmail,
+    }}),
+    ...(proposal.withdrawal === undefined ? {} : {withdrawal: {
+      id: proposal.withdrawal.id, requestedAt: proposal.withdrawal.requestedAt,
+      customerName: proposal.withdrawal.customerName, customerEmail: proposal.withdrawal.customerEmail,
+      statement: proposal.withdrawal.statement,
+    }}),
   };
 }

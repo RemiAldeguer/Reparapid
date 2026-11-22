@@ -48,12 +48,20 @@ export interface PartUsage { id: string; partId: string; name: string; quantity:
 export interface Worklog { id: string; minutes: number; note: string; createdAt: string; }
 export interface RepairTest { id: string; label: string; result: TestResult; }
 export interface RepairPayment { amount: number; paidAt: string; }
+export interface RepairProposalLegal {
+  version: string; acceptedAt: string; document: string; earlyStartRequested: boolean; earlyStartAcknowledged: boolean;
+  customerName: string; customerEmail: string;
+}
+export type RepairProposalLegalInput = Pick<RepairProposalLegal,'version'|'document'|'earlyStartRequested'|'earlyStartAcknowledged'>;
+export interface RepairWithdrawal { id: string; requestedAt: string; customerName: string; customerEmail: string; statement: string; }
 /** Explicit customer-facing terms, separate from internal notes, costs and repair receipts. */
 export interface RepairProposal {
   id: string; kind: 'repair' | 'unrepairable'; description: string;
   repairAmount: number | null; buybackAmount: number | null; returnFee: number; bankInstructions: string;
   publishedAt: string; decision: 'pending' | 'repair' | 'return' | 'buyback'; decidedAt: string;
   transferDeclaredAt: string; returnPaidAt: string; returnedAt: string; tracking: string; buybackCompletedAt: string;
+  legal?: RepairProposalLegal;
+  withdrawal?: RepairWithdrawal;
 }
 export type RepairProposalInput = Pick<RepairProposal,'kind'|'description'|'repairAmount'|'buybackAmount'|'returnFee'|'bankInstructions'>;
 export interface Repair {
@@ -163,6 +171,33 @@ function proposalText(value: unknown,max: number,required=false): string {
   if(typeof value!=='string'||value.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)||required&&!value.trim())throw Error('Proposition : texte obligatoire manquant, invalide ou trop long.');
   return value.trim();
 }
+function proposalRecord(raw: unknown,fields: string[]): Record<string,unknown> {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)||Object.keys(raw).some(key=>!fields.includes(key)))throw Error('Proposition : conditions ou déclaration de rétractation invalides.');
+  return raw as Record<string,unknown>;
+}
+function proposalLegalInput(raw: unknown): RepairProposalLegalInput {
+  const value=proposalRecord(raw,['version','document','earlyStartRequested','earlyStartAcknowledged']);
+  const version=proposalText(value.version,100,true);proposalText(value.document,100000,true);
+  if(typeof value.earlyStartRequested!=='boolean'||typeof value.earlyStartAcknowledged!=='boolean'||value.earlyStartRequested!==value.earlyStartAcknowledged)throw Error('Le consentement à l’exécution anticipée exige une demande et une reconnaissance explicites cohérentes.');
+  return {version,document:value.document as string,earlyStartRequested:value.earlyStartRequested,earlyStartAcknowledged:value.earlyStartAcknowledged};
+}
+function proposalCustomer(raw: Record<string,unknown>): {customerName: string;customerEmail: string} {
+  const customerName=proposalText(raw.customerName,200,true),customerEmail=proposalText(raw.customerEmail,254,true);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))throw Error('Proposition : adresse e-mail du client invalide.');
+  return {customerName,customerEmail};
+}
+function proposalLegal(raw: unknown): RepairProposalLegal {
+  const value=proposalRecord(raw,['version','document','earlyStartRequested','earlyStartAcknowledged','acceptedAt','customerName','customerEmail']);
+  const input=proposalLegalInput({version:value.version,document:value.document,earlyStartRequested:value.earlyStartRequested,earlyStartAcknowledged:value.earlyStartAcknowledged});
+  if(!validPaymentTimestamp(value.acceptedAt))throw Error('Horodatage de consentement aux conditions invalide.');
+  return {...input,acceptedAt:value.acceptedAt,...proposalCustomer(value)};
+}
+function proposalWithdrawal(raw: unknown): RepairWithdrawal {
+  const value=proposalRecord(raw,['id','requestedAt','customerName','customerEmail','statement']);
+  if(typeof value.id!=='string'||!/^[A-Za-z0-9_-]{1,120}$/.test(value.id)||!validPaymentTimestamp(value.requestedAt))throw Error('Identifiant ou horodatage de rétractation invalide.');
+  proposalText(value.statement,4000,true);
+  return {id:value.id,requestedAt:value.requestedAt,...proposalCustomer(value),statement:value.statement as string};
+}
 function proposalInput(raw: unknown): RepairProposalInput {
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Proposition de diagnostic invalide.');
   const value=raw as Record<string,unknown>;
@@ -200,6 +235,14 @@ function validateRepairProposal(raw: unknown): RepairProposal {
   if(result.decidedAt&&result.decidedAt<result.publishedAt)throw Error('La réponse précède la proposition.');
   for(const timestamp of [result.transferDeclaredAt,result.returnPaidAt,result.returnedAt,result.buybackCompletedAt])if(timestamp&&(!result.decidedAt||timestamp<result.decidedAt))throw Error('Le suivi du dossier précède la réponse du client.');
   if(result.returnedAt&&result.returnPaidAt&&result.returnedAt<result.returnPaidAt)throw Error('L’expédition précède la réception du virement.');
+  if(value.legal!==undefined){
+    result.legal=proposalLegal(value.legal);
+    if(result.decision!=='repair'||result.legal.acceptedAt!==result.decidedAt)throw Error('Les conditions acceptées doivent correspondre à la réparation et à sa date d’accord.');
+  }
+  if(value.withdrawal!==undefined){
+    result.withdrawal=proposalWithdrawal(value.withdrawal);
+    if(result.decision!=='repair'||result.withdrawal.requestedAt<result.decidedAt)throw Error('La rétractation exige un contrat de réparation accepté et ne peut précéder cet accord.');
+  }
   return result;
 }
 export const consoleInvestment = (s: Store,c: ConsoleItem) => cents(c.purchasePrice+s.repairs.filter(r=>r.consoleId===c.id).reduce((a,r)=>a+partsCost(r),0));
@@ -352,7 +395,7 @@ export function publishRepairProposal(s: Store,id: string,input: RepairProposalI
   });
 }
 /** A response concerns one exact version and cannot be changed by another click or stale page. */
-export function decideRepairProposal(s: Store,id: string,proposalId: string,decision: 'repair'|'return'|'buyback'): boolean {
+export function decideRepairProposal(s: Store,id: string,proposalId: string,decision: 'repair'|'return'|'buyback',legal?: RepairProposalLegalInput,accountEmail?: string): boolean {
   if(!['repair','return','buyback'].includes(decision))throw Error('Choisissez la réparation, le retour ou le rachat proposé.');
   return proposalMutation(s,id,(draft,r)=>{
     const p=currentProposal(r,proposalId);
@@ -360,9 +403,27 @@ export function decideRepairProposal(s: Store,id: string,proposalId: string,deci
     if(p.decision!=='pending')throw Error('Une réponse définitive a déjà été enregistrée pour cette proposition.');
     if(decision==='repair'&&p.kind!=='repair')throw Error('Cette console est déclarée irréparable.');
     if(decision==='buyback'&&(p.kind!=='unrepairable'||p.buybackAmount===null))throw Error('Aucune offre de rachat n’est disponible pour ce dossier.');
+    if(legal!==undefined&&decision!=='repair')throw Error('Le consentement aux conditions concerne uniquement une réparation acceptée.');
+    const consent=legal===undefined?undefined:proposalLegalInput(legal);
+    const customer=consent?draft.clients.find(item=>item.id===draft.consoles.find(item=>item.id===r.consoleId)!.clientId)!:undefined;
     p.decision=decision;p.decidedAt=now();
+    if(consent)p.legal={...consent,acceptedAt:p.decidedAt,...proposalCustomer({customerName:customer!.name,customerEmail:customer!.email||accountEmail})};
     if(decision!=='repair')moveRepair(draft,r.id,p.kind==='repair'?'abandonnee':'irreparable');
     proposalEvent(draft,r,decision==='repair'?`Le client accepte la réparation proposée à ${money(p.repairAmount!)}.`:decision==='return'?'Le client demande le retour de sa console.':`Le client accepte le rachat pour pièces proposé à ${money(p.buybackAmount!)}.`);
+    return true;
+  });
+}
+/** Record a customer's notification; the shop assesses legal effects without automatic refund or workflow changes. */
+export function requestRepairWithdrawal(s: Store,clientId: string,id: string,proposalId: string,accountEmail?: string): boolean {
+  const repair=s.repairs.find(item=>item.id===id),consoleItem=repair&&s.consoles.find(item=>item.id===repair.consoleId);
+  const client=s.clients.find(item=>item.id===clientId);
+  if(!client||!consoleItem||consoleItem.clientId!==clientId)throw Error('Dossier introuvable.');
+  return proposalMutation(s,id,(draft,r)=>{
+    const p=currentProposal(r,proposalId);
+    if(p.decision!=='repair')throw Error('La rétractation exige un contrat de réparation accepté.');
+    if(p.withdrawal)return false;
+    p.withdrawal={id:uid(),requestedAt:now(),...proposalCustomer({customerName:client.name,customerEmail:client.email||accountEmail}),statement:`Je vous notifie ma rétractation du contrat de réparation accepté le ${p.decidedAt}, relatif à la proposition ${p.id} du dossier ${r.code}.`};
+    proposalEvent(draft,r,'Le client notifie sa rétractation du contrat de réparation. Le magasin doit traiter cette demande et ses conséquences.');
     return true;
   });
 }

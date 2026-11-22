@@ -9,11 +9,13 @@ import {emptyStore, createClient, moveRepair, validateStore} from './.compiled/d
 import {createPublicRepair, faultSuggestions} from './.compiled/repair-intake-domain.cjs';
 import {provisioningStatements, workshopPrefix} from '../server/workshop-scope.mjs';
 import worker from '../cloudflare/worker.mjs';
+import {LEGAL_VERSION, LEGAL_CGV_TEXT} from '../src/legal-content.mjs';
 
 const proposal = (overrides = {}) => ({kind: 'repair', description: 'Remplacement du connecteur de charge fictif.',
   repairAmount: 79.95, buybackAmount: null, returnFee: 12.5,
   bankInstructions: 'INSTRUCTIONS_BANCAIRES_FICTIVES réservées au retour de ce dossier.', ...overrides});
 const unsafeKeys = ['diagnosis', 'payment', 'interventionCost', 'parts', 'worklogs', 'tests', 'photos', 'publicRequestId'];
+const legalConsent = (overrides = {}) => ({version: LEGAL_VERSION, accepted: true, earlyStartRequested: false, earlyStartAcknowledged: false, ...overrides});
 function sampleStore() {
   const store = emptyStore();
   store.settings.owner = 'PRIVATE_OWNER'; store.settings.workshop = 'Atelier fictif';
@@ -113,7 +115,7 @@ async function fixture(t, platform) {
   const adminPath = `/api/admin/repairs/${repairId}/proposal`, clientPath = `/api/client/repairs/${repairId}/proposal`;
   const publish = async (input = proposal()) => request(adminPath, {...admin, method: 'POST', body: {revision: read().revision, action: 'publish', ...input}});
   const choose = (action, proposalId = read().repairs[0].proposal?.id, credentials = client) => request(clientPath,
-    {...credentials, method: 'POST', body: {proposalId, action}});
+    {...credentials, method: 'POST', body: {proposalId, action, ...(action === 'repair' ? {legal: legalConsent()} : {})}});
   const operate = (action, extra = {}) => request(adminPath, {...admin, method: 'POST', body: {revision: read().revision,
     proposalId: read().repairs[0].proposal?.id, action, ...extra}});
   async function duringBody(path, credentials, body, mutate) {
@@ -138,6 +140,22 @@ function assertProjection(data, expectedTotal) {
 }
 
 for (const platform of ['node', 'worker']) {
+  test(`${platform}: a private document source verifies the current client session and never changes the dossier`, async t => {
+    const f = await fixture(t, platform);
+    assert.equal((await f.publish()).status, 200);
+    assert.equal((await f.choose('repair')).status, 200);
+    const before = f.read();
+    const result = await f.request('/api/client/portal', {...f.client, method: 'POST', body: {}});
+    assert.equal(result.status, 200, JSON.stringify(result.data));
+    assertProjection(result.data, before.repairs[0].proposal.repairAmount);
+    assert.deepEqual(publicRepair(result.data).proposal.legal, before.repairs[0].proposal.legal);
+    assert.deepEqual(f.read(), before);
+    assert.equal((await f.request('/api/client/portal', {method: 'POST', body: {}})).status, 401);
+    assert.equal((await f.request('/api/client/portal', {...f.other, csrf: f.client.csrf, method: 'POST', body: {}})).status, 403);
+    assert.equal((await f.request('/api/client/portal', {...f.client, method: 'POST', body: {clientId: f.clients[1].id}})).status, 400);
+    assert.deepEqual(f.read(), before);
+  });
+
   test(`${platform}: diagnostic publication and repair acceptance preserve billing and remain idempotent`, async t => {
     const f = await fixture(t, platform), before = f.read();
     const result = await f.publish(); assert.equal(result.status, 200, JSON.stringify(result.data));
@@ -158,6 +176,69 @@ for (const platform of ['node', 'worker']) {
     const repeated = await f.choose('repair'); assert.equal(repeated.status, 200); assert.deepEqual(f.read(), decided);
     assert.equal((await f.choose('return')).status, 409); assert.deepEqual(f.read(), decided);
     assert.equal((await f.publish(proposal({repairAmount: 89.95}))).status, 409); assert.deepEqual(f.read(), decided);
+  });
+
+  test(`${platform}: current explicit conditions produce a frozen owned receipt and withdrawal notification`, async t => {
+    const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
+    const proposalId = f.read().repairs[0].proposal.id, before = f.read();
+    const answer = body => f.request(f.clientPath, {...f.client, method: 'POST', body: {proposalId, action: 'repair', ...body}});
+    assert.equal((await answer({})).status, 409); assert.deepEqual(f.read(), before);
+    assert.equal((await answer({legal: legalConsent({version: 'obsolete'})})).status, 409); assert.deepEqual(f.read(), before);
+    for (const legal of [legalConsent({accepted: false}), legalConsent({earlyStartRequested: true}), legalConsent({earlyStartAcknowledged: true}), {...legalConsent(), document: 'Forged document'}, {...legalConsent(), customerName: 'Forged customer'}]) {
+      assert.equal((await answer({legal})).status, 400); assert.deepEqual(f.read(), before);
+    }
+    const accepted = await answer({legal: legalConsent({earlyStartRequested: true, earlyStartAcknowledged: true})});
+    assert.equal(accepted.status, 200, JSON.stringify(accepted.data));
+    const decided = f.read(), legal = decided.repairs[0].proposal.legal;
+    assert.equal(legal.version, LEGAL_VERSION); assert.equal(legal.document, LEGAL_CGV_TEXT);
+    assert.equal(legal.acceptedAt, decided.repairs[0].proposal.decidedAt); assert.equal(legal.earlyStartRequested, true);
+    assert.equal(legal.customerName, f.clients[0].name); assert.equal(legal.customerEmail, f.clients[0].email);
+    assert.deepEqual(publicRepair(accepted.data).proposal.legal, legal);
+    assert.equal((await answer({})).status, 200); assert.deepEqual(f.read(), decided);
+    assert.equal((await answer({legal: legalConsent({version: 'obsolete'})})).status, 200); assert.deepEqual(f.read(), decided);
+    assert.equal((await f.request(f.clientPath, {...f.other, method: 'POST', body: {proposalId, action: 'withdraw'}})).status, 404);
+    assert.equal((await f.request(f.clientPath, {cookie: f.client.cookie, method: 'POST', body: {proposalId, action: 'withdraw'}})).status, 403);
+    assert.deepEqual(f.read(), decided);
+    const withdrawn = await f.choose('withdraw'); assert.equal(withdrawn.status, 200, JSON.stringify(withdrawn.data));
+    const saved = f.read(), record = saved.repairs[0].proposal.withdrawal;
+    assert.ok(record.id); assert.ok(record.requestedAt >= legal.acceptedAt);
+    assert.equal(record.customerName, f.clients[0].name); assert.equal(record.customerEmail, f.clients[0].email); assert.match(record.statement, /rétractation/);
+    assert.deepEqual(publicRepair(withdrawn.data).proposal.withdrawal, record);
+    assert.equal(saved.revision, decided.revision + 1); assert.equal(saved.events.length, decided.events.length + 1);
+    assert.equal(saved.repairs[0].stage, decided.repairs[0].stage); assert.deepEqual(saved.parts, decided.parts);
+    assert.deepEqual(saved.consoles, decided.consoles); assert.deepEqual(saved.repairs[0].payment, decided.repairs[0].payment);
+    assert.deepEqual(saved.repairs[0].proposal.legal, legal); assert.equal(saved.repairs[0].proposal.repairAmount, decided.repairs[0].proposal.repairAmount);
+    assert.equal((await f.choose('withdraw')).status, 200); assert.deepEqual(f.read(), saved);
+    const forged = structuredClone(saved); forged.repairs[0].proposal.withdrawal.statement = 'Rewritten withdrawal';
+    assert.equal((await f.request('/api/store', {...f.admin, method: 'PUT', body: {revision: saved.revision, data: forged, mode: 'edit'}})).status, 409); assert.deepEqual(f.read(), saved);
+    const removed = structuredClone(saved); delete removed.repairs[0].proposal.legal;
+    assert.equal((await f.request('/api/store', {...f.admin, method: 'PUT', body: {revision: saved.revision, data: removed, mode: 'edit'}})).status, 409); assert.deepEqual(f.read(), saved);
+  });
+
+  test(`${platform}: authenticated account email preserves consent and legacy withdrawal when the client contact has no email`, async t => {
+    for (const legacy of [false, true]) {
+      const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
+      const initial = f.read(), repair = initial.repairs[0], proposalId = repair.proposal.id;
+      initial.clients.find(client => client.id === f.clients[0].id).email = '';
+      if (legacy) {repair.proposal.decision = 'repair'; repair.proposal.decidedAt = repair.proposal.publishedAt;}
+      f.replace(initial);
+      if (!legacy) {
+        const accepted = await f.choose('repair'); assert.equal(accepted.status, 200, JSON.stringify(accepted.data));
+        assert.equal(publicRepair(accepted.data).proposal.legal.customerEmail, f.clients[0].email);
+        const saved = f.read(); assert.equal((await f.choose('repair')).status, 200); assert.deepEqual(f.read(), saved);
+      }
+      const before = f.read();
+      for (const key of ['accountEmail', 'customerEmail']) {
+        const forged = await f.request(f.clientPath, {...f.client, method: 'POST', body: {proposalId, action: 'withdraw', [key]: 'forged@example.invalid'}});
+        assert.equal(forged.status, 400); assert.deepEqual(f.read(), before);
+      }
+      const withdrawn = await f.choose('withdraw'); assert.equal(withdrawn.status, 200, JSON.stringify(withdrawn.data));
+      const proposal = publicRepair(withdrawn.data).proposal;
+      assert.equal(proposal.withdrawal.customerEmail, f.clients[0].email);
+      assert.equal(Boolean(proposal.legal), !legacy);
+      const saved = f.read(); assert.equal((await f.choose('withdraw')).status, 200); assert.deepEqual(f.read(), saved);
+      assert.equal(saved.clients.find(client => client.id === f.clients[0].id).email, '');
+    }
   });
 
   test(`${platform}: refused repair requires manual return-transfer confirmation before dispatch`, async t => {
@@ -226,7 +307,7 @@ for (const platform of ['node', 'worker']) {
 
   test(`${platform}: diagnostic actions require bounded strict JSON, role, origin and CSRF`, async t => {
     const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
-    const before = f.read(), body = {proposalId: before.repairs[0].proposal.id, action: 'repair'};
+    const before = f.read(), body = {proposalId: before.repairs[0].proposal.id, action: 'repair', legal: legalConsent()};
     for (const [credentials, status] of [[{}, 401], [f.admin, 401], [{cookie: f.client.cookie}, 403]]) {
       assert.equal((await f.request(f.clientPath, {...credentials, method: 'POST', body})).status, status);
     }
@@ -296,6 +377,9 @@ for (const platform of ['node', 'worker']) {
     const accepted = await f.request(f.clientPath, {...tenantClient, method: 'POST', body: {proposalId: tenantProposalId, action: 'repair'}});
     assert.equal(accepted.status, 200, JSON.stringify(accepted.data)); assert.equal(accepted.data.workshop.name, tenantStore.settings.workshop);
     assert.equal(publicRepair(accepted.data).proposal.decision, 'repair'); assert.equal(publicRepair(accepted.data).totalCost, 23.5);
+    assert.equal(publicRepair(accepted.data).proposal.legal, undefined);
+    assert.equal((await f.request(f.clientPath, {...tenantClient, method: 'POST', body: {proposalId: tenantProposalId, action: 'repair', legal: legalConsent()}})).status, 400);
+    assert.equal((await f.request(f.clientPath, {...tenantClient, method: 'POST', body: {proposalId: tenantProposalId, action: 'withdraw'}})).status, 400);
     assert.deepEqual(f.read(), rootBefore);
     const declaredWrongWorkshop = await f.request(f.clientPath, {...f.client, method: 'POST',
       body: {proposalId: rootProposalId, action: 'repair'}, headers: {'X-Workshop-ID': tenantId}});
@@ -378,7 +462,7 @@ for (const platform of ['node', 'worker']) {
   test(`${platform}: client and admin access are rechecked after receiving request bodies`, async t => {
     const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
     const before = f.read();
-    const rejected = await f.duringBody(f.clientPath, f.client, {proposalId: before.repairs[0].proposal.id, action: 'repair'},
+    const rejected = await f.duringBody(f.clientPath, f.client, {proposalId: before.repairs[0].proposal.id, action: 'repair', legal: legalConsent()},
       () => f.sqlite.prepare('UPDATE client_accounts SET enabled=0 WHERE client_id=?').run(f.clients[0].id));
     assert.equal(rejected.status, 401); assert.deepEqual(f.read(), before);
     const adminRejected = await f.duringBody(f.adminPath, f.admin, {revision: before.revision, action: 'publish', ...proposal({repairAmount: 100})},

@@ -19,4 +19,25 @@
 .proposal-admin input[type=radio],.proposal-admin input[type=checkbox] {width:18px;height:18px;flex:0 0 18px;accent-color:var(--accent)}
 .proposal-admin-checkbox {display:flex;align-items:center;gap:10px;font-weight:600}
 .proposal-admin .btn {max-width:100%;white-space:normal}
+.proposal-admin-legal {display:grid;gap:14px;padding:20px;border:1px solid var(--border);border-radius:10px;background:var(--bg)}
+.proposal-admin-legal h3,.proposal-admin-withdrawal h3 {font-size:15px;line-height:1.5;margin:0}
+.proposal-admin-legal dl {display:flex;flex-wrap:wrap;gap:14px 28px;margin:0}
+.proposal-admin-legal dl>div {min-width:0}
+.proposal-admin-legal dt {font-size:11px;line-height:1.6;color:var(--muted)}
+.proposal-admin-legal dd {margin:4px 0 0;font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.proposal-admin-legal details {min-width:0}
+.proposal-admin-legal summary {cursor:pointer;font-size:12px;font-weight:600;line-height:1.7}
+.proposal-admin-legal details p {max-height:360px;overflow:auto;margin-top:14px;padding:14px;background:#fff;border:1px solid var(--border);font-size:12px;line-height:1.8}
+.proposal-admin-legal details p:focus-visible {outline:2px solid #b21414;outline-offset:3px}
+.proposal-admin-legal a,.proposal-admin-withdrawal a {text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.proposal-withdrawal-notice {display:flex;align-items:flex-start;gap:14px;padding:20px 24px;margin-bottom:24px;border:1px solid #dca38e;border-left:4px solid #a32720;border-radius:8px;background:#fff1e9;color:#78321d}
+.proposal-withdrawal-notice>svg {flex-shrink:0;margin-top:2px}
+.proposal-withdrawal-notice strong {font-size:15px;line-height:1.6}
+.proposal-withdrawal-notice p {margin:6px 0 0;font-size:12px;line-height:1.8;overflow-wrap:anywhere}
+.proposal-withdrawal-notice small {display:block;margin-top:6px;font-size:11px;line-height:1.7}
+.proposal-start-delay-notice {border-color:#dec28e;border-left-color:#9a6e20;background:#fff7e8;color:#704e16}
+.proposal-admin-withdrawal {display:grid;gap:14px;padding:20px;border:1px solid #dca38e;border-radius:10px;background:#fff1e9;color:#78321d}
+.proposal-admin-withdrawal blockquote {margin:0;padding:14px 16px;border-left:3px solid #a32720;background:#fffaf6;font-size:13px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.proposal-admin-withdrawal small {font-size:11px;line-height:1.7;overflow-wrap:anywhere}
+@media(max-width:600px){.proposal-withdrawal-notice{padding:16px;gap:10px}.proposal-admin-legal,.proposal-admin-withdrawal{padding:16px}.proposal-withdrawal-notice strong{font-size:14px}}
 @media(max-width:600px){.proposal-admin-published{padding:16px}.proposal-admin-options{flex-direction:column}.proposal-admin .button-row{align-items:stretch;flex-direction:column}}

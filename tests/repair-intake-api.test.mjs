@@ -1,3 +1,4 @@
+import {LEGAL_VERSION} from '../src/legal-content.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
@@ -322,7 +323,7 @@ for (const platform of ['node', 'worker']) {
         assert.equal(offer.status, 200, JSON.stringify(offer.data));
         const proposalId = offer.data.repairs.find(repair => repair.id === repairId).proposal.id;
         const accepted = await f.request(`/api/client/repairs/${repairId}/proposal`, {...registered.auth, method: 'POST',
-          body: {proposalId, action: 'repair'}});
+          body: {proposalId, action: 'repair', legal: {version: LEGAL_VERSION, accepted: true, earlyStartRequested: false, earlyStartAcknowledged: false}}});
         assert.equal(accepted.status, 200, JSON.stringify(accepted.data));
       }
       const loaded = await f.request('/api/store', admin); assert.equal(loaded.status, 200);

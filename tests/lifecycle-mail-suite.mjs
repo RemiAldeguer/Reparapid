@@ -9,6 +9,7 @@ import {provisioningStatements, workshopPrefix} from '../server/workshop-scope.m
 import {emptyStore, createClient, createClientRepairs, moveRepair, validateStore} from './.compiled/domain.cjs';
 import {createPublicRepair, faultSuggestions, publicIntakeSettings} from './.compiled/repair-intake-domain.cjs';
 import worker from '../cloudflare/worker.mjs';
+import {LEGAL_VERSION} from '../src/legal-content.mjs';
 
 const nativeFetch = globalThis.fetch;
 const shopEmail = 'shop@example.invalid';
@@ -16,7 +17,7 @@ const fakeKey = 're_SYNTHETIC_LIFECYCLE_TEST_NOT_A_CREDENTIAL';
 const password = 'Synthetic lifecycle test phrase 2026!';
 const eventKeys = ['created', 'attente-envoi', 'reception', 'diagnostic', 'attente-pieces', 'reparation', 'tests',
   'terminee', 'irreparable', 'abandonnee', 'proposal-published', 'proposal-decided', 'return-transfer-declared',
-  'return-payment-confirmed', 'return-dispatched', 'buyback-completed'];
+  'return-payment-confirmed', 'return-dispatched', 'buyback-completed', 'withdrawal-requested'];
 const customer = {name: 'Client fictif', email: 'intake@example.invalid', phone: '0600000000', address: '1 rue Fictive, 75000 Paris'};
 const intake = () => ({requestId: crypto.randomUUID(), modelId: 'ps5', customModel: '',
   selectedFaults: [faultSuggestions('ps5')[0]], description: 'PRIVATE_SYMPTOMS', serial: 'PRIVATE_SERIAL', accessories: ''});
@@ -146,7 +147,7 @@ async function fixture(t, platform, {configured = true} = {}) {
   const publish = (input = offer(), credentials = admin, revision = read().revision) => request(adminPath,
     {...credentials, method: 'POST', body: {revision, action: 'publish', ...input}});
   const choose = (action, proposalId = read().repairs.find(repair => repair.id === publicId).proposal?.id, credentials = client) => request(clientPath,
-    {...credentials, method: 'POST', body: {proposalId, action}});
+    {...credentials, method: 'POST', body: {proposalId, action, ...(action === 'repair' ? {legal: {version: LEGAL_VERSION, accepted: true, earlyStartRequested: false, earlyStartAcknowledged: false}} : {})}});
   const operate = (action, extra = {}) => request(adminPath, {...admin, method: 'POST', body: {revision: read().revision,
     proposalId: read().repairs.find(repair => repair.id === publicId).proposal?.id, action, ...extra}});
   const preferences = value => request('/api/admin/notifications', {...admin, method: 'PUT', body: {preferences: value}});

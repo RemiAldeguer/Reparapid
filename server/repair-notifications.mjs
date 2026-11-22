@@ -62,6 +62,7 @@ export const NOTIFICATION_EVENTS = Object.freeze([
   {key: 'return-payment-confirmed', label: 'Virement de retour reçu'},
   {key: 'return-dispatched', label: 'Retour expédié'},
   {key: 'buyback-completed', label: 'Rachat finalisé'},
+  {key: 'withdrawal-requested', label: 'Rétractation enregistrée'},
 ].map(Object.freeze));
 const eventLabels = Object.fromEntries(NOTIFICATION_EVENTS.map(({key, label}) => [key, label]));
 const audiences = ['client', 'shop'];
@@ -126,6 +127,7 @@ function repairEvents(previous, repair) {
   if (proposal && !sameProposal) events.push('proposal-published');
   const decided = sameProposal && oldProposal.decision === 'pending' && proposal.decision !== 'pending';
   if (decided) events.push('proposal-decided');
+  if (sameProposal && !oldProposal.withdrawal && proposal.withdrawal) events.push('withdrawal-requested');
   if (sameProposal) for (const [field, event] of [
     ['transferDeclaredAt', 'return-transfer-declared'], ['returnPaidAt', 'return-payment-confirmed'],
     ['returnedAt', 'return-dispatched'], ['buybackCompletedAt', 'buyback-completed'],
@@ -234,6 +236,7 @@ function renderLifecycleNotification(payload) {
     'return-payment-confirmed': 'Le magasin confirme avoir reçu le virement des frais de retour.',
     'return-dispatched': 'Le magasin a expédié le retour de la console.',
     'buyback-completed': 'Le magasin a finalisé le rachat pour pièces accepté.',
+    'withdrawal-requested': 'Le client a notifié sa rétractation du contrat de réparation. La déclaration et son accusé sont enregistrés dans le dossier. Contactez le magasin pour organiser les suites et tout remboursement légalement dû.',
   };
   const description = descriptions[eventType];
   if (!description || (eventType === 'proposal-decided' && !Object.hasOwn(decision, payload.decision))) throw new Error('Message de notification invalide.');

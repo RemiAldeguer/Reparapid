@@ -7,7 +7,8 @@ import {clientApi, ClientApiError, type ClientSession} from './client-api';
 import {StorefrontShell} from './public-home';
 import {ShippingDocument, type ShippingSheet} from './client-shipping-sheet';
 import {ShippingProcessDiagram} from './shipping-process-diagram';
-import {RepairProposalClient, ProposalOutcomeJourney, proposalClientStatus, proposalNeedsFollowUp, type ProposalClientAction, type ProposalFeedback} from './repair-proposal-client';
+import {RepairProposalClient, ProposalOutcomeJourney, proposalClientStatus, proposalNeedsFollowUp, type ProposalClientAction, type ProposalFeedback, type ProposalLegalConsent} from './repair-proposal-client';
+import {downloadProposalReceipt, type ProposalReceiptKind} from './legal-receipts';
 import './repair-intake.css';
 import './client-portal.css';
 
@@ -16,7 +17,7 @@ type PortalClientPart = Pick<ClientPartRequest, 'id' | 'name' | 'quantity' | 'no
 type PortalRepair = {id: string; code: string; consoleId: string; title: string; symptoms: string; stage: Stage; dueDate: string; createdAt: string; updatedAt: string; completedAt: string; totalCost: number | null; intakeSubmitted?: boolean; clientParts?: PortalClientPart[]; proposal?: RepairProposal};
 type PortalData = {client: {name: string}; workshop: {name: string}; consoles: PortalConsole[]; repairs: PortalRepair[]};
 const ShippingContext = React.createContext<{onOpen: (repairId: string) => void; busy: boolean} | null>(null);
-const ProposalActionsContext = React.createContext<{busyKey: string; refreshing: boolean; feedback: ProposalFeedback; onAction: (repairId: string, proposalId: string, action: ProposalClientAction) => Promise<boolean>} | null>(null);
+const ProposalActionsContext = React.createContext<{busyKey: string; refreshing: boolean; feedback: ProposalFeedback; onAction: (repairId: string, proposalId: string, action: ProposalClientAction, legal?: ProposalLegalConsent) => Promise<boolean>; onDownload: (repairId: string, proposalId: string, kind: ProposalReceiptKind) => Promise<boolean>} | null>(null);
 
 const consoleName = (item: {brand: string; model: string}) => item.brand === 'Autre' || item.model.toLocaleLowerCase('fr').startsWith(item.brand.toLocaleLowerCase('fr')) ? item.model : `${item.brand} ${item.model}`;
 const closedStages = new Set<Stage>(['terminee', 'irreparable', 'abandonnee']);
@@ -113,7 +114,7 @@ function RepairProcess({repair, tenant}: {repair: PortalRepair; tenant: boolean}
   const shipping = React.useContext(ShippingContext);
   const proposalActions = React.useContext(ProposalActionsContext);
   const action = expectedActions[repair.stage];
-  return <aside className="portal-process-panel" aria-labelledby="portal-process-title"><header className="portal-panel-heading"><span className="portal-section-label" id="portal-process-title">LA SUITE, ÉTAPE PAR ÉTAPE</span><PortalRepairStage repair={repair}/></header>{repair.proposal && proposalActions ? <RepairProposalClient key={repair.id} repairId={repair.id} repairCode={repair.code} proposal={repair.proposal} stage={repair.stage} busy={proposalActions.busyKey.startsWith(`${repair.id}:`)} disabled={!!proposalActions.busyKey || proposalActions.refreshing} feedback={proposalActions.feedback} onAction={proposalActions.onAction}/> : <><div className="portal-next-action"><span><Icon name={repair.stage === 'attente-envoi' ? 'package' : repair.stage === 'irreparable' || repair.stage === 'abandonnee' ? 'archive' : repair.stage === 'terminee' ? 'check' : 'wrench'} size={23}/></span><div><h2>{action.title}</h2><p>{repair.intakeSubmitted && repair.stage === 'terminee' ? 'Votre réparation est terminée. Contactez l’atelier pour convenir du retrait de votre console ou de son retour.' : repair.stage === 'attente-envoi' && !repair.intakeSubmitted ? stageDescriptions[repair.stage] : action.text}</p></div></div>{repair.stage !== 'attente-envoi' && <p className="portal-stage-description">{stageDescriptions[repair.stage]}</p>}</>}{repair.intakeSubmitted && shipping && <section className="portal-shipping-action" aria-label="Préparer le colis"><h3>{repair.stage === 'attente-envoi' ? 'Deux parties, deux destinations.' : 'Retrouver votre fiche d’envoi'}</h3><p>{repair.stage === 'attente-envoi' ? 'Gardez le talon avec la référence du dossier. La partie atelier accompagne votre console dans le colis.' : 'La fiche reste accessible. Si la console a déjà été réceptionnée, aucun nouvel envoi n’est demandé.'}</p><button type="button" className="btn primary" disabled={shipping.busy} onClick={() => shipping.onOpen(repair.id)}><Icon name="print" size={17}/>{shipping.busy ? 'Chargement de la fiche…' : 'Imprimer ma fiche d’envoi'}</button>{repair.stage === 'attente-envoi' && <><ShippingProcessDiagram/><p className="portal-shipping-note">La fiche identifie votre console. Prévoyez une étiquette de transport et conservez le suivi du transporteur.</p></>}</section>}{!tenant && <a className="portal-contact-link" href="#/accueil?section=rp-contact"><Icon name="mail" size={17}/>Une question ? Contacter l’atelier<Icon name="right" size={16}/></a>}</aside>;
+  return <aside className="portal-process-panel" aria-labelledby="portal-process-title"><header className="portal-panel-heading"><span className="portal-section-label" id="portal-process-title">LA SUITE, ÉTAPE PAR ÉTAPE</span><PortalRepairStage repair={repair}/></header>{repair.proposal && proposalActions ? <RepairProposalClient key={repair.id} repairId={repair.id} repairCode={repair.code} proposal={repair.proposal} stage={repair.stage} busy={proposalActions.busyKey.startsWith(`${repair.id}:`)} disabled={!!proposalActions.busyKey || proposalActions.refreshing} feedback={proposalActions.feedback} onAction={proposalActions.onAction} onDownload={proposalActions.onDownload} requireLegal={!tenant}/> : <><div className="portal-next-action"><span><Icon name={repair.stage === 'attente-envoi' ? 'package' : repair.stage === 'irreparable' || repair.stage === 'abandonnee' ? 'archive' : repair.stage === 'terminee' ? 'check' : 'wrench'} size={23}/></span><div><h2>{action.title}</h2><p>{repair.intakeSubmitted && repair.stage === 'terminee' ? 'Votre réparation est terminée. Contactez l’atelier pour convenir du retrait de votre console ou de son retour.' : repair.stage === 'attente-envoi' && !repair.intakeSubmitted ? stageDescriptions[repair.stage] : action.text}</p></div></div>{repair.stage !== 'attente-envoi' && <p className="portal-stage-description">{stageDescriptions[repair.stage]}</p>}</>}{repair.intakeSubmitted && shipping && <section className="portal-shipping-action" aria-label="Préparer le colis"><h3>{repair.stage === 'attente-envoi' ? 'Deux parties, deux destinations.' : 'Retrouver votre fiche d’envoi'}</h3><p>{repair.stage === 'attente-envoi' ? 'Gardez le talon avec la référence du dossier. La partie atelier accompagne votre console dans le colis.' : 'La fiche reste accessible. Si la console a déjà été réceptionnée, aucun nouvel envoi n’est demandé.'}</p><button type="button" className="btn primary" disabled={shipping.busy} onClick={() => shipping.onOpen(repair.id)}><Icon name="print" size={17}/>{shipping.busy ? 'Chargement de la fiche…' : 'Imprimer ma fiche d’envoi'}</button>{repair.stage === 'attente-envoi' && <><ShippingProcessDiagram/><p className="portal-shipping-note">La fiche identifie votre console. Prévoyez une étiquette de transport et conservez le suivi du transporteur.</p></>}</section>}{!tenant && <a className="portal-contact-link" href="#/accueil?section=rp-contact"><Icon name="mail" size={17}/>Une question ? Contacter l’atelier<Icon name="right" size={16}/></a>}</aside>;
 }
 function RequestedPartsBoard({data, onSelect}: {data: PortalData; onSelect: (repairId: string) => void}) {
   const waiting = quantityFor(data.repairs, 'en-attente'), all = quantityFor(data.repairs);
@@ -289,7 +290,7 @@ export function ClientPortal() {
       if (sameSession() && partRequest.current === key) {partRequest.current = ''; setPartBusyKey('');}
     }
   }
-  async function submitProposal(repairId: string, proposalId: string, action: ProposalClientAction): Promise<boolean> {
+  async function submitProposal(repairId: string, proposalId: string, action: ProposalClientAction, legal?: ProposalLegalConsent): Promise<boolean> {
     const previous = currentSession.current;
     if (!previous || loggingOut.current || proposalRequest.current || partRequest.current || refreshing) return false;
     const ticket = epoch.capture(), key = `${repairId}:${proposalId}:${action}`;
@@ -298,17 +299,26 @@ export function ClientPortal() {
     setProposalBusyKey(key); setProposalFeedback({repairId, message: '', error: ''}); setError(''); setRefreshing(false);
     try {
       const next = await clientApi<PortalData>(`/api/client/repairs/${encodeURIComponent(repairId)}/proposal`, {
-        method: 'POST', body: {proposalId, action}, csrfToken: previous.csrfToken, signal: ticket.signal,
+        method: 'POST', body: {proposalId, action, ...(legal ? {legal} : {})}, csrfToken: previous.csrfToken, signal: ticket.signal,
       });
       if (!sameSession() || proposalRequest.current !== key) return false;
       setData(next); setCheckedAt(new Date().toISOString());
       const notices: Record<ProposalClientAction, string> = {
-        repair: 'Votre accord est enregistré. Le magasin peut lancer la réparation au prix proposé.',
+        repair: 'Votre accord est enregistré au prix proposé. Retrouvez votre confirmation et vos conditions ci-dessous.',
         return: 'Votre demande de retour est enregistrée. Retrouvez les prochaines étapes ci-dessous.',
         buyback: 'Votre accord de rachat est enregistré. Le magasin doit encore finaliser le rachat et son règlement.',
         'declare-transfer': 'Votre virement est signalé. Sa réception reste à confirmer par le magasin.',
+        withdraw: 'Votre rétractation est enregistrée. Retrouvez votre accusé de réception ci-dessous et contactez le magasin pour organiser les suites.',
       };
-      setProposalFeedback({repairId, message: notices[action], error: ''});
+      let needsDownload = false;
+      if (!tenant && (action === 'repair' || action === 'withdraw')) {
+        const record = next.repairs.find(repair => repair.id === repairId);
+        if (record?.proposal && (action === 'withdraw' ? record.proposal.withdrawal : record.proposal.legal)) {
+          try {downloadProposalReceipt(record.code, record.proposal, action === 'withdraw' ? 'withdrawal' : 'contract');}
+          catch {needsDownload = true;}
+        }
+      }
+      setProposalFeedback({repairId, message: notices[action] + (needsDownload ? ' Téléchargez votre document avec le bouton du dossier.' : ''), error: ''});
       broadcast('changed');
       return true;
     } catch (failure) {
@@ -316,9 +326,34 @@ export function ClientPortal() {
       if (failure instanceof ClientApiError && failure.status === 401) {clearSession('Votre session a expiré. Reconnectez-vous.'); return false;}
       if (failure instanceof ClientApiError && (failure.status === 409 || failure.status === 404)) {
         proposalRequest.current = ''; setProposalBusyKey('');
-        setProposalFeedback({repairId, message: '', error: 'Cette proposition a changé depuis votre consultation. Vérifiez la proposition actualisée avant de confirmer à nouveau votre choix.'});
+        setProposalFeedback({repairId, message: '', error: /conditions|CGV|version actuelle/i.test(failure.message) ? 'Les conditions applicables ont évolué. Rechargez la page complète pour les lire avant de confirmer votre accord.' : 'Cette proposition a changé depuis votre consultation. Vérifiez la proposition actualisée avant de confirmer à nouveau votre choix.'});
         await refresh();
       } else setProposalFeedback({repairId, message: '', error: failure instanceof ClientApiError && failure.status === 0 ? 'L’enregistrement de votre réponse n’est pas confirmé. Actualisez le suivi avant de réessayer.' : failure instanceof Error ? failure.message : 'Votre réponse n’a pas pu être enregistrée.'});
+      return false;
+    } finally {
+      if (sameSession() && proposalRequest.current === key) {proposalRequest.current = ''; setProposalBusyKey('');}
+    }
+  }
+  async function downloadReceipt(repairId: string, proposalId: string, kind: ProposalReceiptKind): Promise<boolean> {
+    const previous = currentSession.current;
+    if (!previous || loggingOut.current || proposalRequest.current || partRequest.current || refreshing) return false;
+    const ticket = epoch.capture(), key = `${repairId}:${proposalId}:receipt-${kind}`;
+    const sameSession = () => current(ticket) && currentSession.current?.csrfToken === previous.csrfToken;
+    proposalRequest.current = key; portalRequest.current++;
+    setProposalBusyKey(key); setProposalFeedback({repairId, message: '', error: ''});
+    try {
+      const next = await clientApi<PortalData>('/api/client/portal', {method: 'POST', body: {}, csrfToken: previous.csrfToken, signal: ticket.signal});
+      if (!sameSession() || proposalRequest.current !== key) return false;
+      const record = next.repairs.find(repair => repair.id === repairId);
+      setData(next); setCheckedAt(new Date().toISOString());
+      if (!record?.proposal || record.proposal.id !== proposalId) throw Error('Ce document n’est plus disponible dans votre dossier.');
+      downloadProposalReceipt(record.code, record.proposal, kind);
+      setProposalFeedback({repairId, message: 'Votre document est prêt. Conservez-le sur votre appareil.', error: ''});
+      return true;
+    } catch (failure) {
+      if (!sameSession() || proposalRequest.current !== key) return false;
+      if (failure instanceof ClientApiError && failure.status === 401) {clearSession('Votre session a expiré. Reconnectez-vous.'); return false;}
+      setProposalFeedback({repairId, message: '', error: failure instanceof Error ? failure.message : 'Le document ne peut pas être préparé. Réessayez.'});
       return false;
     } finally {
       if (sameSession() && proposalRequest.current === key) {proposalRequest.current = ''; setProposalBusyKey('');}
@@ -371,7 +406,7 @@ export function ClientPortal() {
   const tenant = !!new URLSearchParams(window.location.search).get('atelier');
   const newlyCreated = data?.repairs.find(repair => repair.id === requestedRepairId && repair.intakeSubmitted);
   // Keep the legacy payload intact; only independent workshops use client-supplied parts.
-  return <ProposalActionsContext.Provider value={{busyKey: proposalBusyKey || partBusyKey, refreshing, feedback: proposalFeedback, onAction: submitProposal}}><ShippingContext.Provider value={{onOpen: repairId => void openSheet(repairId), busy: sheetBusy}}><PartActionsContext.Provider value={tenant ? {busyKey: partBusyKey || proposalBusyKey, refreshing, feedback: partFeedback, onAvailable: (repairId, part) => void markAvailable(repairId, part)} : null}><div className={`client-portal${tenant ? '' : ' reparapid-portal'}`}>
+  return <ProposalActionsContext.Provider value={{busyKey: proposalBusyKey || partBusyKey, refreshing, feedback: proposalFeedback, onAction: submitProposal, onDownload: downloadReceipt}}><ShippingContext.Provider value={{onOpen: repairId => void openSheet(repairId), busy: sheetBusy}}><PartActionsContext.Provider value={tenant ? {busyKey: partBusyKey || proposalBusyKey, refreshing, feedback: partFeedback, onAvailable: (repairId, part) => void markAvailable(repairId, part)} : null}><div className={`client-portal${tenant ? '' : ' reparapid-portal'}`}>
     <a className="portal-skip-link" href="#portal-content" onClick={event => {event.preventDefault(); document.getElementById('portal-content')?.focus();}}>Aller à mon suivi</a>
     <header className="portal-header"><a href="#/espace-client" className="portal-brand">{tenant ? <><Logo/><span>{data?.workshop.name || 'Votre atelier'}<small>Espace client</small></span></> : <><img className="portal-rp-logo" src="./reparapid-logo-original.webp" width="300" height="300" alt=""/><span>RépaRapid<small>Mon espace client</small></span></>}</a><nav className="portal-header-nav" aria-label="Navigation de mon suivi">{!tenant && <a href="#/demande-reparation"><Icon name="plus" size={16}/>Nouvelle réparation</a>}{tenant && <button type="button" onClick={() => jumpTo('portal-requested-parts')}><Icon name="package" size={16}/>Pièces demandées</button>}<button type="button" onClick={() => jumpTo('portal-consoles')}><Icon name="gamepad" size={16}/>Mes réparations</button></nav><div className="portal-account"><span>Espace personnel</span><button className="btn secondary" onClick={() => void logout()} disabled={busy}><Icon name="logout" size={17}/>{busy ? 'Déconnexion…' : 'Se déconnecter'}</button></div></header>
     <main id="portal-content" tabIndex={-1} className="portal-content">
@@ -384,7 +419,7 @@ export function ClientPortal() {
         <PortalCollection data={data} selectedId={selectedRepairId} onSelect={setSelectedRepairId} tenant={tenant}/>{tenant && <RequestedPartsBoard data={data} onSelect={setSelectedRepairId}/>}
         {checkedAt && <p className="portal-last-checked">Suivi actualisé le {dateFmt(checkedAt)} à {new Intl.DateTimeFormat('fr-FR', {hour: '2-digit', minute: '2-digit'}).format(new Date(checkedAt))}.</p>}
       </>}
-      <footer className="portal-footer"><span>Une question sur votre réparation ? Contactez {tenant ? data?.workshop.name || 'votre atelier' : 'votre atelier'}.</span><a className="text-link" href="#/connexion">Connexion atelier</a></footer>
+      <footer className="portal-footer"><span>Une question sur votre réparation ? Contactez {tenant ? data?.workshop.name || 'votre atelier' : 'votre atelier'}.</span><a className="text-link" href="#/connexion">Connexion atelier</a>{!tenant && <nav className="portal-legal-links" aria-label="Informations contractuelles"><a href="#/cgu">CGU</a><a href="#/cgv">CGV</a><a href="#/mentions-legales">Mentions légales</a><a href="#/retractation">Exercer mon droit de rétractation</a></nav>}</footer>
     </main>
 
     {sheet && <Modal title="Votre fiche d’envoi à découper" subtitle={sheet.repair.code} wide onClose={() => {sheetRequest.current++; setSheet(null); setSheetError(''); setPrintReady(false); setSheetBusy(false);}}><div className="intake-sheet-preview"><p className="intake-sheet-intro">Imprimez la fiche, découpez le talon à conserver, puis glissez la partie atelier dans le colis avec votre console. Le schéma ci-dessous vous guide.</p>{!sheet.shop.addressConfirmed && <p className="intake-sheet-blocked" role="status"><Icon name="alert" size={18}/><span>L’adresse d’expédition reste à confirmer. Contactez {sheet.shop.shopName}{sheet.shop.email && <> à <a href={`mailto:${sheet.shop.email}`}>{sheet.shop.email}</a></>}{sheet.shop.phone && <> au <a href={`tel:${sheet.shop.phone.replace(/\s/g, '')}`}>{sheet.shop.phone}</a></>}. N’envoyez pas votre console pour le moment.</span></p>}<ShippingDocument sheet={sheet}/>{sheetError && <p className="auth-error" role="alert">{sheetError}</p>}</div><div className="modal-footer intake-sheet-footer"><button type="button" className="btn secondary" onClick={() => {sheetRequest.current++; setSheet(null); setSheetError(''); setPrintReady(false); setSheetBusy(false);}}>Fermer</button><button type="button" className="btn primary" disabled={sheetBusy || !sheet.shop.addressConfirmed} onClick={() => void openSheet(sheet.repair.id, true)}><Icon name="print" size={17}/>{sheetBusy ? 'Vérification…' : 'Imprimer / enregistrer en PDF'}</button></div></Modal>}

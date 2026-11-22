@@ -4,7 +4,7 @@ import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../tests/.compiled/domain.cjs';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal } from '../tests/.compiled/domain.cjs';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
@@ -21,7 +21,7 @@ import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest,
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from './workshop-scope.mjs';
 const HOUR = 3600000;
 const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
-  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal};
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -343,11 +343,20 @@ export function createApplication({ databasePath, origin, distPath, production =
         if (pathname === '/api/client/portal' && req.method === 'GET') {
           return json(res, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
         }
+        // A private export verifies the same session (CSRF), then reads a fresh
+        // projection after its body. It never changes the workshop or an agreement.
+        if (pathname === '/api/client/portal' && req.method === 'POST') {
+          const body = await readJSON(req, 1024);
+          if (Object.keys(body).length) throw new HttpError(400, 'La source du document n’accepte aucun champ.');
+          const fresh = clientSession(req, false);
+          if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
+          return json(res, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost));
+        }
         const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/proposal$/);
         if (proposalRoute) {
           if (req.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
           const repairId = proposalRepairId(proposalRoute[1]);
-          const input = clientProposalRequest(await readJSON(req, 1024));
+          const input = clientProposalRequest(await readJSON(req, 1024), {requireLegal: !workshopId});
           let current, clientId;
           db.exec('BEGIN IMMEDIATE');
           try {
@@ -355,7 +364,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
             current = fresh.store; clientId = fresh.row.client_id;
             const before = structuredClone(current);
-            if (applyClientProposal(current, clientId, repairId, input, proposalActions)) {
+            if (applyClientProposal(current, clientId, repairId, input, proposalActions, {requireLegal: !workshopId, accountEmail: fresh.row.email})) {
               validateStore(current);
               const previousRevision = current.revision;
               if (!Number.isSafeInteger(previousRevision) || previousRevision < 0 || previousRevision >= 1e9) throw new HttpError(409, 'L’atelier ne peut pas être modifié.');
