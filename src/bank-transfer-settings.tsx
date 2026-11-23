@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {useApp} from './store';
 import {addEvent,validateBankTransferSettings} from './domain';
 import {Field,Icon,Panel} from './ui';
+import './bank-transfer-settings.css';
 
 export function BankTransferSettingsPanel() {
   const {data,transact}=useApp();
@@ -20,7 +21,7 @@ export function BankTransferSettingsPanel() {
   return <Panel title="Virements bancaires des clients" aside={<span className="form-hint">{settings?'Coordonnées enregistrées':'À renseigner'}</span>}>
     <form key={JSON.stringify(settings)} onSubmit={save}>
       <div className="panel-body form-stack">
-        <p className="settings-text">Renseignez le compte du magasin qui recevra les frais de retour. Ces coordonnées préremplissent les nouvelles propositions et sont communiquées uniquement au client concerné lorsqu’il demande un retour payant.</p>
+        <p className="settings-text">Renseignez le compte du magasin qui recevra le règlement des réparations et les frais de retour. Ces coordonnées sont reprises dans les diagnostics et affichées au client concerné après l’acceptation du devis ou sa demande de retour payant.</p>
         <Field label="Bénéficiaire du virement" hint="Recopiez le nom exact du titulaire indiqué sur le RIB."><input name="beneficiary" maxLength={140} defaultValue={settings?.beneficiary||''} autoComplete="off"/></Field>
         <Field label="IBAN" hint="Les espaces sont acceptés. Le format et la clé de contrôle sont vérifiés."><input name="iban" maxLength={60} defaultValue={settings?.iban||''} autoComplete="off" autoCapitalize="characters" spellCheck={false}/></Field>
         <Field label="BIC / SWIFT" hint="Facultatif · 8 ou 11 caractères."><input name="bic" maxLength={20} defaultValue={settings?.bic||''} autoComplete="off" autoCapitalize="characters" spellCheck={false}/></Field>

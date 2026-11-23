@@ -4,7 +4,7 @@ import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput } from '../tests/.compiled/domain.cjs';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput, bankTransferInstructions } from '../tests/.compiled/domain.cjs';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
@@ -346,7 +346,7 @@ export function createApplication({ databasePath, origin, distPath, production =
           return json(res, 200, { ok: true });
         }
         if (pathname === '/api/client/portal' && req.method === 'GET') {
-          return json(res, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
+          return json(res, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost, bankTransferInstructions));
         }
         // A private export verifies the same session (CSRF), then reads a fresh
         // projection after its body. It never changes the workshop or an agreement.
@@ -355,7 +355,7 @@ export function createApplication({ databasePath, origin, distPath, production =
           if (Object.keys(body).length) throw new HttpError(400, 'La source du document n’accepte aucun champ.');
           const fresh = clientSession(req, false);
           if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
-          return json(res, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost));
+          return json(res, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost, bankTransferInstructions));
         }
         const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/(proposal|delivery)$/);
         if (proposalRoute) {
@@ -385,7 +385,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             db.exec('COMMIT');
           } catch (error) {db.exec('ROLLBACK'); throw error;}
           dispatchNotifications();
-          return json(res, 200, clientPortal(current, clientId, repairTotalCost));
+          return json(res, 200, clientPortal(current, clientId, repairTotalCost, bankTransferInstructions));
         }
         if (pathname === '/api/client/repair-intake' && req.method === 'POST') {
           if (workshopId) throw new HttpError(404, 'Route introuvable.');
@@ -443,7 +443,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             }
             db.exec('COMMIT');
           } catch (error) {db.exec('ROLLBACK'); throw error;}
-          return json(res, 200, clientPortal(current, clientAuth.row.client_id, repairTotalCost));
+          return json(res, 200, clientPortal(current, clientAuth.row.client_id, repairTotalCost, bankTransferInstructions));
         }
         throw new HttpError(404, 'Route introuvable.');
       }

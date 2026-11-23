@@ -1,7 +1,7 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput } from '../src/domain.ts';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput, bankTransferInstructions } from '../src/domain.ts';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../src/repair-intake-domain.ts';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
@@ -403,14 +403,14 @@ async function handle(request, env, headers, url, secure, configured, context) {
       return json(headers, 200, { ok: true });
     }
     if (pathname === '/api/client/portal' && request.method === 'GET') {
-      return json(headers, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost));
+      return json(headers, 200, clientPortal(clientAuth.store, clientAuth.row.client_id, repairTotalCost, bankTransferInstructions));
     }
     if (pathname === '/api/client/portal' && request.method === 'POST') {
       const body = await readJSON(request, 1024);
       if (Object.keys(body).length) throw new HttpError(400, 'La source du document n’accepte aucun champ.');
       const fresh = await clientSession(false);
       if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
-      return json(headers, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost));
+      return json(headers, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost, bankTransferInstructions));
     }
     const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/(proposal|delivery)$/);
     if (proposalRoute) {
@@ -436,7 +436,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
         }
         dispatchNotifications();
       }
-      return json(headers, 200, clientPortal(current, fresh.row.client_id, repairTotalCost));
+      return json(headers, 200, clientPortal(current, fresh.row.client_id, repairTotalCost, bankTransferInstructions));
     }
     if (pathname === '/api/client/repair-intake' && request.method === 'POST') {
       if (workshopId) throw new HttpError(404, 'Route introuvable.');
@@ -485,7 +485,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
           throw new HttpError(409, 'L’atelier a changé. Actualisez votre espace client puis réessayez.');
         }
       }
-      return json(headers, 200, clientPortal(current, fresh.row.client_id, repairTotalCost));
+      return json(headers, 200, clientPortal(current, fresh.row.client_id, repairTotalCost, bankTransferInstructions));
     }
     throw new HttpError(404, 'Route introuvable.');
   }

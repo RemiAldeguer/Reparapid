@@ -150,13 +150,15 @@ export function assertProposalEditPreserved(before, after, mode) {
   }
 }
 
-export function publicRepairProposal(proposal) {
+export function publicRepairProposal(proposal, defaultBankInstructions = '') {
   if (!proposal) return undefined;
+  const transferRequired = !proposal.withdrawal && (proposal.decision === 'return' && proposal.returnFee > 0
+    || proposal.decision === 'repair' && proposal.repairAmount > 0);
   return {
     id: proposal.id, kind: proposal.kind, description: proposal.description,
     repairAmount: proposal.repairAmount, buybackAmount: proposal.buybackAmount, returnFee: proposal.returnFee,
-    bankInstructions: proposal.decision === 'return' && proposal.returnFee > 0 ? proposal.bankInstructions : '',
-    ...(proposal.transferReference === undefined || proposal.decision !== 'return' || proposal.returnFee <= 0 ? {} : {transferReference: proposal.transferReference}),
+    bankInstructions: transferRequired ? proposal.bankInstructions || defaultBankInstructions : '',
+    ...(proposal.transferReference === undefined || !transferRequired ? {} : {transferReference: proposal.transferReference}),
     publishedAt: proposal.publishedAt, decision: proposal.decision, decidedAt: proposal.decidedAt,
     transferDeclaredAt: proposal.transferDeclaredAt, returnPaidAt: proposal.returnPaidAt,
     returnedAt: proposal.returnedAt, tracking: proposal.tracking, buybackCompletedAt: proposal.buybackCompletedAt,

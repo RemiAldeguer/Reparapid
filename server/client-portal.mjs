@@ -4,7 +4,7 @@ import {publicRepairDelivery} from './repair-deliveries.mjs';
 // Hosts inject the canonical domain calculation; only its public total is returned.
 import {publicRepairProposal} from './repair-proposals.mjs';
 
-export function clientPortal(store, clientId, calculateTotalCost) {
+export function clientPortal(store, clientId, calculateTotalCost, formatBankTransfer = () => '') {
   const client = (store.clients || []).find(item => item.id === clientId);
   if (!client) return null;
   const consoles = store.consoles.filter(item => item.clientId === clientId).map(item => ({
@@ -21,7 +21,8 @@ export function clientPortal(store, clientId, calculateTotalCost) {
         && !item.parts.length && !item.worklogs.length && !item.timerStartedAt ? null : calculateTotalCost(store, item),
     createdAt: item.createdAt, updatedAt: item.updatedAt, completedAt: item.completedAt,
     ...(item.publicRequestId ? {intakeSubmitted: true} : {}),
-    ...(item.proposal ? {proposal: publicRepairProposal(item.proposal)} : {}),
+    ...(item.proposal ? {proposal: publicRepairProposal(item.proposal, formatBankTransfer(store.settings.bankTransfer))} : {}),
+    ...(item.proposal?.decision === 'repair' && !item.proposal.withdrawal ? {repairPaymentRecorded: !!item.payment} : {}),
     ...(item.delivery ? {delivery: publicRepairDelivery(item.delivery)} : {}),
     ...(item.clientParts === undefined ? {} : {clientParts: item.clientParts.map(part => ({
       id: part.id, name: part.name, quantity: part.quantity, note: part.note, status: part.status,

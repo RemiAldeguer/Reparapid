@@ -61,7 +61,18 @@ test('Existing manual bank instructions and legacy transfer references remain us
   delete p.transferReference;assert.equal(d.validateStore(f.s).repairs[0].proposal.transferReference,undefined);
   f.s.settings.bankTransfer=null;
   const missing=fixture();unchanged(missing.s,()=>d.publishRepairProposal(missing.s,missing.r.id,terms({bankInstructions:''})),/virement/);
-  const free=fixture();free.s.settings.bankTransfer=bank();assert.equal(publish(free,terms({returnFee:0,bankInstructions:''})).bankInstructions,'');
+  const free=fixture();free.s.settings.bankTransfer=bank();assert.equal(publish(free,terms({repairAmount:0,returnFee:0,bankInstructions:''})).bankInstructions,'');
+});
+
+test('A payable repair snapshots bank instructions even when its return is free',()=>{
+  const f=fixture();f.s.settings.bankTransfer=bank();
+  const p=publish(f,terms({returnFee:0,bankInstructions:''}));
+  assert.match(p.bankInstructions,/Bénéficiaire : Atelier Exemple/);
+  assert.match(p.bankInstructions,/FR14 2004/);assert.ok(p.transferReference);
+  d.decideRepairProposal(f.s,f.r.id,p.id,'repair');
+  const frozen=structuredClone(f.r.proposal);f.s.settings.bankTransfer=bank({beneficiary:'Autre titulaire'});
+  assert.deepEqual(f.r.proposal,frozen);assert.equal(f.r.payment,null);
+  assert.equal(d.validateStore(f.s).repairs[0].proposal.bankInstructions,p.bankInstructions);
 });
 
 test('Diagnostic publication keeps public terms, private diagnosis and internal costs separate',()=>{

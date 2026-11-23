@@ -425,7 +425,7 @@ export function completeRepairDelivery(s:Store,id:string,deliveryId:string,track
 }
 /** Only unanswered terms can be replaced; accepted commercial terms remain immutable. */
 export function publishRepairProposal(s: Store,id: string,input: RepairProposalInput): boolean {
-  const terms=proposalInput(input&&typeof input==='object'&&!Array.isArray(input)&&input.returnFee>0&&input.bankInstructions===''
+  const terms=proposalInput(input&&typeof input==='object'&&!Array.isArray(input)&&(input.returnFee>0||input.kind==='repair'&&input.repairAmount!>0)&&input.bankInstructions===''
     ? {...input,bankInstructions:bankTransferInstructions(s.settings.bankTransfer)} : input);
   return proposalMutation(s,id,(draft,r)=>{
     if(r.stage!=='diagnostic')throw Error('Passez le dossier en diagnostic avant de publier une proposition.');

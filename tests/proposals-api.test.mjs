@@ -5,7 +5,7 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {createApplication} from '../server/application.mjs';
 import {digest, token} from '../server/security.mjs';
-import {emptyStore, createClient, moveRepair, validateStore} from './.compiled/domain.cjs';
+import {emptyStore, createClient, moveRepair, validateStore, setRepairPayment} from './.compiled/domain.cjs';
 import {createPublicRepair, faultSuggestions} from './.compiled/repair-intake-domain.cjs';
 import {provisioningStatements, workshopPrefix} from '../server/workshop-scope.mjs';
 import worker from '../cloudflare/worker.mjs';
@@ -267,6 +267,39 @@ for (const platform of ['node', 'worker']) {
     assert.equal((await put(forged)).status,409);assert.deepEqual(f.read(),before);
     const cleared=structuredClone(before);cleared.settings.bankTransfer=null;assert.equal((await put(cleared)).status,200);
     assert.equal(f.read().settings.bankTransfer,null);assert.equal(f.read().repairs[0].proposal.bankInstructions,record.bankInstructions);
+  });
+
+  test(`${platform}: accepted diagnostic quotes expose the owned repair transfer and stop asking after a recorded payment`,async t=>{
+    const f=await fixture(t,platform),configured=f.read();configured.settings.bankTransfer=bank;f.replace(configured);
+    assert.equal((await f.publish(proposal({returnFee:0,bankInstructions:''}))).status,200);
+    const record=f.read().repairs[0].proposal;
+    assert.match(record.bankInstructions,/FR14 2004/);
+    const pending=publicRepair((await f.request('/api/client/portal',f.client)).data);
+    assert.equal(pending.proposal.bankInstructions,'');assert.equal(pending.proposal.transferReference,undefined);
+    const accepted=await f.choose('repair');assert.equal(accepted.status,200);
+    const owned=publicRepair(accepted.data);
+    assert.equal(owned.proposal.bankInstructions,record.bankInstructions);
+    assert.equal(owned.proposal.transferReference,record.transferReference);assert.equal(owned.repairPaymentRecorded,false);
+    assert.equal(f.read().repairs[0].payment,null);
+    const other=await f.request('/api/client/portal',f.other);
+    assert.ok(!JSON.stringify(other.data).includes(bank.iban));assert.ok(!JSON.stringify(other.data).includes(record.transferReference));
+    const paid=f.read();setRepairPayment(paid,paid.repairs[0].id,true);
+    paid.settings.bankTransfer={...bank,beneficiary:'Autre titulaire'};
+    assert.equal((await f.request('/api/store',{...f.admin,method:'PUT',body:{revision:f.read().revision,data:paid,mode:'edit'}})).status,200);
+    const before=f.read(),view=await f.request('/api/client/portal',f.client),result=publicRepair(view.data);
+    assert.equal(result.repairPaymentRecorded,true);assert.equal('payment' in result,false);
+    assert.equal(result.proposal.bankInstructions,record.bankInstructions);assert.deepEqual(f.read(),before);
+  });
+
+  test(`${platform}: accepted legacy quotes without bank instructions use the private default without rewriting their agreement`,async t=>{
+    const f=await fixture(t,platform);
+    assert.equal((await f.publish(proposal({returnFee:0,bankInstructions:''}))).status,200);
+    assert.equal((await f.choose('repair')).status,200);
+    const legacy=f.read();delete legacy.repairs[0].proposal.transferReference;legacy.settings.bankTransfer=bank;f.replace(legacy);
+    const before=f.read(),view=await f.request('/api/client/portal',f.client),owned=publicRepair(view.data);
+    assert.match(owned.proposal.bankInstructions,/FR14 2004/);assert.equal(owned.proposal.transferReference,undefined);
+    assert.equal(before.repairs[0].proposal.bankInstructions,'');assert.deepEqual(f.read(),before);
+    const other=await f.request('/api/client/portal',f.other);assert.ok(!JSON.stringify(other.data).includes(bank.iban));
   });
 
   for(const method of ['pickup','shipping'])test(`${platform}: completed repair ${method} is owned, idempotent and free of automatic payment`,async t=>{
