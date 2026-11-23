@@ -17,7 +17,7 @@ const fakeKey = 're_SYNTHETIC_LIFECYCLE_TEST_NOT_A_CREDENTIAL';
 const password = 'Synthetic lifecycle test phrase 2026!';
 const eventKeys = ['created', 'attente-envoi', 'reception', 'diagnostic', 'attente-pieces', 'reparation', 'tests',
   'terminee', 'irreparable', 'abandonnee', 'proposal-published', 'proposal-decided', 'return-transfer-declared',
-  'return-payment-confirmed', 'return-dispatched', 'buyback-completed', 'withdrawal-requested'];
+  'return-payment-confirmed', 'return-dispatched', 'buyback-completed', 'delivery-chosen', 'delivery-completed', 'withdrawal-requested'];
 const customer = {name: 'Client fictif', email: 'intake@example.invalid', phone: '0600000000', address: '1 rue Fictive, 75000 Paris'};
 const intake = () => ({requestId: crypto.randomUUID(), modelId: 'ps5', customModel: '',
   selectedFaults: [faultSuggestions('ps5')[0]], description: 'PRIVATE_SYMPTOMS', serial: 'PRIVATE_SERIAL', accessories: ''});
@@ -336,6 +336,22 @@ export function registerLifecycleMailTests(platform) {
     assert.equal(f.rows().length, 4, 'the automatic irreparable stage does not duplicate the decision message');
     await successful(f, await f.operate('complete-buyback')); assertPair(f, 3, f.publicId, 'buyback-completed');
     await successful(f, await f.operate('complete-buyback')); assert.equal(f.rows().length, 6);
+  });
+
+  test(`${platform}: final pickup and shipping notify both audiences once without exposing an address`,async t=>{
+    for(const method of ['pickup','shipping']){
+      const f=await fixture(t,platform);await successful(f,await f.publish());await successful(f,await f.choose('repair'));
+      const done=f.read();moveRepair(done,f.publicId,'terminee');await successful(f,await f.save(done));
+      const input={method,recipient:method==='shipping'?'PRIVATE_RECIPIENT':'',address:method==='shipping'?'PRIVATE_ADDRESS':'',phone:''};
+      const path=f.clientPath.replace('/proposal','/delivery');
+      const choose=()=>f.request(path,{...f.client,method:'POST',body:input});
+      await successful(f,await choose());const selected=f.read();assertPair(f,selected.revision,f.publicId,'delivery-chosen');
+      const count=f.rows().length;await successful(f,await choose());assert.equal(f.rows().length,count);
+      const delivery=selected.repairs.find(repair=>repair.id===f.publicId).delivery;
+      const shipped=await f.request(f.adminPath.replace('/proposal','/delivery'),{...f.admin,method:'POST',body:{revision:f.read().revision,action:'complete',deliveryId:delivery.id,tracking:method==='shipping'?'EXEMPLE-SUIVI':''}});
+      await successful(f,shipped);assertPair(f,f.read().revision,f.publicId,'delivery-completed');
+      assert.ok(f.sent.every(mail=>!JSON.stringify(mail.body).includes('PRIVATE_')));
+    }
   });
 
   test(`${platform}: preference controls expose complete defaults and enforce admin, CSRF, origin and strict booleans`, async t => {

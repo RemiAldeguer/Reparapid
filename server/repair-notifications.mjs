@@ -64,6 +64,8 @@ export const NOTIFICATION_EVENTS = Object.freeze([
   {key: 'return-payment-confirmed', label: 'Virement de retour reçu'},
   {key: 'return-dispatched', label: 'Retour expédié'},
   {key: 'buyback-completed', label: 'Rachat finalisé'},
+  {key: 'delivery-chosen', label: 'Choix de récupération enregistré'},
+  {key: 'delivery-completed', label: 'Console remise ou expédiée'},
   {key: 'withdrawal-requested', label: 'Rétractation enregistrée'},
 ].map(Object.freeze));
 const eventLabels = Object.fromEntries(NOTIFICATION_EVENTS.map(({key, label}) => [key, label]));
@@ -129,6 +131,8 @@ function repairEvents(previous, repair) {
   if (proposal && !sameProposal) events.push('proposal-published');
   const decided = sameProposal && oldProposal.decision === 'pending' && proposal.decision !== 'pending';
   if (decided) events.push('proposal-decided');
+  if(!previous.delivery&&repair.delivery)events.push('delivery-chosen');
+  if(previous.delivery?.id===repair.delivery?.id&&repair.delivery?.completedAt&&!previous.delivery?.completedAt)events.push('delivery-completed');
   if (sameProposal && !oldProposal.withdrawal && proposal.withdrawal) events.push('withdrawal-requested');
   if (sameProposal) for (const [field, event] of [
     ['transferDeclaredAt', 'return-transfer-declared'], ['returnPaidAt', 'return-payment-confirmed'],
@@ -184,6 +188,8 @@ export function repairNotifications(before, after, { origin, workshopId, now = D
         ...(eventType === 'proposal-decided' ? {decision: repair.proposal.decision} : {}),
         ...(eventType === 'proposal-published' ? {proposalKind: repair.proposal.kind} : {}),
         ...(eventType === 'return-dispatched' ? {tracking: repair.proposal.tracking} : {}),
+        ...(eventType.startsWith('delivery-') ? {deliveryMethod:repair.delivery.method} : {}),
+        ...(eventType==='delivery-completed'&&repair.delivery.method==='shipping'?{tracking:repair.delivery.tracking}:{}),
       };
       notifications.push({
       id: `${workshopId ? workshopId + ':' : ''}repair-event:${after.revision}:${repair.id}:${eventType}:${audience}`,
@@ -224,7 +230,7 @@ function renderLifecycleNotification(payload) {
     'attente-pieces': 'L’atelier attend les pièces nécessaires à la suite de la réparation.',
     reparation: 'L’intervention sur la console est en cours.',
     tests: 'Le fonctionnement de la console est en cours de contrôle.',
-    terminee: 'La réparation est terminée. Contactez l’atelier pour convenir du retrait ou du retour de la console.',
+    terminee: 'La réparation est terminée. Le client peut maintenant choisir le retrait en magasin ou l’envoi inclus dans son espace.',
     irreparable: 'La console est déclarée irréparable. Consultez le dossier et les options proposées par l’atelier.',
     abandonnee: 'L’intervention est clôturée. Consultez le dossier pour connaître la suite avec l’atelier.',
     'proposal-published': payload.proposalKind === 'unrepairable'
@@ -235,13 +241,16 @@ function renderLifecycleNotification(payload) {
     'return-payment-confirmed': 'Le magasin confirme avoir reçu le virement des frais de retour.',
     'return-dispatched': 'Le magasin a expédié le retour de la console.',
     'buyback-completed': 'Le magasin a finalisé le rachat pour pièces accepté.',
+    'delivery-chosen': payload.deliveryMethod==='pickup'?'Le client a choisi le retrait de sa console en magasin.':'Le client a choisi l’envoi inclus de sa console réparée. Le magasin peut préparer le colis ; l’adresse confirmée reste dans le dossier privé.',
+    'delivery-completed':payload.deliveryMethod==='pickup'?'Le magasin confirme avoir remis la console au client.':'Le magasin confirme l’expédition incluse de la console réparée.',
     'withdrawal-requested': 'Le client a notifié sa rétractation du contrat de réparation. La déclaration et son accusé sont enregistrés dans le dossier. Contactez le magasin pour organiser les suites et tout remboursement légalement dû.',
   };
   const description = descriptions[eventType];
+  if(eventType.startsWith('delivery-')&&!['pickup','shipping'].includes(payload.deliveryMethod))throw new Error('Message de récupération invalide.');
   if (!description || (eventType === 'proposal-decided' && !Object.hasOwn(decision, payload.decision))) throw new Error('Message de notification invalide.');
   const greeting = audience === 'client' ? `Bonjour ${clientName},` : 'Bonjour,';
   const action = audience === 'client' ? 'Consulter mon espace client' : 'Consulter le dossier';
-  const tracking = eventType === 'return-dispatched' && line(payload.tracking) ? `Suivi du retour : ${line(payload.tracking)}` : '';
+  const tracking = (eventType === 'return-dispatched'||eventType==='delivery-completed'&&payload.deliveryMethod==='shipping') && line(payload.tracking) ? `Suivi du retour : ${line(payload.tracking)}` : '';
   const subject = `${workshopName} · ${consoleName} : ${eventLabel}`;
   const text = [greeting, '', `${consoleName} (${consoleCode}) · Dossier ${repairCode}`,
     ...(audience === 'shop' ? [`Client : ${clientName}`] : []), eventLabel,
@@ -249,7 +258,7 @@ function renderLifecycleNotification(payload) {
     ...(tracking ? [tracking] : []), '', `${action} : ${url.href}`, '', `L’équipe de ${workshopName}`].join('\n');
   const html = renderNotificationEmail({subject, greeting, eventLabel, description, workshopName, consoleName,
     consoleCode, repairCode, clientName, audience, tracking, url, eventType, newStage: line(payload.newStage),
-    proposalKind: payload.proposalKind, decision: payload.decision});
+    proposalKind: payload.proposalKind, decision: payload.decision,deliveryMethod:payload.deliveryMethod});
   return {subject, text, html};
 }
 

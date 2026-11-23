@@ -269,6 +269,30 @@ for (const platform of ['node', 'worker']) {
     assert.equal(f.read().settings.bankTransfer,null);assert.equal(f.read().repairs[0].proposal.bankInstructions,record.bankInstructions);
   });
 
+  for(const method of ['pickup','shipping'])test(`${platform}: completed repair ${method} is owned, idempotent and free of automatic payment`,async t=>{
+    const f=await fixture(t,platform);assert.equal((await f.publish()).status,200);assert.equal((await f.choose('repair')).status,200);
+    const path=f.clientPath.replace('/proposal','/delivery'),adminPath=f.adminPath.replace('/proposal','/delivery');
+    const choice={method,recipient:method==='shipping'?'Camille Exemple':'',address:method==='shipping'?'PRIVATE_SHIPPING_ADDRESS\n94270 Ville exemple':'',phone:''};
+    const choose=(credentials=f.client,body=choice)=>f.request(path,{...credentials,method:'POST',body});
+    const before=f.read();assert.equal((await choose()).status,409);assert.deepEqual(f.read(),before);
+    const complete=f.read();moveRepair(complete,f.repairId,'terminee');f.replace(complete);
+    assert.equal((await choose({})).status,401);assert.equal((await choose({cookie:f.client.cookie})).status,403);
+    assert.equal((await choose(f.other)).status,404);assert.equal((await choose(f.client,{...choice,completedAt:'forged'})).status,400);
+    const selected=await choose();assert.equal(selected.status,200,JSON.stringify(selected.data));
+    const saved=f.read(),delivery=saved.repairs[0].delivery;assert.equal(delivery.method,method);assert.ok(delivery.id);assert.ok(delivery.requestedAt);
+    assert.deepEqual(publicRepair(selected.data).delivery,delivery);assert.deepEqual(saved.parts,complete.parts);assert.deepEqual(saved.repairs[0].payment,complete.repairs[0].payment);
+    assert.equal((await choose()).status,200);assert.deepEqual(f.read(),saved);
+    const other=await f.request('/api/client/portal',f.other);assert.ok(!JSON.stringify(other.data).includes(delivery.id));assert.ok(!JSON.stringify(other.data).includes('PRIVATE_SHIPPING_ADDRESS'));
+    const old=structuredClone(saved);delete old.repairs[0].delivery;
+    assert.equal((await f.request('/api/store',{...f.admin,method:'PUT',body:{revision:saved.revision,data:old,mode:'edit'}})).status,409);assert.deepEqual(f.read(),saved);
+    const finish=(extra={},credentials=f.admin)=>f.request(adminPath,{...credentials,method:'POST',body:{revision:f.read().revision,action:'complete',deliveryId:delivery.id,tracking:method==='shipping'?'EXEMPLE-SUIVI':'',...extra}});
+    assert.equal((await finish({},f.client)).status,401);assert.equal((await finish({deliveryId:'stale'})).status,409);
+    if(method==='shipping')assert.equal((await finish({tracking:''})).status,409);
+    assert.equal((await finish()).status,200);
+    const finished=f.read();assert.ok(finished.repairs[0].delivery.completedAt);assert.equal(finished.repairs[0].stage,'terminee');assert.deepEqual(finished.repairs[0].payment,saved.repairs[0].payment);
+    assert.equal((await finish()).status,200);assert.deepEqual(f.read(),finished);
+  });
+
   test(`${platform}: refused repair requires manual return-transfer confirmation before dispatch`, async t => {
     const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
     const refused = await f.choose('return'); assert.equal(refused.status, 200);

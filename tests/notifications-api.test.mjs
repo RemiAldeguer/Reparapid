@@ -128,7 +128,7 @@ for (const platform of ['node', 'worker']) {
     assert.ok(!JSON.stringify(preview.data).includes('a@example.invalid'));
     for (const event of ['created', 'attente-envoi', 'reception', 'diagnostic', 'attente-pieces', 'reparation', 'tests',
       'terminee', 'irreparable', 'abandonnee', 'proposal-published', 'proposal-decided', 'return-transfer-declared',
-      'return-payment-confirmed', 'return-dispatched', 'buyback-completed', 'withdrawal-requested']) {
+      'return-payment-confirmed', 'return-dispatched', 'buyback-completed', 'delivery-chosen', 'delivery-completed', 'withdrawal-requested']) {
       for (const audience of ['client', 'shop']) {
         const result = await f.request(`/api/admin/notifications/preview?event=${event}&audience=${audience}`, f.auth);
         assert.equal(result.status, 200); assert.equal(result.data.audience, audience);

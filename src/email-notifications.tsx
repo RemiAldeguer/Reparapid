@@ -129,7 +129,9 @@ const eventDescriptions: Record<string, string> = {
   'attente-pieces': 'Information sur l’attente des pièces nécessaires.',
   reparation: 'Annonce du début de l’intervention.',
   tests: 'Information sur les contrôles de fonctionnement.',
-  terminee: 'Invitation à organiser le retrait ou le retour.',
+  terminee: 'Invitation à choisir le retrait ou l’envoi inclus.',
+  'delivery-chosen':'Choix du retrait en magasin ou de l’envoi inclus.',
+  'delivery-completed':'Confirmation de la remise ou de l’expédition avec son suivi.',
   irreparable: 'Invitation à consulter les options après diagnostic.',
   abandonnee: 'Information sur la clôture de l’intervention.',
   'proposal-published': 'Devis disponible ou proposition pour une console irréparable.',
@@ -184,8 +186,9 @@ function NotificationPreferencesForm({summary, busy, loading, onSave, onPreview}
   const dirty = summary.events.some(({key}) => (['client', 'shop'] as const).some(audience => preferences[audience][key] !== summary.preferences[audience][key]));
   const events = summary.events.filter(event => event.key !== 'withdrawal-requested');
   const groups = [
-    {label: 'Suivi de la réparation', events: events.filter(event => !/^(proposal|return|buyback)-/.test(event.key))},
+    {label: 'Suivi de la réparation', events: events.filter(event => !/^(proposal|return|buyback|delivery)-/.test(event.key))},
     {label: 'Diagnostic et choix du client', events: events.filter(event => event.key.startsWith('proposal-'))},
+    {label:'Récupération après réparation',events:events.filter(event=>event.key.startsWith('delivery-'))},
     {label: 'Retour et rachat', events: events.filter(event => /^(return|buyback)-/.test(event.key))},
   ];
   async function save(event: React.FormEvent<HTMLFormElement>) {

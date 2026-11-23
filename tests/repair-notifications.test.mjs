@@ -293,12 +293,26 @@ test('A new repair cannot notify while an existing console changes owner in the 
   assert.deepEqual(repairNotifications(before, after, options), []);
 });
 
-test('A completed repair asks the recipient to contact the shop about collection or return', () => {
+test('A completed repair invites the client to choose pickup or included shipping in their portal', () => {
   const before = fixture(), after = changed(before); after.repairs[0].stage = 'terminee';
   const message = renderRepairNotification(JSON.parse(repairNotifications(before, after, options)[0].payload));
   assert.match(message.text, /Nouveau statut : Terminée/);
-  assert.match(message.text, /Contactez l’atelier.*retrait.*retour/);
-  assert.match(message.html, /Contactez l’atelier.*retrait.*retour/);
+  assert.match(message.text, /choisir.*retrait.*envoi inclus/);
+  assert.match(message.html, /choisir.*retrait.*envoi inclus/);
+});
+
+test('Final collection events notify both audiences without disclosing the delivery address',()=>{
+  const before=fixture();before.settings.publicIntake={email:'shop@example.invalid'};before.repairs[0].stage='terminee';
+  const chosen=structuredClone(before);chosen.revision++;
+  chosen.repairs[0].delivery={id:'delivery-example',method:'shipping',recipient:'PRIVATE_RECIPIENT',address:'PRIVATE_ADDRESS',phone:'PRIVATE_PHONE',requestedAt:'2026-11-23T10:00:00.000Z',completedAt:'',tracking:''};
+  const requested=repairNotifications(before,chosen,options);
+  assert.equal(requested.length,2);assert.ok(requested.every(row=>JSON.parse(row.payload).eventType==='delivery-chosen'));
+  assert.ok(requested.every(row=>JSON.parse(row.payload).deliveryMethod==='shipping'));
+  for(const row of requested){const mail=renderRepairNotification(JSON.parse(row.payload));assert.ok(!JSON.stringify(mail).includes('PRIVATE_'));assert.match(mail.text,/envoi inclus/);}
+  const finished=structuredClone(chosen);finished.revision++;finished.repairs[0].delivery.completedAt='2026-11-23T11:00:00.000Z';finished.repairs[0].delivery.tracking='EXEMPLE-SUIVI';
+  const sent=repairNotifications(chosen,finished,options);assert.equal(sent.length,2);assert.ok(sent.every(row=>JSON.parse(row.payload).eventType==='delivery-completed'));
+  assert.match(renderRepairNotification(JSON.parse(sent[0].payload)).text,/EXEMPLE-SUIVI/);
+  assert.deepEqual(repairNotifications(finished,{...finished,revision:finished.revision+1},options),[]);
 });
 
 test('The notification store view resolves only the root shop missing its explicit public contact', () => {

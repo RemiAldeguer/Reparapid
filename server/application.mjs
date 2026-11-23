@@ -4,11 +4,12 @@ import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../tests/.compiled/domain.cjs';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput } from '../tests/.compiled/domain.cjs';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from './client-part-availability.mjs';
+import {clientDeliveryRequest,adminDeliveryRequest,applyClientDelivery,applyAdminDelivery} from './repair-deliveries.mjs';
 import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
   applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from './repair-proposals.mjs';
 import { repairNotifications, notificationStoreView, NOTIFICATION_PREFERENCES_SCHEMA } from './repair-notifications.mjs';
@@ -21,7 +22,7 @@ import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest,
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from './workshop-scope.mjs';
 const HOUR = 3600000;
 const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
-  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput};
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -356,11 +357,13 @@ export function createApplication({ databasePath, origin, distPath, production =
           if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
           return json(res, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost));
         }
-        const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/proposal$/);
+        const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/(proposal|delivery)$/);
         if (proposalRoute) {
           if (req.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
           const repairId = proposalRepairId(proposalRoute[1]);
-          const input = clientProposalRequest(await readJSON(req, 1024), {requireLegal: !workshopId});
+          const isDelivery=proposalRoute[2]==='delivery';
+          const body=await readJSON(req,isDelivery?8192:1024);
+          const input=isDelivery?clientDeliveryRequest(body,proposalActions.validateRepairDeliveryInput):clientProposalRequest(body,{requireLegal:!workshopId});
           let current, clientId;
           db.exec('BEGIN IMMEDIATE');
           try {
@@ -368,7 +371,7 @@ export function createApplication({ databasePath, origin, distPath, production =
             if (!equal(req.headers['x-csrf-token'], fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
             current = fresh.store; clientId = fresh.row.client_id;
             const before = structuredClone(current);
-            if (applyClientProposal(current, clientId, repairId, input, proposalActions, {requireLegal: !workshopId, accountEmail: fresh.row.email})) {
+            if ((isDelivery?applyClientDelivery:applyClientProposal)(current, clientId, repairId, input, proposalActions, {requireLegal: !workshopId, accountEmail: fresh.row.email})) {
               validateStore(current);
               const previousRevision = current.revision;
               if (!Number.isSafeInteger(previousRevision) || previousRevision < 0 || previousRevision >= 1e9) throw new HttpError(409, 'L’atelier ne peut pas être modifié.');
@@ -446,11 +449,13 @@ export function createApplication({ databasePath, origin, distPath, production =
       }
       const auth = session(req, !(req.method === 'GET' && ['/api/admin/notifications', '/api/admin/notifications/preview'].includes(pathname)));
       if (mutation && !equal(req.headers['x-csrf-token'], auth.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
-      const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/proposal$/);
+      const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/(proposal|delivery)$/);
       if (proposalRoute) {
         if (req.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
         const repairId = proposalRepairId(proposalRoute[1]);
-        const input = adminProposalRequest(await readJSON(req, REPAIR_PROPOSAL_BODY_LIMIT));
+        const isDelivery=proposalRoute[2]==='delivery';
+        const body=await readJSON(req,REPAIR_PROPOSAL_BODY_LIMIT);
+        const input=isDelivery?adminDeliveryRequest(body):adminProposalRequest(body);
         let current;
         db.exec('BEGIN IMMEDIATE');
         try {
@@ -459,7 +464,7 @@ export function createApplication({ databasePath, origin, distPath, production =
           current = workshop();
           const before = structuredClone(current);
           if (current.revision !== input.revision) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
-          if (applyAdminProposal(current, repairId, input, proposalActions)) {
+          if ((isDelivery?applyAdminDelivery:applyAdminProposal)(current, repairId, input, proposalActions)) {
             validateStore(current);
             current.revision++;
             const serialized = JSON.stringify(current);

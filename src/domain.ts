@@ -2,6 +2,10 @@
 import {INTAKE_MODELS, faultSuggestions} from './repair-intake-catalog.ts';
 import {validateBankTransferSettings,bankTransferInstructions,createTransferReference,type BankTransferSettings} from './bank-transfer-domain.ts';
 export {validateBankTransferSettings,bankTransferInstructions,type BankTransferSettings} from './bank-transfer-domain.ts';
+import {validateRepairDeliveryInput,validateRepairDelivery,type RepairDelivery,type RepairDeliveryInput} from './repair-delivery-domain.ts';
+export type {RepairDelivery,RepairDeliveryInput} from './repair-delivery-domain.ts';
+export {validateRepairDeliveryInput} from './repair-delivery-domain.ts';
+export {repairDeliveryLabel} from './repair-delivery-domain.ts';
 
 export const SCHEMA = 1;
 export const STORAGE_KEY = 'la-clinique-retro:v1';
@@ -76,6 +80,7 @@ export interface Repair {
   clientParts?: ClientPartRequest[];
   publicRequestId?: string;
   proposal?: RepairProposal;
+  delivery?: RepairDelivery;
 }
 export interface Activity {
   id: string; kind: 'created' | 'stage' | 'note' | 'part' | 'time' | 'test' | 'edit' | 'system' | 'photo';
@@ -336,6 +341,7 @@ export function moveRepair(s: Store,id: string,stage: Stage) {
   const r=s.repairs.find(x=>x.id===id); if(!r) throw Error('Dossier introuvable.');
   if(!STAGES.some(x=>x.id===stage)) throw Error('Étape inconnue.');
   if(r.stage===stage) return;
+  if(r.delivery)throw Error('Un choix de récupération est déjà enregistré. Ouvrez un nouveau dossier si une autre intervention est nécessaire.');
   if(r.publicRequestId&&['attente-envoi','reception','diagnostic'].includes(r.stage)&&['attente-pieces','reparation','tests','terminee'].includes(stage)&&r.proposal?.decision!=='repair')throw Error('Publiez le diagnostic et attendez l’accord du client avant de lancer la réparation.');
   if(r.publicRequestId&&r.stage==='diagnostic'&&!r.proposal&&['irreparable','abandonnee'].includes(stage))throw Error('Publiez le diagnostic pour laisser le client choisir le retour ou le rachat proposé.');
   if(r.proposal){
@@ -387,6 +393,35 @@ function currentProposal(r: Repair,proposalId: string): RepairProposal {
 function proposalEvent(s: Store,r: Repair,text: string) {
   r.updatedAt=now();
   addEvent(s,text,'edit',{repairId:r.id,consoleId:r.consoleId,clientId:s.consoles.find(item=>item.id===r.consoleId)!.clientId});
+}
+export function canArrangeRepairDelivery(repair:Pick<Repair,'stage'|'proposal'>):boolean {
+  return repair.stage==='terminee'&&!repair.proposal?.withdrawal&&(!repair.proposal||repair.proposal.decision==='repair');
+}
+/** The client confirms one delivery choice; repeating that exact request is harmless. */
+export function chooseRepairDelivery(s:Store,clientId:string,id:string,input:RepairDeliveryInput):boolean {
+  const repair=s.repairs.find(item=>item.id===id),consoleItem=repair&&s.consoles.find(item=>item.id===repair.consoleId);
+  if(!consoleItem||consoleItem.clientId!==clientId)throw Error('Dossier introuvable.');
+  const choice=validateRepairDeliveryInput(input);
+  return proposalMutation(s,id,(draft,r)=>{
+    if(!canArrangeRepairDelivery(r))throw Error('Le choix de récupération est disponible lorsque la réparation est terminée.');
+    if(r.delivery){
+      if(Object.entries(choice).every(([key,value])=>r.delivery![key as keyof RepairDelivery]===value))return false;
+      throw Error('Votre choix de récupération est déjà confirmé. Contactez le magasin pour tout changement.');
+    }
+    r.delivery={id:uid(),...choice,requestedAt:now(),completedAt:'',tracking:''};
+    proposalEvent(draft,r,choice.method==='pickup'?'Le client choisit le retrait de la console en magasin.':'Le client choisit l’envoi inclus de sa console réparée.');
+    return true;
+  });
+}
+export function completeRepairDelivery(s:Store,id:string,deliveryId:string,tracking:string):boolean {
+  return proposalMutation(s,id,(draft,r)=>{
+    if(!r.delivery||r.delivery.id!==deliveryId)throw Error('Le choix de récupération a changé. Rechargez le dossier.');
+    if(r.delivery.completedAt){if(r.delivery.tracking===tracking)return false;throw Error('Cette remise ou expédition est déjà confirmée.');}
+    const completed=validateRepairDelivery({...r.delivery,completedAt:now(),tracking});
+    r.delivery=completed;
+    proposalEvent(draft,r,completed.method==='pickup'?'Le magasin confirme la remise de la console au client.':'Le magasin confirme l’expédition incluse de la console réparée.');
+    return true;
+  });
 }
 /** Only unanswered terms can be replaced; accepted commercial terms remain immutable. */
 export function publishRepairProposal(s: Store,id: string,input: RepairProposalInput): boolean {
@@ -776,7 +811,7 @@ export function validateStore(raw: unknown): Store {
   s.clients=(v.clients===undefined?[]:arr(v.clients)).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),name:required(c.name,200),email:email(c.email),phone:str(c.phone,80),address:str(c.address,1000),notes:str(c.notes),createdAt:timestamp(c.createdAt)};});
   s.consoles=arr(v.consoles).map(y=>{const c=rec(y);return{id:id(c.id),code:required(c.code,40),clientId:optionalId(c.clientId),brand:required(c.brand,80),model:required(c.model,120),variant:str(c.variant,150),serial:str(c.serial,100),state:one(c.state,Object.keys(STATES) as ConsoleState[]),condition:str(c.condition,80),acquiredAt:day(c.acquiredAt),purchasePrice:num(c.purchasePrice),estimatedValue:num(c.estimatedValue),source:str(c.source,200),location:str(c.location,200),accessories:str(c.accessories),notes:str(c.notes),illustration:one(c.illustration,['gameboy','snes','playstation','megadrive','dreamcast','switch','gamegear'] as const),photos:photos(c.photos),archived:flag(c.archived),createdAt:timestamp(c.createdAt)};});
   s.parts=arr(v.parts).map(y=>{const p=rec(y);return{id:id(p.id),reference:required(p.reference,80),name:required(p.name,200),category:str(p.category,80),compatibility:str(p.compatibility,500),quantity:num(p.quantity,true),threshold:num(p.threshold,true),unitCost:num(p.unitCost),location:str(p.location,200),supplier:str(p.supplier,200)};});
-  s.repairs=arr(v.repairs).map(y=>{const r=rec(y);return{id:id(r.id),code:required(r.code,40),consoleId:id(r.consoleId),title:required(r.title,200),symptoms:str(r.symptoms),diagnosis:str(r.diagnosis),stage:one(r.stage,STAGES.map(x=>x.id)),priority:one(r.priority,Object.keys(PRIORITIES) as Priority[]),dueDate:day(r.dueDate),createdAt:timestamp(r.createdAt),updatedAt:timestamp(r.updatedAt),completedAt:timestamp(r.completedAt,true),timerStartedAt:timestamp(r.timerStartedAt,true),...(r.interventionCost===undefined?{}:{interventionCost:interventionCost(r.interventionCost)}),...(r.payment===undefined?{}:{payment:payment(r.payment)}),...(r.clientParts===undefined?{}:{clientParts:clientParts(r.clientParts)}),...(r.publicRequestId===undefined?{}:{publicRequestId:publicRequestId(r.publicRequestId)}),...(r.proposal===undefined?{}:{proposal:proposal(r.proposal)}),photos:photos(r.photos),parts:arr(r.parts).map(y=>{const p=rec(y);const q=num(p.quantity,true);if(q<1)fail('quantité utilisée nulle');return{id:id(p.id),partId:id(p.partId),name:required(p.name,200),quantity:q,unitCost:num(p.unitCost),usedAt:timestamp(p.usedAt)};}),worklogs:arr(r.worklogs).map(y=>{const w=rec(y);return{id:id(w.id),minutes:num(w.minutes,true),note:str(w.note,1000),createdAt:timestamp(w.createdAt)};}),tests:arr(r.tests,100).map(y=>{const t=rec(y);return{id:id(t.id),label:required(t.label,300),result:one(t.result,['pending','pass','fail','na'] as const)};})};});
+  s.repairs=arr(v.repairs).map(y=>{const r=rec(y);return{id:id(r.id),code:required(r.code,40),consoleId:id(r.consoleId),title:required(r.title,200),symptoms:str(r.symptoms),diagnosis:str(r.diagnosis),stage:one(r.stage,STAGES.map(x=>x.id)),priority:one(r.priority,Object.keys(PRIORITIES) as Priority[]),dueDate:day(r.dueDate),createdAt:timestamp(r.createdAt),updatedAt:timestamp(r.updatedAt),completedAt:timestamp(r.completedAt,true),timerStartedAt:timestamp(r.timerStartedAt,true),...(r.interventionCost===undefined?{}:{interventionCost:interventionCost(r.interventionCost)}),...(r.payment===undefined?{}:{payment:payment(r.payment)}),...(r.clientParts===undefined?{}:{clientParts:clientParts(r.clientParts)}),...(r.publicRequestId===undefined?{}:{publicRequestId:publicRequestId(r.publicRequestId)}),...(r.proposal===undefined?{}:{proposal:proposal(r.proposal)}),...(r.delivery===undefined?{}:{delivery:validateRepairDelivery(r.delivery)}),photos:photos(r.photos),parts:arr(r.parts).map(y=>{const p=rec(y);const q=num(p.quantity,true);if(q<1)fail('quantité utilisée nulle');return{id:id(p.id),partId:id(p.partId),name:required(p.name,200),quantity:q,unitCost:num(p.unitCost),usedAt:timestamp(p.usedAt)};}),worklogs:arr(r.worklogs).map(y=>{const w=rec(y);return{id:id(w.id),minutes:num(w.minutes,true),note:str(w.note,1000),createdAt:timestamp(w.createdAt)};}),tests:arr(r.tests,100).map(y=>{const t=rec(y);return{id:id(t.id),label:required(t.label,300),result:one(t.result,['pending','pass','fail','na'] as const)};})};});
   s.events=arr(v.events,100000).map(y=>{const e=rec(y);return{id:id(e.id),kind:one(e.kind,['created','stage','note','part','time','test','edit','system','photo'] as const),text:str(e.text),createdAt:timestamp(e.createdAt),...(e.consoleId?{consoleId:id(e.consoleId)}:{}),...(e.repairId?{repairId:id(e.repairId)}:{}),...(e.clientId===undefined||e.clientId===''?{}:{clientId:id(e.clientId)})};});
   function unique(items:{id:string}[]) {const ids=new Set(items.map(x=>x.id));if(ids.size!==items.length)fail('identifiants dupliqués');return ids;}
   const clients=unique(s.clients),consoles=unique(s.consoles),parts=unique(s.parts),repairs=unique(s.repairs);unique(s.events);
@@ -785,6 +820,13 @@ export function validateStore(raw: unknown): Store {
   const publicRequests=new Set<string>();
   for(const repair of s.repairs)if(repair.publicRequestId){const owner=s.consoles.find(console=>console.id===repair.consoleId)?.clientId;if(!owner)fail('demande publique sans client');const key=owner+':'+repair.publicRequestId;if(publicRequests.has(key))fail('identifiants de demandes publiques dupliqués pour un client');publicRequests.add(key);}
   const proposalIds=new Set<string>(),transferReferences=new Set<string>();
+  const deliveryIds=new Set<string>();
+  for(const repair of s.repairs)if(repair.delivery){
+    if(!canArrangeRepairDelivery(repair)||deliveryIds.has(repair.delivery.id)||repair.delivery.requestedAt<repair.completedAt)fail('récupération de console incohérente');
+    deliveryIds.add(repair.delivery.id);
+    const owner=s.consoles.find(console=>console.id===repair.consoleId)?.clientId;
+    if(!owner||!clients.has(owner))fail('récupération sans client');
+  }
   // Receipts saved before diagnostic proposals existed remain readable and can be cancelled explicitly.
   for(const repair of s.repairs)if(repair.proposal&&repair.payment&&repairRequiresCustomerAgreement(repair))fail('règlement de réparation sans accord du client');
   for(const repair of s.repairs)if(repair.proposal){

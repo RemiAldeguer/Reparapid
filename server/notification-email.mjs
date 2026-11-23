@@ -7,7 +7,7 @@ const stages = ['En attente d’envoi', 'Réception', 'Diagnostic', 'En attente 
 const stageIndexes = [0, 1, 2, 2, 3, 3, 4];
 
 function progressIndex({eventType, newStage, proposalKind, decision}) {
-  if (/^(return-|buyback-|withdrawal-)/.test(eventType) || ['irreparable', 'abandonnee'].includes(eventType)
+  if (/^(return-|buyback-|withdrawal-|delivery-)/.test(eventType) || ['irreparable', 'abandonnee'].includes(eventType)
     || proposalKind === 'unrepairable' || (decision && decision !== 'repair')) return -1;
   return stageIndexes[stages.indexOf(newStage)] ?? -1;
 }
@@ -24,7 +24,7 @@ ${['Envoi', 'Reçue', 'Diagnostic', 'Atelier', 'Prête'].map((label, i) => {
 </tr></table></td></tr>`;
 }
 
-function nextAction({audience, eventType, newStage, proposalKind, decision}) {
+function nextAction({audience, eventType, newStage, proposalKind, decision,deliveryMethod}) {
   const shop = audience === 'shop';
   switch (eventType) {
     case 'created': return newStage === stages[0]
@@ -41,7 +41,9 @@ function nextAction({audience, eventType, newStage, proposalKind, decision}) {
     case 'attente-pieces': return shop ? 'Suivez la disponibilité des pièces avant de reprendre l’intervention.' : 'L’atelier reprendra l’intervention lorsque les pièces nécessaires seront disponibles.';
     case 'reparation': return shop ? 'Consignez l’intervention et préparez les contrôles de fonctionnement.' : 'L’atelier s’occupe de votre console. Retrouvez les prochaines nouvelles dans votre espace.';
     case 'tests': return shop ? 'Terminez les contrôles avant de déclarer la console prête à récupérer.' : 'Derniers contrôles en cours. L’atelier vous informera quand votre console sera prête.';
-    case 'terminee': return shop ? 'Convenez du retrait ou du retour avec le client.' : 'Contactez l’atelier pour convenir du retrait ou du retour de votre console.';
+    case 'terminee': return shop ? 'Le client peut choisir sa récupération dans son espace. Retrouvez son choix dans ce dossier.' : 'Ouvrez votre dossier pour choisir le retrait au magasin ou l’envoi inclus de votre console.';
+    case 'delivery-chosen':return deliveryMethod==='pickup'?shop?'Le client viendra au magasin. Confirmez la remise dans le dossier lorsque vous lui rendez la console.':'Contactez l’atelier pour convenir de votre passage au magasin.':shop?'Préparez le colis à l’adresse confirmée dans le dossier, puis renseignez son suivi lors de l’expédition.':'Le magasin prépare votre envoi inclus. Retrouvez la confirmation d’expédition dans votre dossier.';
+    case 'delivery-completed':return shop?'La remise ou l’expédition est confirmée. Le justificatif de suivi reste dans le dossier.':deliveryMethod==='pickup'?'Votre console vous a été remise. Conservez la référence de votre dossier pour tout échange avec l’atelier.':'Consultez le suivi communiqué par le magasin pour retrouver votre colis.';
     case 'return-transfer-declared': return shop ? 'Vérifiez le virement sur le compte du magasin avant de confirmer sa réception.' : 'Votre déclaration est enregistrée. Le magasin doit encore confirmer la réception du virement.';
     case 'return-payment-confirmed': return shop ? 'Le règlement est confirmé. Préparez le colis de retour.' : 'Le virement est confirmé. Le magasin peut préparer le retour de votre console.';
     case 'return-dispatched': return shop ? 'Retrouvez les informations d’expédition dans le dossier.' : 'Consultez les informations d’expédition et le suivi, s’il est renseigné, dans votre dossier.';

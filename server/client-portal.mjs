@@ -1,3 +1,4 @@
+import {publicRepairDelivery} from './repair-deliveries.mjs';
 // The client response is an explicit allowlist. Internal workshop data must
 // never become public just because a new field is added to the store.
 // Hosts inject the canonical domain calculation; only its public total is returned.
@@ -21,6 +22,7 @@ export function clientPortal(store, clientId, calculateTotalCost) {
     createdAt: item.createdAt, updatedAt: item.updatedAt, completedAt: item.completedAt,
     ...(item.publicRequestId ? {intakeSubmitted: true} : {}),
     ...(item.proposal ? {proposal: publicRepairProposal(item.proposal)} : {}),
+    ...(item.delivery ? {delivery: publicRepairDelivery(item.delivery)} : {}),
     ...(item.clientParts === undefined ? {} : {clientParts: item.clientParts.map(part => ({
       id: part.id, name: part.name, quantity: part.quantity, note: part.note, status: part.status,
     }))}),

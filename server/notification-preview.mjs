@@ -5,6 +5,8 @@ const eventVariants = {
   'proposal-published': [{key: 'repairable', label: 'Console réparable'}, {key: 'unrepairable', label: 'Console irréparable'}],
   'proposal-decided': [{key: 'repair', label: 'Réparation acceptée'}, {key: 'return', label: 'Retour demandé'}, {key: 'buyback', label: 'Rachat accepté'}],
   'return-dispatched': [{key: 'tracked', label: 'Avec suivi de colis'}, {key: 'untracked', label: 'Sans suivi renseigné'}],
+  'delivery-chosen':[{key:'pickup',label:'Retrait en magasin'},{key:'shipping',label:'Envoi inclus'}],
+  'delivery-completed':[{key:'pickup',label:'Console remise'},{key:'shipping',label:'Console expédiée'}],
 };
 
 /** Read-only examples: never load a customer, enqueue a notification or call a provider. */
@@ -22,7 +24,7 @@ export function notificationPreview(searchParams) {
   const newStage = Object.hasOwn(REPAIR_STAGE_LABELS, eventType) ? REPAIR_STAGE_LABELS[eventType]
     : REPAIR_STAGE_LABELS[eventType === 'created' && variant === 'request' ? 'attente-envoi'
       : eventType === 'proposal-published' || (eventType === 'proposal-decided' && variant === 'repair') ? 'diagnostic'
-      : 'reception'];
+      : eventType.startsWith('delivery-')?'terminee':'reception'];
   const payload = {
     version: 2, eventType, audience,
     workshopName: 'RépaRapid · Maxxi Games', clientName: 'Camille Exemple',
@@ -32,6 +34,8 @@ export function notificationPreview(searchParams) {
     ...(eventType === 'proposal-published' ? {proposalKind: variant === 'unrepairable' ? 'unrepairable' : 'repair'} : {}),
     ...(eventType === 'proposal-decided' ? {decision: variant} : {}),
     ...(eventType === 'return-dispatched' && variant === 'tracked' ? {tracking: 'EXEMPLE-SUIVI'} : {}),
+    ...(eventType.startsWith('delivery-')?{deliveryMethod:variant}:{}),
+    ...(eventType==='delivery-completed'&&variant==='shipping'?{tracking:'EXEMPLE-SUIVI'}:{}),
   };
   return {
     eventType, eventLabel: event.label, audience, variant,

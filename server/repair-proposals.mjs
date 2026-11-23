@@ -128,10 +128,11 @@ export function assertProposalEditPreserved(before, after, mode) {
   const newConsoles = new Map(after.consoles.map(console => [console.id, console]));
   for (const repair of after.repairs) {
     const old = previous.get(repair.id);
-    if (old?.proposal && (old.consoleId !== repair.consoleId
+    if ((old?.proposal || old?.delivery) && (old.consoleId !== repair.consoleId
       || oldConsoles.get(old.consoleId)?.clientId !== newConsoles.get(repair.consoleId)?.clientId)) {
       throw new RepairProposalError(409, 'Une proposition de diagnostic reste liée à sa console et au client auquel elle a été présentée.');
     }
+    if (JSON.stringify(old?.delivery)!==JSON.stringify(repair.delivery)) throw new RepairProposalError(409,'Utilisez les actions de récupération pour confirmer le choix du client et sa remise.');
     if (proposalValue(old?.proposal) !== proposalValue(repair.proposal)) {
       throw new RepairProposalError(409, 'Utilisez les actions du diagnostic pour publier une proposition et traiter le choix du client. Rechargez les données si votre interface est ancienne.');
     }

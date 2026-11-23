@@ -2,7 +2,7 @@
  * Public legal content shared by the storefront and contract snapshots.
  * Keep previous accepted snapshots in their records when updating this version.
  */
-export const LEGAL_VERSION = '2026-11-23';
+export const LEGAL_VERSION = '2026-11-23.2';
 export const LEGAL_SOURCES_CHECKED_AT = '2026-11-22';
 
 export const LEGAL_OPERATOR = Object.freeze({
@@ -237,6 +237,7 @@ export const LEGAL_DOCUMENTS = {
         id: 'restitution-transport',
         title: '12. Retrait, retour et transport',
         paragraphs: [
+          'Après une réparation terminée, le client choisit depuis son espace le retrait en magasin ou l’envoi à l’adresse qu’il confirme. Cet envoi est inclus, sans frais supplémentaires de livraison pour le client. Le magasin confirme la remise sur place ou renseigne le suivi de l’expédition. Cette inclusion ne concerne pas les frais de retour préalablement convenus après refus du devis ou diagnostic irréparable.',
           'Lorsque l’appareil est prêt ou que le client demande sa restitution, les parties conviennent d’un retrait en magasin ou d’un retour. Le client vérifie l’adresse et les modalités. Le prix et les conditions d’un transport organisé par le magasin sont acceptés avant la facturation et l’expédition ; la gratuité éventuelle est mentionnée explicitement.',
           'Pour un retour payant convenu, l’expédition est organisée après confirmation de réception des frais par le magasin, sauf accord différent ou droit impératif applicable. Un retard de confirmation doit pouvoir être signalé et vérifié. L’appareil reste la propriété du client tant qu’aucune cession distincte n’a été valablement convenue. Toute rétention suppose que ses conditions légales soient réunies ; elle ne peut servir à imposer une somme non due.',
           'Le magasin demeure responsable des obligations qu’il assume dans le contrat à distance, y compris lorsqu’il confie leur exécution à un prestataire, sous les causes légales d’exonération. Les risques du transport ne sont pas systématiquement transférés au client dès la remise au transporteur ; les règles légales applicables au mode d’acheminement et à sa commande restent réservées.',

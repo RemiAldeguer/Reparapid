@@ -1,11 +1,12 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../src/domain.ts';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput } from '../src/domain.ts';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../src/repair-intake-domain.ts';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
 import {ClientPartAvailabilityError, availablePartRequest, assertAvailablePart} from '../server/client-part-availability.mjs';
+import {clientDeliveryRequest,adminDeliveryRequest,applyClientDelivery,applyAdminDelivery} from '../server/repair-deliveries.mjs';
 import {REPAIR_PROPOSAL_BODY_LIMIT, RepairProposalError, proposalRepairId, clientProposalRequest, adminProposalRequest,
   applyClientProposal, applyAdminProposal, assertProposalEditPreserved} from '../server/repair-proposals.mjs';
 import { repairNotifications, notificationStoreView } from '../server/repair-notifications.mjs';
@@ -20,7 +21,7 @@ import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId
 
 const HOUR = 3600000;
 const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
-  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, chooseRepairDelivery, completeRepairDelivery, validateRepairDeliveryInput};
 const SESSION_MS = 8 * HOUR;
 const IDLE_MS = HOUR / 2;
 let hashing = 0;
@@ -411,16 +412,18 @@ async function handle(request, env, headers, url, secure, configured, context) {
       if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
       return json(headers, 200, clientPortal(fresh.store, fresh.row.client_id, repairTotalCost));
     }
-    const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/proposal$/);
+    const proposalRoute = pathname.match(/^\/api\/client\/repairs\/([^/]+)\/(proposal|delivery)$/);
     if (proposalRoute) {
       if (request.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
       const repairId = proposalRepairId(proposalRoute[1]);
-      const input = clientProposalRequest(await readJSON(request, 1024), {requireLegal: !workshopId});
+      const isDelivery=proposalRoute[2]==='delivery';
+      const body=await readJSON(request,isDelivery?8192:1024);
+      const input=isDelivery?clientDeliveryRequest(body,proposalActions.validateRepairDeliveryInput):clientProposalRequest(body,{requireLegal:!workshopId});
       const fresh = await clientSession(false);
       if (!equal(request.headers.get('X-CSRF-Token'), fresh.row.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
       const current = fresh.store;
       const before = structuredClone(current);
-      if (applyClientProposal(current, fresh.row.client_id, repairId, input, proposalActions, {requireLegal: !workshopId, accountEmail: fresh.row.email})) {
+      if ((isDelivery?applyClientDelivery:applyClientProposal)(current, fresh.row.client_id, repairId, input, proposalActions, {requireLegal: !workshopId, accountEmail: fresh.row.email})) {
         validateStore(current);
         const at = Date.now();
         const changed = await saveClientWorkshop(db, {expectedRevision: current.revision, data: current,
@@ -490,17 +493,19 @@ async function handle(request, env, headers, url, secure, configured, context) {
   if (mutation && !equal(request.headers.get('X-CSRF-Token'), auth.csrf)) {
     throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
   }
-  const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/proposal$/);
+  const proposalRoute = pathname.match(/^\/api\/admin\/repairs\/([^/]+)\/(proposal|delivery)$/);
   if (proposalRoute) {
     if (request.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
     const repairId = proposalRepairId(proposalRoute[1]);
-    const input = adminProposalRequest(await readJSON(request, REPAIR_PROPOSAL_BODY_LIMIT));
+    const isDelivery=proposalRoute[2]==='delivery';
+    const body=await readJSON(request,REPAIR_PROPOSAL_BODY_LIMIT);
+    const input=isDelivery?adminDeliveryRequest(body):adminProposalRequest(body);
     const fresh = await session(false);
     if (!equal(request.headers.get('X-CSRF-Token'), fresh.csrf)) throw new HttpError(403, 'Jeton de protection invalide. Rechargez la page.');
     const current = await readWorkshop(db);
     if (current.revision !== input.revision) throw new HttpError(409, 'L’atelier a changé. Rechargez les données avant de réessayer.');
     const before = structuredClone(current);
-    if (applyAdminProposal(current, repairId, input, proposalActions)) {
+    if ((isDelivery?applyAdminDelivery:applyAdminProposal)(current, repairId, input, proposalActions)) {
       validateStore(current);
       const at = Date.now();
       const changed = await saveWorkshop(db, {expectedRevision: input.revision, data: current,
