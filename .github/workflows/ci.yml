@@ -2,7 +2,7 @@ name: Vérification de l’application
 
 on:
   push:
-    branches: [main, 'feat/**']
+    branches: [main, 'feat/**', 'codex/**']
   pull_request:
   workflow_dispatch:
 
@@ -16,21 +16,23 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Récupérer les sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - name: Installer Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
       - name: Installer les dépendances
-        run: npm ci
+        run: npm ci --ignore-scripts
+      - name: Refuser les dépendances avec alertes hautes ou critiques
+        run: npm audit --audit-level=high
       - name: Tests métier et sécurité de l’API
         run: npm test
       - name: Vérifier les types et compiler l’interface
         run: npm run build
       - name: Conserver l’interface compilée (serveur requis)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: reparapid-admin-interface
           path: dist/
