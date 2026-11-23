@@ -1,13 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
-import {mkdtemp, mkdir, readFile, rm, symlink, writeFile} from 'node:fs/promises';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import {fileURLToPath} from 'node:url';
 import {guideCatalog, guideManifest, guideCollections, GUIDE_ORIGIN, GUIDE_PUBLISHED_DATE} from '../src/repair-guides-manifest.mjs';
+import {legacyPages, legacyRedirects, LEGACY_PUBLISHED_DATE} from '../src/legacy-site-manifest.mjs';
 import {publicAsset, publicSourceAsset, publicPageRedirect, generatedPublicFiles} from '../server/public-assets.mjs';
 import {verifyPublicAssets} from '../scripts/verify-public-assets.mjs';
-import {generateRepairGuides, guideStylesheets, guideSitemap, loadGuideRenderer} from '../scripts/generate-repair-guides.mjs';
+import {generateRepairGuides, guideStylesheets, guideSitemap, loadGuideRenderer, loadLegacyRenderer} from '../scripts/generate-repair-guides.mjs';
 import {createApplication} from '../server/application.mjs';
 import worker from '../cloudflare/worker.mjs';
 
@@ -21,8 +25,57 @@ async function populate(root, filename, body = 'SYNTHETIC_GUIDE') {
   await writeFile(path.join(root, filename), body);
 }
 const pages = [guideCatalog, ...guideCollections, ...guideManifest];
+const publicPages = [...pages, ...legacyPages];
+const redirectAliases = from => from.endsWith('/') ? [from, from.slice(0, -1), from + 'index.html'] : [from];
 const escapedText = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#x27;');
 const unknownPaths = ['/guides/inconnu/', '/guides/inconnu/index.html', '/guides/backup.html', '/guides/PS5/', '/guides//', '/guides/index.html.bak', '/guides/' + guideManifest[0].slug + '/secret.html'];
+
+test('public site origin defaults to the current host and accepts only explicit HTTPS origins', async () => {
+  const {DEFAULT_PUBLIC_SITE_ORIGIN, PUBLIC_SITE_ORIGIN, resolvePublicSiteOrigin} = await import('../src/public-site-origin.mjs');
+  assert.equal(DEFAULT_PUBLIC_SITE_ORIGIN, 'https://reparapid.aldeguer-remi.workers.dev');
+  assert.equal(resolvePublicSiteOrigin(), DEFAULT_PUBLIC_SITE_ORIGIN);
+  assert.equal(PUBLIC_SITE_ORIGIN, resolvePublicSiteOrigin(process.env.PUBLIC_SITE_ORIGIN));
+  assert.equal(resolvePublicSiteOrigin('https://reparapid.fr'), 'https://reparapid.fr');
+  assert.equal(resolvePublicSiteOrigin('https://reparapid.fr/'), 'https://reparapid.fr');
+  assert.equal(resolvePublicSiteOrigin('https://REPARAPID.FR:443/'), 'https://reparapid.fr');
+  for (const value of ['', null, 0, 'http://reparapid.fr', '//reparapid.fr', 'https://',
+    ' https://reparapid.fr', 'https://reparapid.fr ', 'https://reparapid.fr/guides',
+    'https://reparapid.fr//', 'https://reparapid.fr/../', 'https://reparapid.fr/%2e',
+    'https://reparapid.fr?source=test', 'https://reparapid.fr?', 'https://reparapid.fr#',
+    'https://name@reparapid.fr', 'https://name:secret@reparapid.fr', 'https://@reparapid.fr',
+    'https://exa\'mple.fr', 'https://exa"mple.fr', 'https://exa&mple.fr',
+    'https://reparapid.fr\\other.invalid', 'https://reparapid.fr\n']) {
+    assert.throws(() => resolvePublicSiteOrigin(value), /PUBLIC_SITE_ORIGIN/, String(value));
+  }
+});
+
+test('build origin updates the homepage, static guide canonical and sitemap together without changing the default host', async t => {
+  const root = await realpath(await directory(t));
+  await populate(root, 'index.html', '<!doctype html><html><head><link rel="canonical" href="https://reparapid.aldeguer-remi.workers.dev/"><meta property="og:url" content="https://reparapid.aldeguer-remi.workers.dev/"></head><body>SYNTHETIC_ORIGIN</body></html>');
+  const projectRoot = fileURLToPath(new URL('../', import.meta.url));
+  const script = `
+    import {build} from 'vite';
+    import {readFile} from 'node:fs/promises';
+    const {GUIDE_ORIGIN} = await import(${JSON.stringify(new URL('../src/repair-guides-manifest.mjs', import.meta.url).href)});
+    const {loadGuideRenderer, guideSitemap} = await import(${JSON.stringify(new URL('../scripts/generate-repair-guides.mjs', import.meta.url).href)});
+    await build(${JSON.stringify({root, configFile: path.join(projectRoot, 'vite.config.ts'), logLevel: 'silent', build: {outDir: 'built', emptyOutDir: true}})});
+    const html = await readFile(${JSON.stringify(path.join(root, 'built', 'index.html'))}, 'utf8');
+    const renderer = await loadGuideRenderer();
+    const guide = renderer.renderGuideDocument({slug: 'ps5-bruit-ventilateur-nettoyage', stylesheets: ['/assets/index-Abcd1234.css']});
+    process.stdout.write(JSON.stringify({html, guide, sitemap: guideSitemap(), origin: GUIDE_ORIGIN}));
+  `;
+  const {stdout} = await promisify(execFile)(process.execPath, ['--input-type=module', '-e', script], {
+    cwd: projectRoot, env: {...process.env, PUBLIC_SITE_ORIGIN: 'https://reparapid.fr/'}, maxBuffer: 1024 * 1024,
+  });
+  const output = JSON.parse(stdout);
+  assert.equal(output.origin, 'https://reparapid.fr');
+  assert.match(output.html, /rel="canonical" href="https:\/\/reparapid\.fr\/"/);
+  assert.match(output.html, /property="og:url" content="https:\/\/reparapid\.fr\/"/);
+  assert.ok(output.guide.includes('rel="canonical" href="https://reparapid.fr/guides/ps5-bruit-ventilateur-nettoyage/"'));
+  assert.ok(output.sitemap.includes('<loc>https://reparapid.fr/</loc>'));
+  assert.ok(!output.sitemap.includes('workers.dev'));
+  assert.equal(GUIDE_ORIGIN, process.env.PUBLIC_SITE_ORIGIN ? new URL(process.env.PUBLIC_SITE_ORIGIN).origin : 'https://reparapid.aldeguer-remi.workers.dev');
+});
 
 test('public guide manifest declares 120 distinct slugs, category pages and only known page aliases', () => {
   assert.equal(guideManifest.length, 120);
@@ -47,6 +100,33 @@ test('public guide manifest declares 120 distinct slugs, category pages and only
     assert.equal(publicPageRedirect(pathname), null);
   }
   assert.throws(() => publicPageRedirect('/guides/%GG'), URIError);
+});
+
+test('legacy service paths stay exact and only their declared aliases redirect to final destinations', () => {
+  assert.equal(new Set(publicPages.map(page => page.pathname)).size, publicPages.length);
+  assert.equal(new Set(publicPages.map(page => page.filename)).size, publicPages.length);
+  for (const page of legacyPages) {
+    assert.match(page.pathname, /^\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)+$/);
+    assert.equal(page.filename, page.pathname.slice(1) + 'index.html');
+    const expected = {pathname: '/' + page.filename, filename: page.filename, contentType: 'text/html; charset=utf-8'};
+    for (const target of [page.pathname, page.pathname + '?source=fixture', GUIDE_ORIGIN + page.pathname]) assert.deepEqual(publicAsset(target), expected);
+    assert.equal(publicPageRedirect(page.pathname), null);
+    for (const alias of [page.pathname.slice(0, -1), '/' + page.filename]) assert.equal(publicPageRedirect(alias), page.pathname);
+    assert.equal(publicSourceAsset('/' + page.filename), null);
+  }
+  for (const {from, to} of legacyRedirects) {
+    assert.ok(publicAsset(to), to);
+    assert.equal(publicPageRedirect(to), null, 'a redirect must terminate at its canonical destination');
+    for (const alias of redirectAliases(from)) {
+      assert.equal(publicPageRedirect(alias + '?source=fixture'), to, alias);
+      assert.equal(publicAsset(alias), null, alias);
+    }
+  }
+  for (const pathname of ['/consoles/inconnue/', '/accueil/smartphones/inconnu/', '/accueil/smartphones/samsung/backup.html',
+    '/wp-content/uploads/private.pdf', '/ps4slim/', '/consoles/%6eintendo/', '/consoles/../a-propos/', '/accueil//blog/']) {
+    assert.equal(publicAsset(pathname), null, pathname);
+    assert.equal(publicPageRedirect(pathname), null, pathname);
+  }
 });
 
 test('public guide files belong only to generated output, never to copied public sources', async t => {
@@ -101,7 +181,7 @@ async function staticFixture(t, platform) {
 for (const platform of ['node', 'worker']) {
   test(`public guide ${platform}: canonical pages, SEO files and HEAD use the exact declared files`, async t => {
     const f = await staticFixture(t, platform);
-    for (const page of pages) for (const method of ['GET', 'HEAD']) {
+    for (const page of publicPages) for (const method of ['GET', 'HEAD']) {
       const response = await f.request(page.pathname, method);
       assert.equal(response.status, 200, page.pathname);
       assert.equal(response.headers.get('content-type'), 'text/html; charset=utf-8');
@@ -125,11 +205,18 @@ for (const platform of ['node', 'worker']) {
   });
   test(`public guide ${platform}: only known aliases redirect; unknown paths never reach assets`, async t => {
     const f = await staticFixture(t, platform);
-    for (const page of pages) for (const alias of [page.pathname.slice(0, -1), '/' + page.filename]) for (const method of ['GET', 'HEAD']) {
+    for (const page of publicPages) for (const alias of [page.pathname.slice(0, -1), '/' + page.filename]) for (const method of ['GET', 'HEAD']) {
       const response = await f.request(alias + '?source=fixture', method);
       assert.equal(response.status, 308, alias);
       assert.equal(response.headers.get('location'), page.pathname);
       assert.equal(await response.text(), '');
+    }
+    for (const {from, to} of legacyRedirects) for (const alias of redirectAliases(from)) for (const method of ['GET', 'HEAD']) {
+      const response = await f.request(alias + '?source=fixture', method);
+      assert.equal(response.status, 308, alias);
+      assert.equal(response.headers.get('location'), to, alias);
+      assert.equal(await response.text(), '');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     }
     for (const pathname of unknownPaths) {
       const response = await f.request(pathname);
@@ -166,11 +253,13 @@ test('guide stylesheets accept the Vite relative path and reject arbitrary or re
 test('guide sitemap contains only the real canonical public pages and stable editorial dates', () => {
   const xml = guideSitemap();
   const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
-  assert.deepEqual(urls, [GUIDE_ORIGIN + '/', ...pages.map(page => GUIDE_ORIGIN + page.pathname)]);
-  assert.equal(new Set(urls).size, 124);
-  assert.equal([...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].length, 123);
+  assert.deepEqual(urls, [GUIDE_ORIGIN + '/', ...publicPages.map(page => GUIDE_ORIGIN + page.pathname)]);
+  assert.equal(new Set(urls).size, 1 + publicPages.length);
+  assert.equal([...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].length, publicPages.length);
   assert.ok(xml.includes(`<lastmod>${GUIDE_PUBLISHED_DATE}</lastmod>`));
-  assert.ok(urls.every(url => !url.includes('#') && !url.includes('/api/') && !url.includes('reparapid.fr')));
+  assert.ok(xml.includes(`<lastmod>${LEGACY_PUBLISHED_DATE}</lastmod>`));
+  assert.ok(urls.every(url => !url.includes('#') && !url.includes('/api/') && url.startsWith(GUIDE_ORIGIN + '/')));
+  for (const {from} of legacyRedirects) assert.ok(!urls.includes(GUIDE_ORIGIN + from), from);
 });
 
 test('guide renderer emits complete indexable articles, honest metadata, visible FAQs and local links without the app bundle', async () => {
@@ -223,7 +312,7 @@ test('guide generation uses a disposable build, supplies every exact public outp
   await populate(root, 'index.html', '<!doctype html><link rel="stylesheet" crossorigin href="./assets/index-Abcd1234.css">');
   await populate(root, 'assets/index-Abcd1234.css', '/* synthetic CSS */');
   const result = await generateRepairGuides(root);
-  assert.equal(result.pages, 123);
+  assert.equal(result.pages, pages.length + legacyPages.length);
   assert.equal(result.scripts.length, 1);
   const searchScript = result.scripts[0];
   assert.match(searchScript, /^\/assets\/guide-search-[a-f0-9]{8}\.js$/);
@@ -240,6 +329,28 @@ test('guide generation uses a disposable build, supplies every exact public outp
     const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1]);
     assert.deepEqual(scripts, page.slug ? [] : [searchScript], 'only catalogs receive their independent search script');
   }
+  const legacyTitles = new Set(), legacyDescriptions = new Set();
+  for (const page of legacyPages) {
+    const html = await readFile(path.join(root, page.filename), 'utf8');
+    assert.ok(html.startsWith('<!doctype html>'), page.pathname);
+    assert.equal((html.match(/<h1\b/g) || []).length, 1, page.pathname);
+    assert.ok(html.includes(`rel="canonical" href="${GUIDE_ORIGIN + page.pathname}"`), page.pathname);
+    assert.ok(html.includes('href="/assets/index-Abcd1234.css"'), page.pathname);
+    assert.ok(!/<script[^>]+(?:src=|type="module")/.test(html), page.pathname);
+    const title = /<title>([^<]+)<\/title>/.exec(html)?.[1];
+    const description = /<meta name="description" content="([^"]+)"/.exec(html)?.[1];
+    assert.ok(title, page.pathname);
+    assert.ok(description, page.pathname);
+    legacyTitles.add(title); legacyDescriptions.add(description);
+    const structuredData = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]+?)<\/script>/g)];
+    assert.ok(structuredData.length, page.pathname);
+    for (const [, json] of structuredData) assert.ok(JSON.parse(json));
+    assert.ok(!/localStorage|sessionStorage|\/api\/|csrfToken|passwordHash|SYNTHETIC_PRIVATE_EXPORT/.test(html), page.pathname);
+  }
+  assert.equal(legacyTitles.size, legacyPages.length);
+  assert.equal(legacyDescriptions.size, legacyPages.length);
+  const legacyRenderer = await loadLegacyRenderer();
+  assert.throws(() => legacyRenderer.renderLegacyDocument({pathname: '/inconnue/', stylesheets: []}));
   assert.equal(await readFile(path.join(root, 'sitemap.xml'), 'utf8'), guideSitemap());
   const robots = await readFile(path.join(root, 'robots.txt'), 'utf8');
   assert.ok(robots.includes(`Sitemap: ${GUIDE_ORIGIN}/sitemap.xml`));

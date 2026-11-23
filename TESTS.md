@@ -6,7 +6,19 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **22 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : durcissement sécurité — 22 novembre 2026
+## Résultat courant : reprise SEO et retours visuels — 22 novembre 2026
+
+**734 tests réussis (672 Node/domaine/API + 62 Cloudflare)**, aucun échec ni test ignoré. TypeScript et build réussis : **125 modules, 158 fichiers publics**, dont 144 pages statiques ; sitemap de 145 URL. Le warning historique du bundle supérieur à 500 kB reste présent. Aucune dépendance applicative ajoutée.
+
+`tests/legacy-seo.test.mjs` confronte l’inventaire public indépendant aux routes : les 31 URL HTML aboutissent à 22 chemins conservés ou 9 redirections vers un document final, sans chaîne. Les 139 alias médias restent explicitement différés et ne deviennent pas des pages consoles sans rapport. Le contrôle ciblé `/accueil/ → /` est ajouté séparément. Les tests de guides étendent GET/HEAD Node/Worker aux 21 nouvelles pages et aux 18 redirections déclarées, conservent les refus des fichiers privés, des chemins encodés et des liens symboliques, et vérifient unicité des titres/descriptions, H1, canonical, JSON-LD analysable et absence de bundle applicatif. Un build temporaire sous `PUBLIC_SITE_ORIGIN=https://reparapid.fr` prouve l’alignement des métadonnées sans changer le défaut workers.dev.
+
+Recette navigateur sur base SQLite **en mémoire** : hubs consoles et smartphones sur bureau et à 320/390 px, page Apple à 390 px, aucun débordement horizontal constaté. Recherche « ps5 », sélection directe vers l’étape panne, focus de titre et animation brève de progression contrôlés. Les transitions de 120–180 ms et les règles `prefers-reduced-motion` sont présentes ; la préférence système réduite n’a pas été activée dans cette recette. Aucun compte créé, formulaire final envoyé ou mail réel.
+
+Publication workers.dev vérifiée : 25 documents contrôlés par SHA-256 (accueil, 21 pages reprises, trois catalogues de guides), cinq autres assets conformes et 18 redirections directes. API publique conforme, trois routes privées 401, sept chemins inconnus/privés 404 ; `/wp-config.php` est refusé en amont par Cloudflare en 403. Headers CSP/HSTS/nosniff et garde-fou de secrets sur les textes vérifiés. Métadonnées de révision/génération D1 et nombre de notifications identiques avant/après ; aucune migration ni modification métier.
+
+L’inventaire couvre les URL publiques découvertes, sans accès Search Console/journaux historiques. Les fichiers des 139 médias doivent être préservés avant la bascule. Le domaine et le WordPress d’origine restent inchangés.
+
+## Résultat précédent : durcissement sécurité — 22 novembre 2026
 
 **729 tests réussis : 667 Node/domaine/API et 62 Cloudflare**, aucun échec ni test ignoré. Les 35 scénarios ajoutés comprennent 29 contrôles du garde-fou sur les secrets et six scénarios de désactivation/activation explicite des inscriptions d’ateliers. Les reproductions initiales échouaient avant implémentation. Les 61 tests ciblés d’assets (29 nouveaux et 32 existants) et les 42 tests d’inscription/SaaS vérifient le détail ; la suite complète inclut leurs tests utiles.
 

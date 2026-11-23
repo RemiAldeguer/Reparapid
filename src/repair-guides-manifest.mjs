@@ -1,8 +1,9 @@
 import {consoleGuideSlugs} from './repair-guide-slugs-consoles.mjs';
 import {iphoneGuideSlugs} from './repair-guide-slugs-iphone.mjs';
 import {androidGuideSlugs} from './repair-guide-slugs-android.mjs';
+import {PUBLIC_SITE_ORIGIN} from './public-site-origin.mjs';
 // Public URLs only. Article text is never bundled into the API Worker.
-export const GUIDE_ORIGIN = 'https://reparapid.aldeguer-remi.workers.dev';
+export const GUIDE_ORIGIN = PUBLIC_SITE_ORIGIN;
 export const GUIDE_PUBLISHED_DATE = '2026-10-13';
 const slugs = [
   'ps5-bruit-ventilateur-nettoyage',

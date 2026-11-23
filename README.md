@@ -8,6 +8,16 @@ Mise à jour publiée le **22 novembre 2026** : CGU/CGV, mentions et rétractati
 
 Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune bascule DNS ni modification de ce site n’a été effectuée ; l’application Cloudflare utilise actuellement l’adresse `workers.dev` ci-dessus.
 
+## Préparation du remplacement de reparapid.fr
+
+Le relevé du 22 novembre 2026 récupère **170 anciennes URL** : 22 chemins HTML conservés, 9 regroupements par redirection permanente et 139 alias de médias inventoriés. Les 21 pages statiques ajoutées au nouveau site gardent les slugs consoles, smartphones, tablettes et atelier ; leurs métadonnées, leur contenu et leurs liens restent spécifiques à leur sujet. Les smartphones et tablettes orientent vers le contact du magasin, le formulaire actuel étant réservé aux consoles.
+
+[Inventaire JSON](docs/seo/anciens-slugs-2026-11-22.json), [CSV](docs/seo/anciens-slugs-2026-11-22.csv) et [procédure de migration](docs/seo/migration-reparapid.md). Le relevé ne remplace pas Search Console ni les journaux historiques. **Les 139 fichiers médias doivent être préservés avant la bascule.** Aucune modification DNS ou WordPress n’a été effectuée.
+
+`src/legacy-site-manifest.mjs` est la liste exacte des pages et redirections ; `src/legacy-site-pages.tsx` porte leur contenu. Le générateur commun produit 144 pages statiques et un sitemap de 145 URL, accueil compris. `PUBLIC_SITE_ORIGIN` aligne canonical, métadonnées, robots et sitemap ; son défaut reste l’adresse workers.dev. Pour la future bascule seulement : `PUBLIC_SITE_ORIGIN=https://reparapid.fr npm run build`, avec contrôle des origines serveur et d’envoi. Le domaine ne se change pas par ce build seul.
+
+Les interactions de la vitrine, du formulaire et du portail ont reçu des retours visuels brefs, désactivés avec `prefers-reduced-motion`. **734 tests (672 + 62 Cloudflare)**, TypeScript, build et publication workers.dev vérifiés ; les données D1 sont préservées. Détails dans [TESTS.md](TESTS.md).
+
 La configuration effective de cette machine est `.wrangler/reparapid.production.jsonc`, exclue de Git. Elle contient les identifiants du compte et de la D1 dédiée. Le fichier versionné `wrangler.jsonc` reste un modèle portable avec un identifiant nul : configurez une nouvelle base pour une autre installation. Aucun déploiement Cloudflare n’est effectué par la CI GitHub.
 
 Pour republier cette installation depuis cette machine :
@@ -47,6 +57,20 @@ Le bouton **Exercer mon droit de rétractation** enregistre une déclaration hor
 
 La section **Les réseaux de Maxxi Games** relie les comptes [Instagram du magasin](https://www.instagram.com/maxxigames_kremlinbicetre/) et [TikTok du magasin](https://www.tiktok.com/@maxxigameskremlinbicetre). Elle n’intègre aucun widget externe ni compteur inventé. Le parcours et les avis restent respectivement les deuxième et troisième sections de l’accueil.
 
+## Préparer le remplacement de reparapid.fr
+
+L’[inventaire et le plan de migration](docs/seo/migration-reparapid.md) conservent **170 slugs de l’ancien site** : 31 pages/archives et 139 alias d’images. Le nouveau site sert 22 chemins HTML à l’identique, accueil compris, et neuf regroupements par redirection permanente 308. Les pages consoles, marques, smartphones, tablettes, atelier, blog et cookies sont de vrais documents HTML. Les images originales restent à archiver avant toute bascule ; leurs alias ne sont pas encore activés. Aucun DNS ni WordPress modifié.
+
+`src/legacy-site-manifest.mjs` déclare les chemins ; `src/legacy-site-pages.tsx` porte les contenus. Le générateur des guides produit aussi ces 21 pages, avec métadonnées propres et sitemap commun (145 URL). Les pages smartphones/tablettes orientent vers le contact magasin ; le formulaire de dossier reste consacré aux consoles.
+
+L’origine canonique reste celle de `workers.dev`. Pour la future bascule uniquement :
+
+```sh
+PUBLIC_SITE_ORIGIN=https://reparapid.fr npm run build
+```
+
+Cette variable exige une origine HTTPS sans identifiants, chemin, paramètres ou fragment. Elle aligne accueil, guides, pages reprises, robots et sitemap. Vérifier également le domaine personnalisé, `APP_ORIGIN`, les liens de notification et la sauvegarde des médias selon le guide avant de publier ce build.
+
 ## Tutoriels de réparation de consoles et smartphones
 
 Le catalogue [/guides/](https://reparapid.aldeguer-remi.workers.dev/guides/) rassemble **120 tutoriels en français**, dont **96 ajoutés lors de cette reprise**. Deux pages facilitent la navigation : [Consoles et manettes](https://reparapid.aldeguer-remi.workers.dev/guides/consoles/) (**72 guides**) et [Smartphones](https://reparapid.aldeguer-remi.workers.dev/guides/smartphones/) (**48 guides**). Les familles sont PlayStation (19), Nintendo (29), Xbox (14), Sega (7), Steam Deck (3), iPhone (24), Samsung Galaxy (10), Google Pixel (8), Xiaomi/Redmi/Poco (4) et Motorola (2).
@@ -69,7 +93,7 @@ Les 24 articles initiaux sont dans `src/repair-guides-content.ts`, qui agrège `
 
 Pour consulter localement, construire puis utiliser `npm start` ou un serveur Node temporaire servant le `dist/` validé. Vite ne génère pas ces pages à la volée. Node et Worker partagent la liste exacte des fichiers dans `server/public-assets.mjs` : GET/HEAD des pages connues, 308 pour leurs alias sans slash et `index.html`, refus des chemins inconnus et liens symboliques. La liste source accepte seulement les assets de marque déclarés ; elle n’autorise aucun HTML, export ou fichier SEO copié dans `public/`.
 
-Une publication utilise la configuration privée `.wrangler/reparapid.production.jsonc`, avec `run_worker_first=true`, `html_handling: "none"` et `not_found_handling: "none"`. Comparer le build final aux pages, scripts et assets réellement servis. Cette évolution ne demande aucune migration ni import D1. Pour un futur changement de domaine, modifier `GUIDE_ORIGIN` et `index.html`, vérifier les origines applicatives, reconstruire et contrôler les canonical, robots et sitemap.
+Une publication utilise la configuration privée `.wrangler/reparapid.production.jsonc`, avec `run_worker_first=true`, `html_handling: "none"` et `not_found_handling: "none"`. Comparer le build final aux pages, scripts et assets réellement servis. Cette évolution ne demande aucune migration ni import D1. Pour un futur changement de domaine, utiliser `PUBLIC_SITE_ORIGIN` au build, vérifier les origines applicatives, reconstruire et contrôler les canonical, robots et sitemap.
 
 ## Identité visuelle RépaRapid
 

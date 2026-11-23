@@ -1,0 +1,50 @@
+// Public service URLs recovered from the original WordPress site on 2026-11-22.
+// Keep their spelling: external links may already point to these paths.
+export const LEGACY_PUBLISHED_DATE = '2026-11-22';
+const paths = [
+  '/consoles/',
+  '/consoles/nintendo/',
+  '/consoles/sony/',
+  '/consoles/microsoft/',
+  '/consoles/contact-consoles-retro/',
+  '/accueil/smartphones/',
+  '/accueil/smartphones/smartphone-apple/',
+  '/accueil/smartphones/samsung/',
+  '/accueil/smartphones/xiaomi/',
+  '/accueil/smartphones/huawei/',
+  '/accueil/smartphones/oneplus/',
+  '/accueil/smartphones/google/',
+  '/accueil/smartphones/oppo/',
+  '/accueil/smartphones/vivo/',
+  '/accueil/smartphones/realme/',
+  '/accueil/smartphones/blackview/',
+  '/tablettes/',
+  '/a-propos/',
+  '/accueil/blog/',
+  '/petit-apercu/',
+  '/politique-de-cookies-ue/',
+];
+export const legacyPages = Object.freeze(paths.map(pathname => Object.freeze({
+  pathname,
+  filename: pathname.slice(1) + 'index.html',
+})));
+export const legacyRedirects = Object.freeze([
+  ['/accueil/', '/'],
+  ['/consoles/contact-consoles-nintendo/', '/consoles/nintendo/'],
+  ['/consoles/contact-consoles-sony/', '/consoles/sony/'],
+  ['/consoles/contact-consoles-xbox/', '/consoles/microsoft/'],
+  ['/bonjour-tout-le-monde/', '/accueil/blog/'],
+  ['/category/informations-generales/', '/accueil/blog/'],
+  ['/category/latelier/', '/accueil/blog/'],
+  ['/category/non-classe/', '/accueil/blog/'],
+  ['/2023/02/17/', '/accueil/blog/'],
+  ['/2023/05/31/', '/accueil/blog/'],
+  ['/sitemap_index.xml', '/sitemap.xml'],
+  ['/page-sitemap.xml', '/sitemap.xml'],
+  ['/post-sitemap.xml', '/sitemap.xml'],
+  ['/category-sitemap.xml', '/sitemap.xml'],
+  ['/sitemap-1.xml', '/sitemap.xml'],
+  ['/image-sitemap-1.xml', '/sitemap.xml'],
+  ['/video-sitemap-1.xml', '/sitemap.xml'],
+  ['/news-sitemap.xml', '/sitemap.xml'],
+].map(([from, to]) => Object.freeze({from, to})));

@@ -1,4 +1,5 @@
 import {guideCatalog, guideManifest, guideCollections} from '../src/repair-guides-manifest.mjs';
+import {legacyPages, legacyRedirects} from '../src/legacy-site-manifest.mjs';
 
 // Only the interface build is public. A file placed beside it must never become
 // downloadable merely because its extension happens to be browser-readable.
@@ -14,19 +15,27 @@ const fixedAssets = new Map([
   ['/fonts/oxanium-OFL.txt', 'text/plain; charset=utf-8'],
 ]);
 const bundledAsset = /^\/assets\/[A-Za-z0-9][A-Za-z0-9_-]*-[A-Za-z0-9_-]{8}\.(js|css)$/;
-const guidePages = [guideCatalog, ...guideCollections, ...guideManifest];
+const publicPages = [guideCatalog, ...guideCollections, ...guideManifest, ...legacyPages];
 const generatedAssets = new Map([
   ['/robots.txt', 'text/plain; charset=utf-8'],
   ['/sitemap.xml', 'application/xml; charset=utf-8'],
-  ...guidePages.map(page => ['/' + page.filename, 'text/html; charset=utf-8']),
+  ...publicPages.map(page => ['/' + page.filename, 'text/html; charset=utf-8']),
 ]);
-const pageFiles = new Map(guidePages.map(page => [page.pathname, '/' + page.filename]));
-const pageAliases = new Map(guidePages.flatMap(page => [
-  [page.pathname.slice(0, -1), page.pathname],
-  ['/' + page.filename, page.pathname],
-]));
+const pageFiles = new Map(publicPages.map(page => [page.pathname, '/' + page.filename]));
+const pageAliases = new Map([
+  ...publicPages.flatMap(page => [
+    [page.pathname.slice(0, -1), page.pathname],
+    ['/' + page.filename, page.pathname],
+  ]),
+  ...legacyRedirects.flatMap(({from, to}) => from.endsWith('/')
+    ? [[from, to], [from.slice(0, -1), to], [from + 'index.html', to]]
+    : [[from, to]]),
+]);
 
-export const publicAssetDirectories = Object.freeze(['assets', 'fonts', 'guides', ...[...guideCollections, ...guideManifest].map(page => page.filename.slice(0, -11))]);
+export const publicAssetDirectories = Object.freeze([...new Set(['assets', 'fonts', ...publicPages.flatMap(page => {
+  const parts = page.filename.split('/').slice(0, -1);
+  return parts.map((_part, index) => parts.slice(0, index + 1).join('/'));
+})])]);
 export const publicSourceDirectories = Object.freeze(['fonts']);
 export const generatedPublicFiles = Object.freeze([...generatedAssets.keys()].map(name => name.slice(1)));
 

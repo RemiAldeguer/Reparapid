@@ -5,6 +5,7 @@ import './styles.css';
 import './auth.css';
 import './reparapid-brand.css';
 import './repair-guides.css';
+import './legacy-site-pages.css';
 import './backoffice-theme.css';
 import './backoffice-components.css';
 import {AuthGate} from './auth';
