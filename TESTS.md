@@ -6,7 +6,19 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **23 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : virements et récupération après réparation — 23 novembre 2026
+## Résultat courant : accès bancaire et virement du diagnostic — 23 novembre 2026
+
+**775 tests réussis (709 Node/domaine/API + 66 Worker)**, aucun échec ni test ignoré. Les cinq nouveaux scénarios ont échoué avant correction : défaut bancaire absent d’un devis payant à retour gratuit, coordonnées masquées après acceptation et ancien accord vide non alimenté par le défaut privé. Les assertions vérifient ensuite propriété, absence de mutation en lecture, conservation des coordonnées déjà figées, libellé stable et arrêt de la demande de paiement après enregistrement par le magasin. L’objet interne de reçu reste absent du portail ; seul un booléen est projeté. Les branches existantes de gratuité, retour, rachat et archives restent testées.
+
+Une inversion volontaire de `repairAmount > 0` dans la projection fait échouer les deux tests API ciblés Node/Worker. La source est restaurée à l’identique et ces deux tests repassent. TypeScript, build isolé de **133 modules / 158 fichiers** et assemblage Worker à blanc réussis. Les gardes d’assets source et générés sont inchangées, ainsi que le warning historique du bundle supérieur à 500 kB. Aucune dépendance ni migration SQL ajoutées ; CGV toujours en version 2026-11-23.2.
+
+Recette sur SQLite en mémoire : nouvel onglet du menu, raccourci des réglages, lien depuis le diagnostic, sauvegarde d’un compte fictif, préremplissage, restauration explicite du défaut et publication de la proposition. Le portail affiche **79,95 €** pour le devis accepté et **12,50 €** pour les frais d’un autre dossier refusé, sans les cumuler. Copie du libellé réussie ; un dossier déjà réglé ne propose plus de virement. Un ancien accord vide reprend le défaut sans réécriture et conserve la référence de dossier. Aucun compte bancaire réel, accord commercial réel, paiement, message fournisseur ni client de production utilisé.
+
+Contrôles à **1280 et 320 px réels** : onglet accessible par le menu mobile, formulaire bancaire et coordonnées du devis sans débordement horizontal. Aucune erreur/alerte console capturée. Capture du nouvel onglet vide conservée hors dépôt ; déconnexions client/admin vérifiées, onglets temporaires fermés, viewport réinitialisé et serveur arrêté. La consultation anonyme du site publié montre la connexion requise, pas le formulaire bancaire privé.
+
+Publication vérifiée sur **100 % du trafic Cloudflare** : neuf fichiers/pages identiques au paquet par SHA-256, présence des nouveaux textes et de la route de l’onglet dans le JavaScript servi, CSP/HSTS/nosniff conservés et aucun cookie public supplémentaire. Cinq routes privées 401 et trois fichiers privés 404. Révision/génération et répartition des notifications D1 identiques avant/après. Secrets et destinataire privé de test conservés ; aucun compte, dossier, préférence bancaire, paiement ou message de production créé pendant la recette. Aucun envoi réel ni réception d’e-mail prouvée ; reparapid.fr et ses DNS restent inchangés. Retour possible par republication d’une version compatible avec les champs existants, sans restauration de D1.
+
+## Résultat précédent : virements et récupération après réparation — 23 novembre 2026
 
 **770 tests réussis (704 Node/domaine/API + 66 Worker)**, aucun échec ni test ignoré. Les tests ont d’abord reproduit les scénarios manquants avant implémentation. La recette partagée de cycle de vie sur Node et Worker vérifie les choix retrait/envoi, les deux audiences, l’absence de doublons lors des répétitions et l’absence d’adresse/téléphone dans les notifications, avec un fournisseur simulé. Le parcours fonctionne aussi sans configuration d’envoi.
 
