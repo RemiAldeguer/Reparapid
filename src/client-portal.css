@@ -195,3 +195,15 @@
 @media(max-width:360px){.portal-header{padding:14px}.portal-brand>span{font-size:13px}.portal-rp-logo{width:34px;height:34px}.portal-account>.btn{font-size:9px;padding:8px}.portal-account>.btn>svg{width:12px}.portal-content{padding-left:12px;padding-right:12px}.portal-console-hero{padding:15px;gap:9px}.portal-console-visual{flex-basis:107px;width:107px;height:115px}.portal-console-hero h2{font-size:19px}.portal-console-facts,.portal-repair-dates{grid-template-columns:1fr}.portal-dossier-buttons>button{flex-basis:100%}.portal-repair-amount>strong{font-size:19px}.portal-panel-heading{padding:16px}.portal-repair-copy{padding:18px 16px}.portal-shipping-action{margin-left:14px;margin-right:14px;padding:12px}.portal-next-action{padding-left:16px;padding-right:16px}.portal-contact-link{margin-left:16px;margin-right:16px}.portal-unassigned article{align-items:flex-start}.portal-unassigned article>div:first-child{flex-basis:64px;width:64px;height:70px}}
 @media(prefers-reduced-motion:reduce){.client-portal *{scroll-behavior:auto}}
 @media print{body:has(.client-portal){background:#fff!important}.client-portal{display:none!important}.intake-sheet-print{display:block!important;margin:0!important;padding:0!important;width:100%!important}}
+
+/* Match the public site's restrained feedback in the RépaRapid client space. */
+@media(prefers-reduced-motion:no-preference){
+ .reparapid-portal :is(.portal-dossier-buttons>button,.btn){transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .12s ease}
+ .reparapid-portal :is(.portal-dossier-buttons>button,.btn):active:not(:disabled){transform:translateY(1px)}
+ .reparapid-portal :is(.portal-availability-notice,.portal-availability-error,.portal-intake-success){animation:portal-feedback-appear .18s ease-out}
+}
+@keyframes portal-feedback-appear{from{opacity:.7}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+ .reparapid-portal :is(.portal-dossier-buttons>button,.btn,.portal-availability-notice,.portal-availability-error,.portal-intake-success){animation:none;transition:none}
+ .reparapid-portal :is(.portal-dossier-buttons>button,.btn):active:not(:disabled){transform:none}
+}

@@ -215,3 +215,18 @@
 @media(max-width:680px){.rp-hero:before{background-image:linear-gradient(180deg,#741a16e0,#8b211ce6 620px,#8b211c 780px),url('/maxxi-games-devanture.jpg');background-position:0 0,42% 0;background-size:100% 100%,auto 780px;background-color:#8b211c}.rp-hero-operator{padding:13px 15px;gap:9px}.rp-hero-operator>span{font-size:8px;letter-spacing:1.25px}.rp-hero-operator>img{width:196px;height:20px}.rp-shop-photo{min-height:0;aspect-ratio:4/3}.rp-shop-photo>figcaption{inset:auto 22px 22px}.rp-shop-photo figcaption>strong{font-size:24px;max-width:240px}.rp-shop-services{grid-template-columns:1fr;margin-top:0;padding-top:24px;gap:24px}.rp-shop-services>article{display:grid;grid-template-columns:43px minmax(0,1fr);column-gap:16px}.rp-shop-service-icon{grid-row:1/3;margin-bottom:0}.rp-shop-services h3{font-size:17px}.rp-shop-services p{margin-top:7px}}
 
 .rp-footer .rp-footer-legal{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding-top:22px;border-top:1px solid #ffffff2b;font-size:11px;color:#d9cdca}.rp-footer-legal>span{flex:1;min-width:210px}.rp-footer .rp-footer-legal>a{min-height:44px;display:inline-flex;align-items:center;color:#e5dcda;text-decoration:underline;text-underline-offset:4px}@media(max-width:680px){.rp-footer .rp-footer-legal{gap:4px 19px}.rp-footer-legal>span{flex-basis:100%;margin-bottom:10px}}
+
+/* Brief feedback on interactive storefront controls; console artwork stays fixed. */
+@media(prefers-reduced-motion:no-preference){
+ .reparapid-site .rp-button{transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .12s ease}
+ .rp-home-picker :is(.console-picker-option,.console-picker-search-field,.console-picker-clear){transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .12s ease}
+ .rp-home-picker .console-picker-option:active{transform:translateY(1px)}
+ .reparapid-site .rp-button:active:not(:disabled):not([aria-disabled=true]){transform:translateY(1px)}
+ .rp-home-picker :is(.console-picker-selection,.rp-home-picker-validation){animation:rp-feedback-appear .18s ease-out}
+ @media(hover:hover) and (pointer:fine){.rp-home-picker .console-picker-option:hover{transform:translateY(-1px);box-shadow:0 3px 8px #3027250d}}
+}
+@keyframes rp-feedback-appear{from{opacity:.7;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+ .reparapid-site :is(.rp-button,.rp-device-card),.rp-home-picker :is(.console-picker-option,.console-picker-search-field,.console-picker-clear,.console-picker-selection,.rp-home-picker-validation){animation:none;transition:none}
+ .reparapid-site .rp-button:is(:hover,:active):not(:disabled),.reparapid-site .rp-device-card:hover,.rp-home-picker .console-picker-option:is(:hover,:active){transform:none}
+}

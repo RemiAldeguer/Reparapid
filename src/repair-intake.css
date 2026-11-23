@@ -27,3 +27,16 @@
 .ri-form-card form>fieldset.ri-submodels{border:1px solid #dedede;border-radius:9px;padding:18px;margin:0 0 25px;background:#fafafa;min-width:0}.ri-submodels>legend{padding:0 6px;font-size:13px;font-weight:700;line-height:1.7}.ri-submodels>legend>span{font-size:10px;font-weight:400;color:#6a6a6a;margin-left:7px}.ri-submodels>p{font-size:11px;color:#666;line-height:1.8;margin:0 0 14px}.ri-submodel-unknown{display:flex;gap:11px;align-items:center;border:1px solid #dedede;border-radius:7px;padding:13px;background:#fff;cursor:pointer}.ri-submodel-unknown>span{display:grid;gap:3px}.ri-submodel-unknown strong{font-size:12px}.ri-submodel-unknown small{font-size:10px;color:#666}.ri-submodel-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.ri-submodel-card{min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;border:1px solid #dedede;border-radius:7px;background:#fff;padding:15px 10px 12px;cursor:pointer}.ri-submodel-card>input{position:absolute;right:9px;top:9px}.ri-submodel-card>strong{font-size:11px;font-weight:600;line-height:1.6;overflow-wrap:anywhere}.ri-submodel-card .ri-model-art{height:70px;margin-bottom:3px}.ri-submodels input{width:16px;height:16px;accent-color:#b21414;flex-shrink:0}.ri-submodels label.selected{border-color:#b21414;background:#fff4f4}.ri-submodels label:has(input:focus-visible){outline:3px solid #b21414;outline-offset:3px}@media(max-width:680px){.ri-form-card form>fieldset.ri-submodels{padding:14px}.ri-submodel-options{gap:8px}.ri-submodels>legend{font-size:12px}.ri-submodel-card{padding:15px 8px 11px}.ri-submodel-card>strong{font-size:10px}}
 
 .ri-legal-information{font-size:12px;line-height:1.8;color:#5d5d5d;margin:18px 0;overflow-wrap:anywhere}.ri-legal-information>a{color:#a32720;text-decoration:underline;text-underline-offset:3px}.reparapid-portal .portal-footer{flex-wrap:wrap}
+
+/* Selection and progress feedback without moving the console illustrations. */
+@media(prefers-reduced-motion:no-preference){
+ .ri-main :is(.ri-model,.ri-faults>label,.ri-submodel-unknown,.ri-radio-dot,.ri-brands>button,.ri-account-tabs>button){transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease}
+ .ri-main .ri-field :is(input,textarea){transition:background-color .16s ease,border-color .16s ease}
+ .ri-form-card>form,.ri-main :is(.ri-error,.ri-notice){animation:ri-feedback-appear .18s ease-out}
+ .ri-progress>li.current>span{animation:ri-progress-confirm .18s ease-out}
+}
+@keyframes ri-feedback-appear{from{opacity:.7;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ri-progress-confirm{from{transform:scale(.94)}to{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){
+ .ri-main :is(.ri-model,.ri-faults>label,.ri-submodel-unknown,.ri-radio-dot,.ri-brands>button,.ri-account-tabs>button,.ri-field input,.ri-field textarea,.ri-form-card>form,.ri-error,.ri-notice,.ri-progress>li.current>span){animation:none;transition:none}
+}
