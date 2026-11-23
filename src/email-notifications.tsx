@@ -3,6 +3,7 @@ import {api} from './api';
 import {type Client, dateFmt, timeFmt} from './domain';
 import {Badge, Icon, Modal, Panel} from './ui';
 import {PageHeader} from './pages';
+import {notificationPreviewDocument} from './notification-preview-document.mjs';
 import './email-notifications.css';
 
 type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
@@ -155,9 +156,8 @@ function NotificationPreviewDialog({event, onClose}: {event: NotificationEvent; 
     }).catch(reason => {if (current) setError(errorText(reason));});
     return () => {current = false;};
   }, [event.key, audience, variant, attempt]);
-  // The production template is isolated without scripts, remote assets, forms
-  // or links. Keep the frame scrollable so long messages remain readable.
-  const document = preview?.html.replace('<head>', `<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">`).replace(/href="[^"]*"/g, 'aria-disabled="true"');
+  // The template stays inert. Only the fixed public logo may load in this frame.
+  const document = notificationPreviewDocument(preview?.html, window.location.origin);
   return <Modal title="Aperçu de l’e-mail" subtitle={event.label} onClose={onClose} wide>
     <div className="modal-body notification-preview-body">
       <p className="notification-preview-note"><Icon name="info" size={17}/><span>Exemple avec des données fictives, issu du modèle d’envoi. Aucun e-mail n’est envoyé et les liens sont désactivés.</span></p>

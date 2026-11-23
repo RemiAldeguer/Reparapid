@@ -1,3 +1,5 @@
+import {renderNotificationEmail} from './notification-email.mjs';
+
 // Keep this module free of Node-only APIs: the same event projection and
 // message renderer are used by the local server and the Cloudflare Worker.
 export const NOTIFICATION_PREFERENCES_SCHEMA = `
@@ -199,9 +201,6 @@ export function repairNotifications(before, after, { origin, workshopId, now = D
 }
 
 const line = value => String(value ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
-const escapeHTML = value => line(value).replace(/[&<>"']/g, char => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-})[char]);
 
 function renderLifecycleNotification(payload) {
   const {audience, eventType, eventLabel} = notificationMetadata(payload);
@@ -248,16 +247,9 @@ function renderLifecycleNotification(payload) {
     ...(audience === 'shop' ? [`Client : ${clientName}`] : []), eventLabel,
     ...(Object.hasOwn(REPAIR_STAGE_LABELS, eventType) ? [`Nouveau statut : ${eventLabel}`] : []), description,
     ...(tracking ? [tracking] : []), '', `${action} : ${url.href}`, '', `L’équipe de ${workshopName}`].join('\n');
-  const e = escapeHTML;
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${e(subject)}</title></head>
-<body style="margin:0;padding:24px 12px;background:#f5f5f5;color:#292929;font-family:Arial,Helvetica,sans-serif;line-height:1.6">
-<table role="presentation" style="width:100%;max-width:600px;margin:auto;border-collapse:collapse;background:white;border:1px solid #ddd">
-<tr><td style="padding:24px;background:#161616;color:white"><strong style="font-size:22px">${e(workshopName)}</strong></td></tr>
-<tr><td style="padding:28px"><p>${e(greeting)}</p><h1 style="font-size:23px;color:#a32720">${e(eventLabel)}</h1>
-<p><strong>${e(consoleName)}</strong> · ${e(consoleCode)}<br>Dossier ${e(repairCode)}${audience === 'shop' ? `<br>Client : ${e(clientName)}` : ''}</p>
-<p>${e(description)}</p>${tracking ? `<p>${e(tracking)}</p>` : ''}
-<p style="margin:24px 0"><a href="${e(url.href)}" style="display:inline-block;padding:12px 20px;background:#a32720;color:white;text-decoration:none;border-radius:6px;font-weight:bold">${e(action)}</a></p>
-<p>L’équipe de ${e(workshopName)}</p></td></tr></table></body></html>`;
+  const html = renderNotificationEmail({subject, greeting, eventLabel, description, workshopName, consoleName,
+    consoleCode, repairCode, clientName, audience, tracking, url, eventType, newStage: line(payload.newStage),
+    proposalKind: payload.proposalKind, decision: payload.decision});
   return {subject, text, html};
 }
 
@@ -281,22 +273,10 @@ export function renderRepairNotification(payload) {
     'Si vous ne disposez pas encore d’un accès, contactez l’atelier.', '',
     `À bientôt,`, `L’équipe de ${workshopName}`,
   ].join('\n');
-  const e = escapeHTML;
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${e(subject)}</title></head>
-<body style="margin:0;padding:28px 12px;background:#f5f4ed;color:#243c34;font-family:Arial,Helvetica,sans-serif;line-height:1.6">
-  <table role="presentation" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border-spacing:0;background:#fffdf7;border:1px solid #e2e6dc;border-radius:16px">
-    <tr><td style="padding:24px 28px;background:#163c30;color:#f9f6e8;border-radius:15px 15px 0 0"><strong style="font-size:22px">${e(workshopName)}</strong><br><span style="font-size:13px;color:#b9d4b5">Le suivi de votre réparation</span></td></tr>
-    <tr><td style="padding:28px"><p style="margin:0 0 16px">Bonjour ${e(clientName)},</p>
-      <p>La réparation de votre <strong>${e(consoleName)}</strong> a changé de statut.</p>
-      <table role="presentation" style="width:100%;border-collapse:collapse;background:#f1f5ec;border-radius:10px;margin:20px 0"><tr><td style="padding:18px 20px">
-        <span style="font-size:12px;color:#58705f">NOUVEAU STATUT</span><br><strong style="font-size:23px;color:#163c30">${e(newStage)}</strong><br>
-        <span style="font-size:13px;color:#58705f">Précédemment : ${e(oldStage)}</span></td></tr></table>
-      <p style="font-size:14px;color:#58705f">Console ${e(consoleCode)} · Dossier ${e(repairCode)}</p>
-      <p style="margin:24px 0"><a href="${e(portalUrl)}" style="display:inline-block;padding:12px 20px;background:#163c30;color:#fffdf7;text-decoration:none;border-radius:8px;font-weight:bold">Consulter mon espace client</a></p>
-      <p style="font-size:13px;color:#58705f">Si vous ne disposez pas encore d’un accès, contactez l’atelier.</p>
-      <p style="margin-top:24px">À bientôt,<br>L’équipe de ${e(workshopName)}</p>
-    </td></tr>
-  </table>
-</body></html>`;
+  const {eventType} = notificationMetadata(payload);
+  const html = renderNotificationEmail({subject, greeting: `Bonjour ${clientName},`, eventLabel: newStage,
+    description: `La réparation de votre ${consoleName} a changé de statut. Précédemment : ${oldStage}.`,
+    workshopName, consoleName, consoleCode, repairCode, clientName, audience: 'client', tracking: '', url,
+    eventType, newStage, accessNote: 'Si vous ne disposez pas encore d’un accès, contactez l’atelier.'});
   return { subject, text, html };
 }

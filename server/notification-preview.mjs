@@ -20,7 +20,9 @@ export function notificationPreview(searchParams) {
   const variant = searchParams.has('variant') ? searchParams.get('variant') : variants[0].key;
   if (!variants.some(item => item.key === variant)) throw new Error('Aperçu d’e-mail invalide.');
   const newStage = Object.hasOwn(REPAIR_STAGE_LABELS, eventType) ? REPAIR_STAGE_LABELS[eventType]
-    : REPAIR_STAGE_LABELS[eventType === 'created' && variant === 'request' ? 'attente-envoi' : 'reception'];
+    : REPAIR_STAGE_LABELS[eventType === 'created' && variant === 'request' ? 'attente-envoi'
+      : eventType === 'proposal-published' || (eventType === 'proposal-decided' && variant === 'repair') ? 'diagnostic'
+      : 'reception'];
   const payload = {
     version: 2, eventType, audience,
     workshopName: 'RépaRapid · Maxxi Games', clientName: 'Camille Exemple',
