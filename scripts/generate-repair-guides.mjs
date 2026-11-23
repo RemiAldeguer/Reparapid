@@ -62,7 +62,7 @@ export function guideSitemap() {
   const pages = [
     {pathname: '/', lastmod: null},
     ...[guideCatalog, ...guideCollections, ...guideManifest].map(page => ({pathname: page.pathname, lastmod: GUIDE_PUBLISHED_DATE})),
-    ...legacyPages.map(page => ({pathname: page.pathname, lastmod: LEGACY_PUBLISHED_DATE})),
+    ...legacyPages.map(page => ({pathname: page.pathname, lastmod: page.lastmod || LEGACY_PUBLISHED_DATE})),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map(page => `  <url><loc>${xmlEscape(GUIDE_ORIGIN + page.pathname)}</loc>${page.lastmod ? `<lastmod>${page.lastmod}</lastmod>` : ''}</url>`).join('\n')}\n</urlset>\n`;
 }

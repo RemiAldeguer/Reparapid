@@ -228,6 +228,21 @@ for (const platform of ['node', 'worker']) {
   });
 }
 
+test('a cookie policy update has its own consistent document and sitemap date', async () => {
+  const page = legacyPages.find(item => item.pathname === '/politique-de-cookies-ue/');
+  assert.equal(page.lastmod, '2026-11-23');
+  const xml = guideSitemap();
+  const policyEntry = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].find(match => match[1].includes(GUIDE_ORIGIN + page.pathname))[1];
+  assert.ok(policyEntry.includes(`<lastmod>${page.lastmod}</lastmod>`));
+  for (const other of legacyPages.filter(item => item !== page)) assert.equal(other.lastmod || LEGACY_PUBLISHED_DATE, LEGACY_PUBLISHED_DATE);
+  const {loadLegacyRenderer} = await import('../scripts/generate-repair-guides.mjs');
+  const renderer = await loadLegacyRenderer();
+  const html = renderer.renderLegacyDocument({pathname: page.pathname, stylesheets: ['/assets/index-Abcd1234.css']});
+  const json = JSON.parse(/<script type="application\/ld\+json">([\s\S]+?)<\/script>/.exec(html)[1]);
+  assert.equal(json['@graph'].find(item => item['@type'] === 'WebPage').dateModified, page.lastmod);
+  assert.match(html, new RegExp(`datetime="${page.lastmod}"`, 'i'));
+});
+
 test('public guide Node realpath refuses known article symlinks and symlinked guide directories', async t => {
   const f = await staticFixture(t, 'node');
   const outside = await directory(t);

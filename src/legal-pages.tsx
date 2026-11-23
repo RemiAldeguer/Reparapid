@@ -10,6 +10,7 @@ const legalLinks = [
   {kind: 'cgv', label: 'CGV', href: '#/cgv'},
   {kind: 'mentions', label: 'Mentions légales', href: '#/mentions-legales'},
   {kind: 'withdrawal', label: 'Rétractation', href: '#/retractation'},
+  {kind: 'cookies', label: 'Politique de cookies', href: '/politique-de-cookies-ue/'},
 ] as const;
 
 function readableDate(value: string) {

@@ -27,6 +27,7 @@ const paths = [
 export const legacyPages = Object.freeze(paths.map(pathname => Object.freeze({
   pathname,
   filename: pathname.slice(1) + 'index.html',
+  ...(pathname === '/politique-de-cookies-ue/' ? {lastmod: '2026-11-23'} : {}),
 })));
 export const legacyRedirects = Object.freeze([
   ['/accueil/', '/'],

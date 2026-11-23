@@ -8,6 +8,12 @@ Mise à jour publiée le **22 novembre 2026** : CGU/CGV, mentions et rétractati
 
 Le domaine [reparapid.fr](https://reparapid.fr/) conserve son site WordPress. Aucune bascule DNS ni modification de ce site n’a été effectuée ; l’application Cloudflare utilise actuellement l’adresse `workers.dev` ci-dessus.
 
+## Politique de cookies
+
+La [politique de cookies](https://reparapid.aldeguer-remi.workers.dev/politique-de-cookies-ue/) est accessible depuis les pieds de page, le portail client principal et les pages juridiques. Elle détaille les deux cookies de connexion réellement utilisés, leur durée maximale de 8 heures, l’expiration d’accès après 30 minutes d’inactivité, la déconnexion, le stockage local ancien du magasin, les liens tiers et le contact VESTY GAMES 3 · Maxxi Games. Le code n’intègre pas de suivi publicitaire ou de mesure d’audience ; aucun panneau de choix pour des traceurs inexistants n’a été ajouté. La politique explique les cookies nécessaires et les réglages du navigateur, avec un lien vers la CNIL.
+
+Le chemin historique est conservé et la version de la politique est datée du 23 novembre 2026, indépendamment des CGV et des autres pages. Le champ facultatif `lastmod` du manifeste aligne sa date dans le HTML, le JSON-LD et le sitemap.
+
 ## Préparation du remplacement de reparapid.fr
 
 Le relevé du 22 novembre 2026 récupère **170 anciennes URL** : 22 chemins HTML conservés, 9 regroupements par redirection permanente et 139 alias de médias inventoriés. Les 21 pages statiques ajoutées au nouveau site gardent les slugs consoles, smartphones, tablettes et atelier ; leurs métadonnées, leur contenu et leurs liens restent spécifiques à leur sujet. Les smartphones et tablettes orientent vers le contact du magasin, le formulaire actuel étant réservé aux consoles.
@@ -418,7 +424,9 @@ Le dernier programme démarre l’environnement de test sur `http://127.0.0.1:87
 
 ## Activer les e-mails de suivi
 
-L’envoi utilise l’API HTTP [Resend](https://resend.com/docs/api-reference/emails/send-email), sans dépendance supplémentaire. Le site peut rester sur `workers.dev`, mais l’adresse d’expédition doit appartenir à un [domaine vérifié dans Resend](https://resend.com/docs/add-a-domain). Une adresse Gmail ou l’expéditeur de démonstration Resend ne permet pas l’envoi aux clients arbitraires.
+L’envoi utilise l’API HTTP [Resend](https://resend.com/docs/api-reference/emails/send-email), sans dépendance supplémentaire. Le site peut rester sur `workers.dev`, mais pour envoyer aux clients l’adresse d’expédition doit appartenir à un [domaine vérifié dans Resend](https://resend.com/docs/add-a-domain). Une adresse Gmail ou l’expéditeur de démonstration Resend ne permet pas l’envoi aux clients arbitraires.
+
+Pour tester uniquement vers l’adresse associée à votre compte Resend, vous pouvez utiliser `RépaRapid <onboarding@resend.dev>` comme `MAIL_FROM` et conserver cette même adresse comme destinataire privé de test. Cette exception ne permet pas d’envoyer aux clients arbitraires. [Restriction officielle du domaine de test](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain). Pour la production, vérifier le domaine ou un sous-domaine d’expédition, puis utiliser une adresse de ce domaine.
 
 Créez une clé Resend avec permission d’envoi limitée à ce domaine, puis renseignez les paramètres du Worker sans coller la clé dans le chat, le frontend ou un export JSON :
 
