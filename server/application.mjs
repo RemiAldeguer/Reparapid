@@ -58,7 +58,8 @@ function readJSON(req, max) {
 }
 export function createApplication({ databasePath, origin, distPath, production = false, now = Date.now,
   sessionMs = 8 * HOUR, idleMs = HOUR / 2, notificationEnv = {}, notificationFetch = globalThis.fetch,
-  notificationPollingMs = 60000, database, platformDatabase, workshopId = null, hashLimiter } = {}) {
+  notificationPollingMs = 60000, database, platformDatabase, workshopId = null, hashLimiter,
+  allowWorkshopRegistration = false } = {}) {
   const url = new URL(origin);
   if (url.origin !== origin || url.username || url.password) throw new Error('APP_ORIGIN doit être une origine, sans chemin ni slash final.');
   const secure = url.protocol === 'https:';
@@ -71,7 +72,7 @@ export function createApplication({ databasePath, origin, distPath, production =
   if (workshopId) db.exec(NOTIFICATION_PREFERENCES_SCHEMA);
   const platformDB = platformDatabase || db, children = new Map();
   function child(id) {
-    if (!children.has(id)) children.set(id, createApplication({origin, distPath, production, now, sessionMs, idleMs, notificationEnv, notificationFetch, notificationPollingMs: 0, database: scopedDatabase(platformDB, id, {kind: 'node'}), platformDatabase: platformDB, workshopId: id, hashLimiter: withHash}));
+    if (!children.has(id)) children.set(id, createApplication({origin, distPath, production, now, sessionMs, idleMs, notificationEnv, notificationFetch, notificationPollingMs: 0, database: scopedDatabase(platformDB, id, {kind: 'node'}), platformDatabase: platformDB, workshopId: id, hashLimiter: withHash, allowWorkshopRegistration}));
     return children.get(id);
   }
   const notificationRepo = nodeNotificationRepository(db);
@@ -173,6 +174,9 @@ export function createApplication({ databasePath, origin, distPath, production =
         const body = await readFile(filename);
         res.writeHead(200, { 'Content-Type': asset.contentType, 'Content-Length': body.length });
         return res.end(req.method === 'HEAD' ? undefined : body);
+      }
+      if (pathname === '/api/public/registrations' && req.method === 'POST' && allowWorkshopRegistration !== true) {
+        throw new HttpError(404, 'Route introuvable.');
       }
       if (req.headers['sec-fetch-site'] === 'cross-site') throw new HttpError(403, 'Requête intersite refusée.');
       const mutation = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);

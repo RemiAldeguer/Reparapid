@@ -6,7 +6,21 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **22 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : conditions, rétractation, réseaux et espace e-mails — 22 novembre 2026
+## Résultat courant : durcissement sécurité — 22 novembre 2026
+
+**729 tests réussis : 667 Node/domaine/API et 62 Cloudflare**, aucun échec ni test ignoré. Les 35 scénarios ajoutés comprennent 29 contrôles du garde-fou sur les secrets et six scénarios de désactivation/activation explicite des inscriptions d’ateliers. Les reproductions initiales échouaient avant implémentation. Les 61 tests ciblés d’assets (29 nouveaux et 32 existants) et les 42 tests d’inscription/SaaS vérifient le détail ; la suite complète inclut leurs tests utiles.
+
+Le build refuse des clés reconnaissables et PEM privés en HTML/JS/CSS, y compris dans les guides, ainsi que la valeur exacte des cinq variables serveur contrôlées. Les tests couvrent valeurs opaques, JSON échappé, PEM RSA/OpenSSH/chiffrés et marqueurs fictifs ; même une valeur configurée contenant DUMMY reste interdite. L’erreur et sa pile ne reproduisent pas la valeur. Les identifiants publics et textes sur les mots de passe restent autorisés. Les valeurs inconnues d’un format arbitraire et les fichiers binaires ne sont pas couverts par cette heuristique ; aucun secret réel n’est utilisé dans les tests.
+
+L’ancienne inscription publique d’ateliers répond 404 par défaut, avant lecture du corps, hachage ou écriture/consommation de quota. Le contrat opt-in strict est vérifié sur Node et Worker ; les scénarios historiques activent explicitement la fonctionnalité et conservent les limitations persistantes. L’inscription client pour une réparation et les connexions des ateliers existants restent couvertes par la suite complète.
+
+Audit source indépendant et ciblé terminé avant les changements : pas de clé réelle exposée ni de contournement d’accès confirmé ; un risque faible de déduction de l’existence d’un compte à l’inscription client reste identifié. La validation de boîte mail nécessaire pour le supprimer dépend d’un service d’envoi opérationnel, actuellement non configuré. Le rapport source initial reste distinct des corrections de dépendances et contrôles de publication suivants. La recherche de motifs dans l’historique Git n’a retrouvé que des valeurs fictives de tests ; aucun secret découvert n’a été utilisé pour contacter un service.
+
+Installation propre `npm ci --ignore-scripts` validée sans postinstall, types vérifiés dans cette copie et assemblages esbuild/workerd/Wrangler vérifiés. Le lock est cohérent pour macOS et Linux x64. Vite **7.3.8** et Wrangler **4.166.0** sont figés ; audit npm complet : zéro vulnérabilité connue, développement compris. Les GitHub Actions sont épinglées aux commits officiels v4 et la CI bloque les alertes hautes/critiques avant tests, build et artefact.
+
+TypeScript, build de **123 modules / 137 fichiers** et dry-run du Worker réussis ; warning historique de bundle supérieur à 500 kB conservé. Publication vérifiée sur **100 % du trafic** : dix assets conformes par SHA-256, catalogue des guides conforme, API publique 200 avec allowlist, douze actions privées 401, dix fichiers/chemins privés 404 et inscription d’ateliers 404 sans traitement. Headers CSP, HSTS, nosniff et garde-fou de secrets sur les textes publics servis validés. Révision/génération D1 et nombre de messages identiques avant/après, sans migration ni modification métier. Les secrets d’envoi restent absents ; aucun mail réel ni compte client de production utilisé.
+
+## Résultat précédent : conditions, rétractation, réseaux et espace e-mails — 22 novembre 2026
 
 **694 tests réussis : 632 Node/domaine/API et 62 Cloudflare**, aucun échec ni test ignoré. Suite complète exécutée avec Node **24.22.3**, compilation du domaine et TypeScript validés. Build final : **123 modules / 137 fichiers publics**, dont 123 pages de guides. Le warning historique de bundle supérieur à 500 kB est conservé. Audit des dépendances de production : zéro vulnérabilité ; aucune dépendance ajoutée ou mise à jour.
 

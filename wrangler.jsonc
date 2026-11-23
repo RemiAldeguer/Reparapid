@@ -9,6 +9,9 @@
     "nodejs_compat"
   ],
   "workers_dev": true,
+  "vars": {
+    "WORKSHOP_REGISTRATION_ENABLED": "false"
+  },
   "triggers": {
     "crons": [
       "*/5 * * * *"

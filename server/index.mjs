@@ -11,6 +11,7 @@ process.umask(0o077);
 const { server } = createApplication({
   databasePath: path.resolve(root, process.env.DATABASE_PATH || 'data/clinique.sqlite'),
   distPath: path.join(root, 'dist'), origin, production,
+  allowWorkshopRegistration: process.env.WORKSHOP_REGISTRATION_ENABLED === 'true',
   notificationEnv: { ...process.env, MAIL_PORTAL_ORIGIN: process.env.MAIL_PORTAL_ORIGIN || origin },
 });
 server.on('error', error => { console.error('Démarrage impossible :', error.message); process.exitCode = 1; });

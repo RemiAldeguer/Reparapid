@@ -23,6 +23,16 @@ npx wrangler deploy --config .wrangler/reparapid.production.jsonc --keep-vars
 
 La vitrine permet à un particulier de demander une réparation, de créer son compte et de préparer l’envoi de sa console. Après diagnostic, le magasin publie le devis et les frais de retour propres au dossier. Le client accepte la réparation, demande le retour ou accepte une offre de rachat pour pièces si la console est irréparable. Le magasin confirme manuellement le virement de retour puis l’expédition ; le devis accepté est repris pour la facturation de la réparation. L’accès **Magasin** ouvre l’application protégée : clients, consoles, dossiers, stock, paiements et exports. L’espace client présente uniquement les consoles et demandes de son propriétaire. Le socle d’ateliers distincts est conservé côté serveur ; le rôle effectif du compte du magasin reste celui de la plateforme, tandis que l’interface affiche Administrateur.
 
+## Protections de sécurité
+
+Les accès clients et magasin restent contrôlés côté serveur : sessions opaques, cookies protégés, CSRF, vérification du propriétaire et séparation des ateliers. Les données et exports privés ne deviennent pas des fichiers publics. La clé d’envoi Resend appartient aux secrets Cloudflare en production, jamais aux variables `VITE_*` ni aux sources. Elle n’est actuellement pas configurée.
+
+Le build refuse des formats de clés connus et les valeurs exactes des principaux secrets serveur lorsqu’elles sont disponibles dans l’environnement de compilation, sans les afficher. Ce contrôle couvre les fichiers publics HTML/JS/CSS et les guides ; il complète la liste des assets autorisés et ne constitue pas un détecteur universel. Les dépendances de développement sont également auditées. La CI installe sans scripts et refuse les alertes hautes ou critiques.
+
+L’ancienne création d’autres ateliers est désactivée par défaut. Pour une installation SaaS distincte qui en a besoin, `WORKSHOP_REGISTRATION_ENABLED=true` réactive explicitement son dépôt public ; les connexions existantes et l’inscription des clients aux réparations restent indépendantes.
+
+Un risque de confidentialité faible demeure : le résultat d’une inscription client permet de déduire qu’une adresse dispose déjà d’un accès. Les tentatives sont limitées ; une vérification de la boîte mail avant ouverture de session sera nécessaire pour le supprimer. Le service d’envoi doit d’abord être configuré. L’audit ne constitue pas une garantie d’absence de toute vulnérabilité.
+
 ## Conditions, accord du client et rétractation — 22 novembre 2026
 
 Les pages publiques **CGU**, **CGV**, **Mentions légales** et **Rétractation** sont accessibles depuis le pied de page de la vitrine, du portail principal et des tutoriels. L’exploitant confirmé est **VESTY GAMES 3**, SARL, enseigne **Maxxi Games**, SIREN **799 620 570**, SIRET **799 620 570 00017**, RCS Créteil. L’adresse du siège est **30–30 bis avenue de Fontainebleau, 94270 Le Kremlin-Bicêtre** ; la destination d’envoi reste le **30 bis** affiché dans le dossier. Les textes datés du **22 novembre 2026** suivent le parcours réel de réparation et proposent impression et téléchargement texte.
@@ -217,7 +227,7 @@ Prérequis : Node.js **22.16 ou supérieur**, npm et un terminal interactif. Le 
 ```sh
 git clone https://github.com/RemiAldeguer/Reparapid.git
 cd Reparapid
-npm ci
+npm ci --ignore-scripts
 npm run admin:create
 npm run build
 npm start

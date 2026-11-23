@@ -138,6 +138,9 @@ async function handle(request, env, headers, url, secure, configured, context) {
     });
   }
 
+  if (pathname === '/api/public/registrations' && request.method === 'POST' && env.WORKSHOP_REGISTRATION_ENABLED !== 'true') {
+    throw new HttpError(404, 'Route introuvable.');
+  }
   if (request.headers.get('Sec-Fetch-Site') === 'cross-site') {
     throw new HttpError(403, 'Requête intersite refusée.');
   }

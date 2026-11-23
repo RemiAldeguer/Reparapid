@@ -1,9 +1,10 @@
-import {lstat, readdir} from 'node:fs/promises';
+import {lstat, readdir, readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {publicAsset, publicSourceAsset, publicAssetDirectories, publicSourceDirectories, generatedPublicFiles} from '../server/public-assets.mjs';
+import {assertNoPublicAssetSecrets} from '../server/public-asset-secrets.mjs';
 
-export async function verifyPublicAssets(distPath, {source = false, guides = false} = {}) {
+export async function verifyPublicAssets(distPath, {source = false, guides = false, env = process.env} = {}) {
   const root = path.resolve(distPath), info = await lstat(root);
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Le build public doit être un dossier sans lien symbolique.');
   const files = [];
@@ -20,6 +21,7 @@ export async function verifyPublicAssets(distPath, {source = false, guides = fal
       } else {
         const asset = lookup('/' + relativePath);
         if (!entry.isFile() || asset?.filename !== relativePath) throw new Error(`Fichier public non autorisé : ${relativePath}`);
+        if (/\.(?:js|css|html)$/.test(relativePath)) assertNoPublicAssetSecrets(await readFile(filename, 'utf8'), env);
         files.push(relativePath);
       }
     }

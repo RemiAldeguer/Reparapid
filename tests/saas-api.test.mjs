@@ -5,6 +5,7 @@ import {readFileSync, readdirSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import nodeCrypto from 'node:crypto';
 import {createApplication} from '../server/application.mjs';
 import {openDatabase} from '../server/database.mjs';
 import {hashPassword as nodeHash, digest} from '../server/security.mjs';
@@ -31,10 +32,10 @@ function rootStore() {
   return {store, client};
 }
 
-async function fixture(t, platform) {
+async function fixture(t, platform, options = {allowWorkshopRegistration: true}) {
   const initial = rootStore(), origin = platform === 'node' ? 'http://127.0.0.1:3041' : 'https://clinique.example';
   hashes[platform] ??= await (platform === 'node' ? nodeHash : workerHash)(rootPassword);
-  const jobs = []; let sqlite, call, app, directory;
+  const jobs = []; let sqlite, call, app, directory, hashesStarted = 0;
   if (platform === 'node') {
     directory = mkdtempSync(path.join(tmpdir(), 'clinique-saas-api-'));
     const filename = path.join(directory, 'fixture.sqlite');
@@ -42,6 +43,8 @@ async function fixture(t, platform) {
     seed.prepare("INSERT INTO admin(id,email,password_hash,role) VALUES(1,?,?,'admin')").run(rootEmail, hashes[platform]);
     seed.prepare('UPDATE workshop SET data=? WHERE id=1').run(JSON.stringify(initial.store)); seed.close();
     app = createApplication({databasePath: filename, origin, notificationPollingMs: 0,
+      allowWorkshopRegistration: options.allowWorkshopRegistration,
+      hashLimiter: async fn => {hashesStarted++; return fn();},
       notificationFetch: async () => {throw new Error('No real email transport is allowed in SaaS API tests.');}});
     sqlite = app.db;
     app.server.listen(0, '127.0.0.1'); await once(app.server, 'listening');
@@ -53,6 +56,8 @@ async function fixture(t, platform) {
       rmSync(directory, {recursive: true, force: true});
     });
   } else {
+    const originalScrypt = nodeCrypto.scrypt;
+    t.mock.method(nodeCrypto, 'scrypt', function (...args) {hashesStarted++; return originalScrypt.apply(this, args);});
     sqlite = new DatabaseSync(':memory:');
     const migrations = new URL('../cloudflare/migrations/', import.meta.url);
     for (const name of readdirSync(migrations).filter(name => name.endsWith('.sql')).sort()) sqlite.exec(readFileSync(new URL(name, migrations), 'utf8'));
@@ -77,7 +82,9 @@ async function fixture(t, platform) {
       },
     };
     t.mock.method(globalThis, 'fetch', async () => {throw new Error('No external requests are allowed in SaaS API tests.');});
-    call = (url, options) => worker.fetch(new Request(origin + url, options), {DB: db}, {waitUntil(job) {jobs.push(job);}});
+    call = (url, requestOptions) => worker.fetch(new Request(origin + url, requestOptions), {
+      DB: db, ...(options.allowWorkshopRegistration === undefined ? {} : {WORKSHOP_REGISTRATION_ENABLED: options.allowWorkshopRegistration === true ? 'true' : options.allowWorkshopRegistration}),
+    }, {waitUntil(job) {jobs.push(job);}});
     t.after(async () => {await Promise.all(jobs); sqlite.close();});
   }
   async function request(url, {method = 'GET', body, rawBody, cookie = '', csrf = '', headers = {}} = {}) {
@@ -119,7 +126,7 @@ async function fixture(t, platform) {
   const getStore = async auth => {const response = await request('/api/store', auth); assert.equal(response.status, 200, JSON.stringify(response.data)); return response.data;};
   const save = (auth, data, revision, {url = '/api/store', extra = {}, headers = {}} = {}) => request(url, {...auth, method: 'PUT', headers,
     body: {revision, data, mode: 'edit', ...extra}});
-  return {request, login, root, rootLogin, initial, sqlite, applicant, submit, list, review, approve, getStore, save};
+  return {request, login, root, rootLogin, initial, sqlite, applicant, submit, list, review, approve, getStore, save, hashesStarted: () => hashesStarted};
 }
 
 function populateTenant(store, name, model = 'DS Lite') {
@@ -152,6 +159,51 @@ test('Tenant notification links and idempotency keys remain distinct across iden
 });
 
 for (const platform of ['node', 'worker']) {
+  test(`${platform}: workshop registration is disabled by default before body, hashing or database writes`, async t => {
+    const f = await fixture(t, platform, {});
+    const beforeChanges = f.sqlite.prepare('SELECT total_changes() AS n').get().n;
+    const beforeHashes = f.hashesStarted();
+    for (const options of [
+      {body: f.applicant('Disabled owner')},
+      {body: f.applicant('Foreign origin'), headers: {Origin: 'https://attacker.example', 'Sec-Fetch-Site': 'cross-site'}},
+      {body: f.applicant('Missing origin'), headers: {Origin: ''}},
+      {rawBody: 'not-json'},
+      {rawBody: 'x'.repeat(9000), headers: {'Content-Type': 'text/plain'}},
+    ]) {
+      const response = await f.request('/api/public/registrations', {method: 'POST', ...options});
+      assert.equal(response.status, 404);
+      assert.equal(response.cookie, '');
+      assert.equal(response.response.headers.get('Retry-After'), null);
+    }
+    assert.equal(f.hashesStarted(), beforeHashes);
+    assert.equal(f.sqlite.prepare('SELECT total_changes() AS n').get().n, beforeChanges);
+    assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM registration_requests').get().n, 0);
+    assert.equal(f.sqlite.prepare("SELECT count(*) AS n FROM limits WHERE key LIKE 'signup-%'").get().n, 0);
+    assert.equal((await f.request('/api/public/registrations')).status, 401);
+    assert.equal((await f.list()).status, 200);
+    assert.deepEqual(await f.getStore(f.root), f.initial.store);
+  });
+
+  test(`${platform}: workshop registration requires the explicit true opt-in`, async t => {
+    const f = await fixture(t, platform, {allowWorkshopRegistration: platform === 'worker' ? 'TRUE' : 'true'});
+    const response = await f.request('/api/public/registrations', {method: 'POST', body: f.applicant('Invalid opt in')});
+    assert.equal(response.status, 404);
+    assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM registration_requests').get().n, 0);
+  });
+
+  test(`${platform}: explicitly enabled workshop registration retains persistent request limits`, async t => {
+    const f = await fixture(t, platform, {allowWorkshopRegistration: true});
+    const input = f.applicant('Limited owner');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      assert.equal((await f.request('/api/public/registrations', {method: 'POST', body: input})).status, 202);
+    }
+    const response = await f.request('/api/public/registrations', {method: 'POST', body: input});
+    assert.equal(response.status, 429);
+    assert.ok(Number(response.response.headers.get('Retry-After')) > 0);
+    assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM registration_requests').get().n, 1);
+    assert.equal(f.sqlite.prepare("SELECT hits FROM limits WHERE key LIKE 'signup-email:%'").get().hits, 4);
+  });
+
   test(`${platform}: public applications await review, normalize contacts and disclose no session or credential`, async t => {
     const f = await fixture(t, platform), input = {...f.applicant('Pending owner'), email: ' PENDING@example.invalid ', role: 'super_admin', status: 'approved'};
     assert.equal(f.rootLogin.data.user.role, 'super_admin'); assert.equal(f.rootLogin.data.user.workshopId ?? null, null);
