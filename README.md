@@ -435,6 +435,24 @@ En local, renseignez les mêmes paramètres dans `.env`, puis redémarrez `npm s
 
 Chaque notification est inscrite dans une file persistante dans la même transaction que la publication du dossier, du devis ou de la réponse client. `PUT /api/admin/notifications` accepte `{enabled: boolean}` et/ou `{preferences: {client: {événement: boolean}, shop: {événement: boolean}}}` ; les événements inconnus et les autres types sont refusés. Le GET authentifié fournit le catalogue `events`, les préférences complètes, le contact magasin et l’historique filtré. Ces routes conservent leurs protections admin, origine et CSRF. Une sauvegarde refusée n’inscrit aucun message. L’envoi démarre après cette sauvegarde ; le Worker reprend les messages en attente toutes les cinq minutes, et le serveur Node toutes les minutes. Le destinataire, le propriétaire, les préférences et la révision de l’atelier sont revérifiés avant chaque tentative ; un changement concurrent force une nouvelle lecture sans consommer de tentative. Les anciens messages de statut restent lisibles et relançables, y compris dans un atelier distinct. Les pannes et limites temporaires déclenchent des tentatives espacées, au maximum six par message. La même [clé d’idempotence Resend](https://resend.com/docs/dashboard/emails/idempotency-keys) est conservée ; les nouvelles tentatives s’arrêtent après 23 heures pour rester dans sa fenêtre de 24 heures. Un échec récent peut être relancé depuis l’historique. Les contenus d’erreurs du fournisseur et la clé API ne sont pas exposés.
 
+### Mode test des notifications RépaRapid
+
+Le secret serveur facultatif `MAIL_TEST_RECIPIENT` remplace **tous les destinataires clients et magasin de l’atelier principal** par une seule boîte de test. Il ne crée ni copie CC/BCC ni destinataire supplémentaire. Les autres ateliers gardent leurs propres destinataires. Les coordonnées des fiches clients, le contact public du magasin et les préférences par événement restent la référence des destinataires habituels.
+
+```sh
+npx wrangler secret put MAIL_TEST_RECIPIENT --config .wrangler/reparapid.production.jsonc
+```
+
+Saisir l’adresse privée au prompt, sans la versionner. En local, utiliser la même variable dans `.env`. Une adresse de test invalide bloque les envois du magasin principal ; elle ne rétablit jamais implicitement les destinataires réels. Une valeur vide ou l’absence du secret rétablit le routage habituel. Pour terminer la période de test :
+
+```sh
+npx wrangler secret delete MAIL_TEST_RECIPIENT --config .wrangler/reparapid.production.jsonc
+```
+
+L’onglet **E-mails** et le suivi e-mail des fiches clients affichent le mode test aux administrateurs. L’historique garde les **destinataires prévus du dossier** : ce n’est pas une preuve que ces adresses ont reçu un message de test. La boîte de test n’apparaît ni dans les réponses publiques ni dans le portail client. Le mode test respecte pauses, préférences, propriétaires, révisions et clés d’idempotence ; il ne rejoue aucun ancien événement.
+
+**État au 23 novembre 2026 :** routage privé de test configuré sur Cloudflare pour l’adresse demandée, fournisseur d’envoi toujours à configurer (`RESEND_API_KEY` et `MAIL_FROM` absents). L’adresse de test ne fournit pas d’expéditeur ni de clé d’envoi ; aucun e-mail réel n’a été envoyé pendant la recette.
+
 ## Développement local
 
 Après `npm install` et la création du compte, utilisez deux terminaux :

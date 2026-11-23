@@ -43,11 +43,12 @@ function sampleStore() {
   return {store, clients, legacyId, publicIds};
 }
 
-async function fixture(t, platform, {configured = true} = {}) {
+async function fixture(t, platform, {configured = true, testRecipient} = {}) {
   const initial = sampleStore(), origin = platform === 'node' ? 'http://127.0.0.1:3041' : 'https://lifecycle.example';
-  const mailEnv = configured ? {RESEND_API_KEY: fakeKey, MAIL_FROM: 'sender@example.invalid', MAIL_PORTAL_ORIGIN: origin} : {};
+  const mailEnv = {...(configured ? {RESEND_API_KEY: fakeKey, MAIL_FROM: 'sender@example.invalid', MAIL_PORTAL_ORIGIN: origin} : {}),
+    ...(testRecipient === undefined ? {} : {MAIL_TEST_RECIPIENT: testRecipient})};
   const sent = [], jobs = [];
-  let sqlite, app, call, beforePublication, providerStatus = 200;
+  let sqlite, app, call, beforePublication, scheduledNotifications, providerStatus = 200;
   const provider = async (url, options) => {
     assert.equal(String(url), 'https://api.resend.com/emails', 'no external request may escape the synthetic mail provider');
     sent.push({body: JSON.parse(options.body), headers: new Headers(options.headers)});
@@ -57,6 +58,7 @@ async function fixture(t, platform, {configured = true} = {}) {
     app = createApplication({databasePath: ':memory:', origin, notificationEnv: mailEnv,
       notificationFetch: provider, notificationPollingMs: 0});
     sqlite = app.db;
+    scheduledNotifications = () => app.processNotifications();
     sqlite.prepare('UPDATE workshop SET data=?,revision=? WHERE id=1').run(JSON.stringify(initial.store), initial.store.revision);
     app.server.listen(0, '127.0.0.1'); await once(app.server, 'listening');
     const base = `http://127.0.0.1:${app.server.address().port}`;
@@ -95,6 +97,7 @@ async function fixture(t, platform, {configured = true} = {}) {
         catch (error) {sqlite.exec('ROLLBACK'); throw error;}
       },
     };
+    scheduledNotifications = () => worker.scheduled({}, {DB: db, ...mailEnv});
     t.mock.method(globalThis, 'fetch', provider);
     call = (path, options) => worker.fetch(new Request(origin + path, options), {DB: db, ...mailEnv},
       {waitUntil(job) {jobs.push(job);}});
@@ -164,7 +167,7 @@ async function fixture(t, platform, {configured = true} = {}) {
   };
   return {...initial, sqlite, admin, client, other, sent, read, replace, request, rows, drain, save, publish, choose,
     operate, preferences, provision, adminPath, clientPath, publicId, setProviderStatus(value) {providerStatus = value;},
-    beforePublication(hook) {beforePublication = hook;}};
+    beforePublication(hook) {beforePublication = hook;}, scheduledNotifications};
 }
 
 function assertPair(f, revision, repairId, eventType, {prefix = '', workshopId, clientEmail = f.clients[0].email,
@@ -185,6 +188,51 @@ function assertPair(f, revision, repairId, eventType, {prefix = '', workshopId, 
 async function successful(f, result) {assert.equal(result.status, 200, JSON.stringify(result.data)); await f.drain(); return result.data;}
 
 export function registerLifecycleMailTests(platform) {
+  test(`${platform}: test routing redirects both audiences without exposing the private inbox publicly`, async t => {
+    const recipient = 'tester@example.invalid', f = await fixture(t, platform, {testRecipient: recipient});
+    const status = await f.request('/api/admin/notifications', f.admin);
+    assert.equal(status.status, 200); assert.equal(status.data.testRecipient, recipient);
+    assert.equal(status.data.shopRecipient, f.read().settings.publicIntake.email);
+    const publicResponse = await f.request('/api/public/repair-intake');
+    assert.equal(publicResponse.status, 200); assert.ok(!JSON.stringify(publicResponse.data).includes(recipient));
+    const anonymous = await f.request('/api/admin/notifications');
+    assert.equal(anonymous.status, 401); assert.ok(!JSON.stringify(anonymous.data).includes(recipient));
+    const portal = await f.request('/api/client/portal', f.client);
+    assert.equal(portal.status, 200); assert.ok(!JSON.stringify(portal.data).includes(recipient));
+    await successful(f, await f.publish());
+    assert.equal(f.sent.length, 2);
+    assert.ok(f.sent.every(mail => JSON.stringify(mail.body.to) === JSON.stringify([recipient]) && !mail.body.cc && !mail.body.bcc));
+    assert.deepEqual(new Set(f.rows().map(row => row.recipient)), new Set([f.clients[0].email, f.read().settings.publicIntake.email]));
+  });
+
+  test(`${platform}: scheduled retries keep test routing confined to the main workshop`, async t => {
+    const recipient = 'tester@example.invalid', f = await fixture(t, platform, {testRecipient: recipient}), tenant = f.provision();
+    const status = await f.request('/api/admin/notifications', tenant.admin);
+    assert.equal(status.status, 200); assert.equal(status.data.testRecipient, '');
+    f.setProviderStatus(503);
+    await successful(f, await f.publish());
+    await successful(f, await f.publish(offer(), tenant.admin, 0));
+    for (const prefix of ['', tenant.prefix]) f.sqlite.prepare(`UPDATE ${prefix}repair_notifications SET next_attempt_at=0`).run();
+    const before = f.sent.length; f.setProviderStatus(200); await f.scheduledNotifications();
+    const delivered = f.sent.slice(before);
+    assert.equal(delivered.length, 4);
+    assert.equal(delivered.filter(mail => JSON.stringify(mail.body.to) === JSON.stringify([recipient])).length, 2);
+    assert.deepEqual(delivered.filter(mail => mail.body.to[0] !== recipient).map(mail => mail.body.to[0]).sort(), [f.clients[0].email, 'tenant-shop@example.invalid'].sort());
+    assert.ok([...f.rows(), ...f.rows(tenant.prefix)].every(row => row.status === 'sent'));
+  });
+
+  test(`${platform}: invalid test routing does not pause a separate workshop's scheduled mail`, async t => {
+    const f = await fixture(t, platform, {testRecipient: 'invalid-address'}), tenant = f.provision();
+    const rootStatus = await f.request('/api/admin/notifications', f.admin);
+    assert.equal(rootStatus.data.configured, false);
+    await successful(f, await f.publish()); assert.equal(f.rows().length, 0); assert.equal(f.sent.length, 0);
+    f.setProviderStatus(503); await successful(f, await f.publish(offer(), tenant.admin, 0));
+    f.sqlite.prepare(`UPDATE ${tenant.prefix}repair_notifications SET next_attempt_at=0`).run();
+    const before = f.sent.length; f.setProviderStatus(200); await f.scheduledNotifications();
+    assert.deepEqual(f.sent.slice(before).map(mail => mail.body.to[0]).sort(), [f.clients[0].email, 'tenant-shop@example.invalid'].sort());
+    assert.ok(f.rows(tenant.prefix).every(row => row.status === 'sent'));
+  });
+
   test(`${platform}: the root shop uses the same canonical public contact before settings are saved`, async t => {
     const f = await fixture(t, platform), store = f.read();
     delete store.settings.publicIntake; f.replace(store);

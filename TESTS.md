@@ -4,9 +4,19 @@ Copie indépendante créée le 12 octobre 2026. Les recettes de la vitrine Répa
 
 Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** : `npm ci`, compilation TypeScript/Vite et **434 tests réussis** (393 Node/domaine/API et 41 Cloudflare). Ce résultat décrit la copie avant le nouveau parcours public. Les tests API utilisent des serveurs temporaires et l’accès aux sockets locaux.
 
-Documentation mise à jour le **22 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
+Documentation mise à jour le **23 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : reprise SEO et retours visuels — 22 novembre 2026
+## Résultat courant : routage des e-mails de test — 23 novembre 2026
+
+**747 tests réussis : 682 Node/domaine/API et 65 Cloudflare**, aucun échec ni test ignoré. Les nouveaux scénarios ont d’abord échoué avant implémentation ; la recette ciblée de livraison et cycle de vie compte **94 tests verts**. TypeScript et build **125 modules / 158 fichiers** réussis, sans nouvelle dépendance et avec le warning historique de bundle supérieur à 500 kB.
+
+`tests/notification-delivery.test.mjs` vérifie qu’une seule boîte de test reçoit les deux audiences, sans CC/BCC ni modification des adresses habituelles. La configuration exige une adresse valide ; une valeur invalide bloque avant prise de message ou consommation de tentative. Propriétaire/contact initial restent contrôlés et les reprises conservent contenu et clé d’idempotence. Les exemples utilisent seulement des adresses fictives et un transport simulé.
+
+Les trois scénarios partagés ajoutés dans `tests/lifecycle-mail-suite.mjs` s’exécutent sur Node et Worker : statut admin explicite, destination privée absente de la vitrine et du portail client, refus anonyme, redirection effective des deux audiences, reprises planifiées et absence d’héritage du routage dans un atelier distinct. Une adresse de test principale invalide ne suspend pas les messages de cet autre atelier. Bases SQLite en mémoire et D1 simulée, aucune production réinitialisée.
+
+Recette réelle sur base en mémoire : compte administrateur et boîte de test fictifs, bandeau **Mode test : destinataire unique** visible à 1280 et 320 px, pas de débordement malgré une longue adresse, indication distincte du service non configuré et activation indisponible. Aucun avertissement/erreur console capturé, déconnexion confirmée et viewport restauré. Aucun envoi réel ; la clé Resend et l’expéditeur restent absents en production. Publication contrôlée sur 100 % du trafic : sept pages/fichiers identiques au build par SHA-256, quatre routes privées refusées en 401, trois fichiers privés 404 et API publique conservant son allowlist. Absence de la boîte personnelle dans les fichiers et réponses publics contrôlés. Le secret de routage est présent sans lecture de valeur ; clé Resend et expéditeur toujours absents. Révision/génération D1 et nombre de notifications inchangés. Aucun dossier, préférence métier, compte ou message de production créé pendant la recette.
+
+## Résultat précédent : reprise SEO et retours visuels — 22 novembre 2026
 
 **734 tests réussis (672 Node/domaine/API + 62 Cloudflare)**, aucun échec ni test ignoré. TypeScript et build réussis : **125 modules, 158 fichiers publics**, dont 144 pages statiques ; sitemap de 145 URL. Le warning historique du bundle supérieur à 500 kB reste présent. Aucune dépendance applicative ajoutée.
 

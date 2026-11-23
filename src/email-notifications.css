@@ -94,3 +94,4 @@
  .notification-preview-text{padding:14px;font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.notification-switch-track,.notification-switch-track:after{transition:none}}
+.notification-test-routing p{overflow-wrap:anywhere}

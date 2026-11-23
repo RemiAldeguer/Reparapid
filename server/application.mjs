@@ -76,7 +76,7 @@ export function createApplication({ databasePath, origin, distPath, production =
     return children.get(id);
   }
   const notificationRepo = nodeNotificationRepository(db);
-  const mailConfig = notificationConfiguration(notificationEnv);
+  const mailConfig = notificationConfiguration(notificationEnv, {workshopId});
   const notificationView = store => notificationStoreView(store, {workshopId, publicIntakeSettings});
   function enqueueRepairNotifications(before, after) {
     if (!mailConfig.configured) return;
@@ -95,7 +95,7 @@ export function createApplication({ databasePath, origin, distPath, production =
     if (workshopId) return processOwnNotifications();
     if (!platformNotificationJob) platformNotificationJob = (async () => {
       await processOwnNotifications();
-      if (mailConfig.configured) for (const row of platformDB.prepare('SELECT id FROM saas_workshops ORDER BY created_at').all()) await child(row.id).processNotifications();
+      if (mailConfig.serviceConfigured) for (const row of platformDB.prepare('SELECT id FROM saas_workshops ORDER BY created_at').all()) await child(row.id).processNotifications();
     })().finally(() => {platformNotificationJob = undefined;});
     return platformNotificationJob;
   };
@@ -641,7 +641,7 @@ export function createApplication({ databasePath, origin, distPath, production =
   server.requestTimeout = 30000;
   server.headersTimeout = 10000;
   server.on('listening', () => {
-    if (mailConfig.configured && notificationPollingMs > 0) {
+    if (mailConfig.serviceConfigured && notificationPollingMs > 0) {
       dispatchNotifications();
       notificationTimer = setInterval(dispatchNotifications, notificationPollingMs);
       notificationTimer.unref();

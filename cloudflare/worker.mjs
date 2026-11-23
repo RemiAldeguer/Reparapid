@@ -194,7 +194,7 @@ async function handle(request, env, headers, url, secure, configured, context) {
   if (workshopId) db = scopedDatabase(platformDB, workshopId, {kind: 'd1'});
   await initWorkshop(db, {upgradeNotifications: !!workshopId});
   const notificationRepo = d1NotificationRepository(db);
-  const mailConfig = notificationConfiguration(env);
+  const mailConfig = notificationConfiguration(env, {workshopId});
   const notificationView = store => notificationStoreView(store, {workshopId, publicIntakeSettings});
   const readNotificationStore = async () => notificationView(await readWorkshop(db));
   const notificationsFor = (before, after, at) => mailConfig.configured
@@ -716,14 +716,14 @@ export default {
   },
   async scheduled(_controller, env) {
     const config = notificationConfiguration(env);
-    if (!env.DB || !config.configured) return;
+    if (!env.DB || !config.serviceConfigured) return;
     await deliverNotifications(d1NotificationRepository(env.DB), {config,
       readStore: async () => notificationStoreView(await readWorkshop(env.DB), {publicIntakeSettings})});
     const rows = (await env.DB.prepare('SELECT id FROM saas_workshops ORDER BY created_at').all()).results;
     for (const row of rows) {
       const db = scopedDatabase(env.DB, row.id, {kind: 'd1'});
       await initWorkshop(db, {upgradeNotifications: true});
-      await deliverNotifications(d1NotificationRepository(db), {config, readStore: () => readWorkshop(db), limit: 2});
+      await deliverNotifications(d1NotificationRepository(db), {config: notificationConfiguration(env, {workshopId: row.id}), readStore: () => readWorkshop(db), limit: 2});
     }
   },
 };

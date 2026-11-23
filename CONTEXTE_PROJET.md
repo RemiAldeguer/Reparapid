@@ -1,6 +1,6 @@
 # Reparapid — contexte de reprise pour une session IA
 
-Dernière mise à jour : **22 novembre 2026**, fuseau de référence **Europe/Paris**.
+Dernière mise à jour : **23 novembre 2026**, fuseau de référence **Europe/Paris**.
 
 Les contacts personnels, identifiants de ressources, adresses de production et identifiants de publication historiques ont été retirés de cette documentation destinée au dépôt public. Les exemples doivent être configurés pour Reparapid.
 
@@ -28,7 +28,19 @@ Les API d’inscription et de nouvelle demande sont limitées au **magasin princ
 
 Validation de cette évolution le **12 octobre 2026** : **474 tests réussis (429 Node/domaine/API + 45 Cloudflare)**, aucun échec ni test ignoré, contrôle TypeScript et build Vite réussis. Recette sur serveur temporaire avec compte fictif : deux demandes, suivi client, réception, fiche encore accessible et retrait des données privées à la déconnexion. Accueil/formulaire contrôlés à **390 px et 320 px** ; panneau des coordonnées admin prérempli vérifié. Le dialogue d’impression a été déclenché ; aucun PDF enregistré ni impression physique. Aucun paiement, e-mail ou envoi de colis réel. Les détails et limites sont dans [TESTS.md](TESTS.md).
 
-## Dernière reprise : anciens slugs et retours visuels — 22 novembre 2026
+## Dernière reprise : destination unique des e-mails de test — 23 novembre 2026
+
+L’utilisateur demande de router les e-mails clients et administrateurs vers sa boîte personnelle pour ses tests. Il a confirmé **« Uniquement mon adresse pendant les tests »**. La destination est gardée dans le secret Cloudflare `MAIL_TEST_RECIPIENT`, jamais dans le dépôt, la documentation ou les assets. Les adresses habituelles des clients et du magasin ne sont pas réécrites. L’envoi remplace seulement le champ `to` transmis à Resend, sans CC/BCC ; contenus, préférences et clés d’idempotence sont conservés. Supprimer le secret ou le laisser vide rétablit le routage habituel pour les prochains envois.
+
+`server/notification-delivery.mjs` valide une seule adresse, retourne `testRecipient` uniquement dans le statut administrateur et refuse tout envoi du magasin principal si la valeur est invalide. `serviceConfigured` reste interne : une erreur du mode test principal ne doit pas empêcher le traitement planifié des ateliers distincts. Node et Worker passent le contexte `workshopId`, y compris lors des reprises et du cron ; aucune redirection de leurs messages vers la boîte du magasin principal. Les contrôles de propriété, contact d’origine, sessions, préférences et révision sont revérifiés avant chaque tentative comme précédemment.
+
+Le backoffice affiche **Mode test : destinataire unique** dans l’onglet E-mails et les panneaux de suivi client administrateur. La valeur provient d’une API protégée ; elle ne figure pas dans la vitrine, les fichiers compilés ou le portail client. L’historique désigne désormais explicitement le destinataire **prévu** du dossier, pas l’adresse effective d’une livraison passée en mode test. Aucun nouveau paramètre public ou champ de sauvegarde d’atelier, aucune migration SQL.
+
+Validation : **747 tests réussis (682 Node/domaine/API + 65 Cloudflare)**, dont 13 nouveaux scénarios. Les tests contrôlent les deux audiences, les relances avec même clé, les changements de propriétaire/contact, l’absence de CC/BCC, le blocage d’une adresse invalide et l’isolation des ateliers dans les requêtes et le traitement planifié. TypeScript et build de 125 modules / 158 fichiers validés ; warning historique de bundle conservé. Recette navigateur sur base en mémoire, administrateur et adresse fictifs : bandeau visible sur bureau et à 320 px sans débordement, service non configuré explicite, activation indisponible, déconnexion confirmée. Aucun e-mail réel envoyé.
+
+Le contrôle des seuls noms de secrets confirme que `RESEND_API_KEY` et `MAIL_FROM` restent absents. Leur configuration est nécessaire avant tout test de réception réelle. Ne pas utiliser un autre expéditeur, fournisseur, ou une clé fictive pour prétendre avoir envoyé un message. Publication vérifiée sur 100 % du trafic Cloudflare : sept fichiers/pages identiques au build, bandeau présent dans le bundle, quatre routes privées 401, trois fichiers sensibles 404 et projection publique conforme. Le secret de routage est présent ; la clé et l’expéditeur restent absents. La boîte privée ne figure pas dans les textes publics contrôlés. Révision/génération D1 et nombre de notifications identiques avant/après ; aucun envoi réel ni modification de dossier.
+
+## Reprise précédente : anciens slugs et retours visuels — 22 novembre 2026
 
 Objectif : remplacer ultérieurement WordPress sur **reparapid.fr** en préservant ses URL utiles. Le relevé public croise navigation, deux familles de sitemaps et listes WordPress : **170 slugs**, dont **31 URL HTML** (24 pages, 2 articles, 3 catégories, 2 archives datées) et **139 alias de médias** actuellement redirigés vers des images. Sources, statuts, canonicals et correspondances sont conservés dans `docs/seo/anciens-slugs-2026-11-22.json` et `.csv`. [Le guide de migration](docs/seo/migration-reparapid.md) détaille les limites et la future bascule. Sans Search Console ni journaux historiques, ce relevé ne prouve pas l’exhaustivité des URL connues de Google ni leur indexation.
 

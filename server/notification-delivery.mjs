@@ -43,18 +43,23 @@ function portalOrigin(input) {
 }
 
 /** Internal configuration. The API must allowlist public fields, never apiKey. */
-export function notificationConfiguration(env = {}) {
+export function notificationConfiguration(env = {}, {workshopId = null} = {}) {
   const apiKey = value(env.RESEND_API_KEY);
   const from = sender(env.MAIL_FROM);
   const rawReplyTo = value(env.MAIL_REPLY_TO);
   const replyTo = rawReplyTo ? address(rawReplyTo) : '';
   const origin = portalOrigin(env.MAIL_PORTAL_ORIGIN || env.APP_ORIGIN);
-  let issue = '';
-  if (!apiKey || apiKey.length > 1024 || /\s/.test(apiKey)) issue = 'La clé du service d’e-mail reste à configurer.';
-  else if (!from) issue = 'L’adresse d’expédition reste à configurer avec un domaine vérifié.';
-  else if (rawReplyTo && !replyTo) issue = 'L’adresse de réponse est invalide.';
-  else if (!origin) issue = 'L’adresse de l’espace client reste à configurer.';
-  return {configured: !issue, provider: 'resend', from, replyTo, portalOrigin: origin, issue, apiKey};
+  let serviceIssue = '';
+  if (!apiKey || apiKey.length > 1024 || /\s/.test(apiKey)) serviceIssue = 'La clé du service d’e-mail reste à configurer.';
+  else if (!from) serviceIssue = 'L’adresse d’expédition reste à configurer avec un domaine vérifié.';
+  else if (rawReplyTo && !replyTo) serviceIssue = 'L’adresse de réponse est invalide.';
+  else if (!origin) serviceIssue = 'L’adresse de l’espace client reste à configurer.';
+  // The private test inbox belongs to the main shop only. Invalid routing must
+  // stop that shop's sends rather than silently restoring real recipients.
+  const testRequested = workshopId === null && Object.hasOwn(env, 'MAIL_TEST_RECIPIENT') && env.MAIL_TEST_RECIPIENT !== '';
+  const testRecipient = testRequested ? address(env.MAIL_TEST_RECIPIENT) : '';
+  const issue = testRequested && !testRecipient ? 'L’adresse de redirection des e-mails de test est invalide.' : serviceIssue;
+  return {configured: !issue, serviceConfigured: !serviceIssue, provider: 'resend', from, replyTo, portalOrigin: origin, issue, apiKey, testRecipient};
 }
 
 function parsePayload(row) {
@@ -165,7 +170,7 @@ export async function deliverNotifications(repo, {config, readStore, fetch: fetc
       const response = await fetchImpl('https://api.resend.com/emails', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}`, 'Idempotency-Key': row.id},
-        body: JSON.stringify({from: config.from, to: [row.recipient], subject: message.subject, html: message.html, text: message.text, ...(config.replyTo ? {reply_to: config.replyTo} : {})}),
+        body: JSON.stringify({from: config.from, to: [config.testRecipient || row.recipient], subject: message.subject, html: message.html, text: message.text, ...(config.replyTo ? {reply_to: config.replyTo} : {})}),
         signal: AbortSignal.timeout(10_000),
       });
       time = clock();
@@ -211,6 +216,7 @@ export async function notificationStatus(repo, config, {clientId, readStore} = {
   const rows = await repo.all(`SELECT * FROM repair_notifications ${where} ORDER BY created_at DESC,id DESC LIMIT 20`, parameters);
   return {
     configured: !!config?.configured, provider: 'resend', sender: config?.from || '', replyTo: config?.replyTo || '', issue: config?.issue || '', enabled: !!settings?.enabled, counts,
+    testRecipient: config?.testRecipient || '',
     events: NOTIFICATION_EVENTS, preferences, shopRecipient, shopRecipientMissing: !shopRecipient,
     recent: rows.map(row => {
       const payload = parsePayload(row);

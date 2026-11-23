@@ -17,7 +17,7 @@ type EmailNotification = {
 };
 type NotificationSummary = {
   configured: boolean; provider: 'resend'; sender: string; replyTo: string;
-  issue: string; enabled: boolean;
+  issue: string; enabled: boolean; testRecipient?: string;
   events: {key: string; label: string}[];
   preferences: NotificationPreferences;
   shopRecipient: string; shopRecipientMissing: boolean;
@@ -79,6 +79,11 @@ function ConfigurationBadge({summary}: {summary: NotificationSummary}) {
   return <Badge tone={!summary.configured ? 'amber' : summary.enabled ? 'green' : 'slate'}>{!summary.configured ? 'À configurer' : summary.enabled ? 'Activé' : 'En pause'}</Badge>;
 }
 
+function TestRoutingNotice({summary}: {summary: NotificationSummary}) {
+  if (!summary.testRecipient) return null;
+  return <div className="notification-configuration notification-test-routing" role="status"><Icon name="info" size={18}/><p><strong>Mode test : destinataire unique</strong><br/>Les prochains e-mails clients et magasin seront envoyés uniquement à <strong>{summary.testRecipient}</strong>, lorsque le service d’envoi sera actif.</p></div>;
+}
+
 function NotificationHistory({summary, busy, onRetry, clientOnly = false}: {summary: NotificationSummary; busy: string; onRetry: (id: string) => void; clientOnly?: boolean}) {
   const recent = clientOnly ? summary.recent.filter(item => item.audience !== 'shop') : summary.recent;
   return <div className="notification-history">
@@ -94,7 +99,7 @@ function NotificationHistory({summary, busy, onRetry, clientOnly = false}: {summ
         <div className="notification-item-content">
           <div className="notification-item-heading"><strong>{item.consoleName}</strong><Badge tone={statusTones[item.status]}>{statusLabels[item.status]}</Badge></div>
           <p><span className="mono">{item.repairCode}</span><span className="notification-divider">·</span>{item.eventLabel || item.stage}</p>
-          <span className="notification-recipient">{item.audience === 'shop' ? 'Magasin' : 'Client'} · {item.to}</span>
+          <span className="notification-recipient">{item.audience === 'shop' ? 'Magasin' : 'Client'} · destinataire prévu : {item.to}</span>
           <time dateTime={date}>{dateFmt(date)} à {timeFmt(date)}</time>
           {item.error && item.status === 'failed' && <p className="notification-delivery-error">{item.error}</p>}
           {canRetry && <button className="text-link" onClick={() => onRetry(item.id)} disabled={!!busy}><Icon name="restore" size={14}/>{busy === item.id ? 'Nouvelle tentative…' : 'Réessayer l’envoi'}</button>}
@@ -229,7 +234,8 @@ export function EmailNotifications() {
     {summary && <>
       <Panel title="Envoi des e-mails" className="email-notifications-panel notification-delivery-panel" aside={<ConfigurationBadge summary={summary}/>}>
         <div className="panel-body notifications-body">
-          {!summary.configured && <div className="notification-configuration"><Icon name="info" size={18}/><p>Le service d’envoi reste à configurer. Vous pouvez déjà préparer les activations et prévisualiser tous les messages.</p></div>}
+          <TestRoutingNotice summary={summary}/>
+          {!summary.configured && <div className="notification-configuration"><Icon name="info" size={18}/><p>{summary.issue || 'Le service d’envoi reste à configurer.'} Vous pouvez déjà préparer les activations et prévisualiser tous les messages.</p></div>}
           {summary.issue && summary.configured && <p className="notification-feedback error" role="alert">{summary.issue}</p>}
           <div className="notification-controls"><div><strong>{!summary.configured ? 'Envoi non configuré' : summary.enabled ? 'Notifications actives' : 'Notifications en pause'}</strong><p>La pause concerne les clients et le magasin. Réactiver les e-mails ne renvoie pas les événements passés.</p></div><button className={`btn ${!summary.configured || summary.enabled ? 'secondary' : 'primary'}`} disabled={!summary.configured || !!busy || loading} onClick={() => void toggle()}><Icon name={!summary.configured ? 'settings' : summary.enabled ? 'pause' : 'mail'} size={16}/>{!summary.configured ? 'Configuration requise' : busy === 'toggle' ? 'Enregistrement…' : summary.enabled ? 'Mettre en pause' : 'Activer les e-mails'}</button></div>
           <details className="notification-addresses"><summary>Adresses d’envoi et de réception</summary><dl className="notification-sender"><div><dt>Expéditeur</dt><dd>{summary.sender || 'Non configuré'}</dd></div>{summary.replyTo && <div><dt>Adresse de réponse</dt><dd>{summary.replyTo}</dd></div>}<div><dt>Magasin / administrateurs</dt><dd>{summary.shopRecipient || 'Adresse de contact à renseigner'}</dd></div><div><dt>Client</dt><dd>L’adresse de contact de sa fiche client.</dd></div></dl><p className="notification-recipient-help">Pour changer l’adresse du magasin : <a href="#/settings">Réglages → Vitrine Reparapid et adresse d’envoi</a>.</p></details>
@@ -253,6 +259,7 @@ export function ClientNotificationPanel({client}: {client: Client}) {
       <div className="notification-client-recipient"><span className="notification-recipient-icon"><Icon name="mail" size={20}/></span><div><span>Adresse de notification</span><strong>{client.email || 'Adresse e-mail à renseigner'}</strong><p>{client.email ? 'Les événements sélectionnés pour le client sont envoyés à cette adresse lorsque les notifications sont actives.' : 'Ajoutez une adresse e-mail avec « Modifier » sur la fiche client pour recevoir les notifications.'}</p></div></div>
       {!summary && loading && <p role="status">Chargement du suivi des e-mails…</p>}
       {summary && <>
+        <TestRoutingNotice summary={summary}/>
         {!summary.configured ? <p className="notification-configuration-text">Le service d’envoi reste à configurer. Les préférences sont disponibles dans l’onglet E-mails.</p> : !summary.enabled && <p className="notification-configuration-text">Les notifications sont en pause. Vous pouvez les activer dans l’onglet E-mails.</p>}
         <a className="text-link" href="#/emails">Gérer les e-mails du parcours<Icon name="arrow" size={14}/></a>
         <NotificationHistory summary={summary} busy={busy} onRetry={id => void retry(id)} clientOnly/>

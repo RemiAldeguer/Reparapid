@@ -48,6 +48,76 @@ test('notification configuration validates sender, reply address and portal orig
   assert.ok(!JSON.stringify(status).includes(env.RESEND_API_KEY)); assert.ok(!Object.hasOwn(status, 'apiKey'));
 });
 
+test('test routing validates one private address, stays optional and applies only to the root shop', () => {
+  const routed = notificationConfiguration({...env, MAIL_TEST_RECIPIENT: 'Tester@Example.Invalid'});
+  assert.equal(routed.configured, true);
+  assert.equal(routed.serviceConfigured, true);
+  assert.equal(routed.testRecipient, 'tester@example.invalid');
+  assert.equal(config.testRecipient, '');
+  assert.equal(notificationConfiguration({...env, MAIL_TEST_RECIPIENT: ''}).configured, true);
+  assert.equal(notificationConfiguration({MAIL_TEST_RECIPIENT: 'tester@example.invalid'}).configured, false, 'a test recipient does not supply a mail service');
+  for (const candidate of [' ', 'not-an-address', 'one@example.invalid,two@example.invalid', 'Name <tester@example.invalid>', 'one@example.invalid\r\nBcc:two@example.invalid', null, 42]) {
+    const root = notificationConfiguration({...env, MAIL_TEST_RECIPIENT: candidate});
+    assert.equal(root.configured, false, 'invalid routing must never fall back to real recipients');
+    assert.equal(root.serviceConfigured, true);
+    if (String(candidate).trim()) assert.ok(!root.issue.includes(String(candidate)), 'configuration errors do not repeat untrusted values');
+    const tenant = notificationConfiguration({...env, MAIL_TEST_RECIPIENT: candidate}, {workshopId: 'other-workshop'});
+    assert.equal(tenant.configured, true);
+    assert.equal(tenant.testRecipient, '');
+  }
+});
+
+test('test routing sends client and shop messages only to the test inbox while preserving their real recipients', async t => {
+  const f = fixture(t, 0), sent = [];
+  f.insert('client', {contents: lifecycle(f, 'client')});
+  f.insert('shop', {contents: lifecycle(f, 'shop'), recipient: 'shop@example.invalid'});
+  const routed = notificationConfiguration({...env, MAIL_TEST_RECIPIENT: 'tester@example.invalid'});
+  const result = await f.send({config: routed, fetch: async (_url, options) => {
+    sent.push(JSON.parse(options.body)); return Response.json({id: `test-${sent.length}`});
+  }});
+  assert.equal(result.sent, 2);
+  assert.ok(sent.every(body => JSON.stringify(body.to) === '["tester@example.invalid"]' && !body.cc && !body.bcc));
+  assert.equal(f.get('client').recipient, 'client.a@example.invalid');
+  assert.equal(f.get('shop').recipient, 'shop@example.invalid');
+  assert.equal(f.store.clients[0].email, 'client.a@example.invalid');
+  assert.equal(f.store.settings.publicIntake.email, 'shop@example.invalid');
+  const status = await notificationStatus(f.repo, routed);
+  assert.equal(status.testRecipient, 'tester@example.invalid');
+  assert.deepEqual(status.recent.map(item => item.to).sort(), ['client.a@example.invalid', 'shop@example.invalid']);
+  assert.ok(!JSON.stringify(status).includes(env.RESEND_API_KEY));
+});
+
+test('invalid test routing blocks dispatch before claims, provider calls or consumed attempts', async t => {
+  const f = fixture(t); let calls = 0;
+  const result = await f.send({config: notificationConfiguration({...env, MAIL_TEST_RECIPIENT: 'invalid'}), fetch: async () => {
+    calls++; return Response.json({id: 'must-not-send'});
+  }});
+  assert.equal(calls, 0); assert.equal(result.claimed, 0);
+  assert.equal(f.get().attempts, 0); assert.equal(f.get().status, 'pending');
+});
+
+test('test routing still cancels mail whose original owner or address no longer matches', async t => {
+  const routed = notificationConfiguration({...env, MAIL_TEST_RECIPIENT: 'tester@example.invalid'});
+  for (const audience of ['client', 'shop']) await t.test(audience, async child => {
+    const f = fixture(child, 0); let calls = 0;
+    f.insert('changed', {contents: lifecycle(f, audience), recipient: audience === 'client' ? 'client.a@example.invalid' : 'shop@example.invalid'});
+    if (audience === 'client') f.store.clients[0].email = 'changed@example.invalid';
+    else f.store.settings.publicIntake.email = 'changed@example.invalid';
+    const result = await f.send({config: routed, fetch: async () => {calls++; return Response.json({id: 'must-not-send'});}});
+    assert.equal(calls, 0); assert.equal(result.cancelled, 1); assert.equal(f.get('changed').attempts, 0);
+  });
+});
+
+test('test retries preserve the same request and idempotency key without duplicating queue entries', async t => {
+  const f = fixture(t), sent = [], routed = notificationConfiguration({...env, MAIL_TEST_RECIPIENT: 'tester@example.invalid'});
+  const fetch = async (_url, options) => {sent.push({body: options.body, key: options.headers['Idempotency-Key']}); return sent.length === 1 ? new Response('', {status: 503}) : Response.json({id: 'test-receipt'});};
+  await f.send({config: routed, fetch}); f.advance(60_000);
+  assert.equal((await f.send({config: routed, fetch})).sent, 1);
+  assert.equal(sent.length, 2); assert.deepEqual(sent[0], sent[1]);
+  assert.deepEqual(JSON.parse(sent[0].body).to, ['tester@example.invalid']);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS total FROM repair_notifications').get().total, 1);
+});
+
 test('unconfigured and disabled delivery never contacts the mail provider or consumes an attempt', async t => {
   const f = fixture(t); let calls = 0;
   const fetch = async () => {calls++; throw new Error('Unexpected send');};
