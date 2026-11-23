@@ -4,7 +4,7 @@ import path from 'node:path';
 import { openDatabase, limit } from './database.mjs';
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal } from '../tests/.compiled/domain.cjs';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../tests/.compiled/domain.cjs';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../tests/.compiled/repair-intake-domain.cjs';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from './repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from './client-portal.mjs';
@@ -21,7 +21,7 @@ import {REGISTRATION_BODY_LIMIT, RegistrationError, validateRegistrationRequest,
 import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId} from './workshop-scope.mjs';
 const HOUR = 3600000;
 const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
-  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal};
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }

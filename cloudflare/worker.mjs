@@ -1,7 +1,7 @@
 import { token, digest, equal, email, checkPassword, hashPassword, verifyPassword } from './security.mjs';
 import { initWorkshop, limit, readWorkshop as readStoredWorkshop, saveWorkshop, saveClientWorkshop, saveRegistrationWorkshop, StoreSizeError } from './database.mjs';
 import { validateStore, normalizeRepairStages, emptyStore, repairTotalCost, markClientPartAvailable, createClient,
-  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal } from '../src/domain.ts';
+  publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer, confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback } from '../src/domain.ts';
 import {validateIntakeInput, createPublicRepair, publicIntakeSettings, publicRepairPackages} from '../src/repair-intake-domain.ts';
 import {REPAIR_INTAKE_BODY_LIMIT, RepairIntakeError, registrationIntakeRequest, intakeRequest, repairIntakeId, repairIntakeSheet, assertIntakeMetadataPreserved} from '../server/repair-intake.mjs';
 import { clientPortal, clientAccess, clientUser } from '../server/client-portal.mjs';
@@ -20,7 +20,7 @@ import {scopedDatabase, provisioningStatements, workshopId as validateWorkshopId
 
 const HOUR = 3600000;
 const proposalActions = {publishRepairProposal, decideRepairProposal, declareRepairReturnTransfer,
-  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback, requestRepairWithdrawal};
+  confirmRepairReturnPayment, dispatchRepairReturn, completeRepairBuyback};
 const SESSION_MS = 8 * HOUR;
 const IDLE_MS = HOUR / 2;
 let hashing = 0;

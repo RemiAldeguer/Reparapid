@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {clientProposalRequest,applyClientProposal,assertProposalEditPreserved,publicRepairProposal} from '../server/repair-proposals.mjs';
+import {LEGAL_VERSION} from '../src/legal-content.mjs';
 
 const require=createRequire(import.meta.url),d=require('./.compiled/domain.cjs');
 const legal=(overrides={})=>({version:'2026-11-22',document:'Conditions générales fictives\nTexte intégral de test.\n',earlyStartRequested:false,earlyStartAcknowledged:false,...overrides});
@@ -83,7 +84,7 @@ test('Backup validation rejects forged legal and withdrawal metadata without dis
   delete pending.p.legal;pending.p.withdrawal=structuredClone(f.r.proposal.withdrawal);assert.throws(()=>d.validateStore(pending.s),/réparation|rétractation|accept/i);
 });
 
-const clientConsent=(overrides={})=>({version:'2026-11-22',accepted:true,earlyStartRequested:false,earlyStartAcknowledged:false,...overrides});
+const clientConsent=(overrides={})=>({version:LEGAL_VERSION,accepted:true,earlyStartRequested:false,earlyStartAcknowledged:false,...overrides});
 const errorStatus=status=>error=>error.status===status;
 function request(f,action='repair',extra={},options){return clientProposalRequest({proposalId:f.p.id,action,...extra},options);}
 function apply(f,value,options){return applyClientProposal(f.s,f.client.id,f.r.id,value,d,options);}
@@ -122,17 +123,27 @@ test('Other workshops retain their own contracts and cannot use VESTY GAMES 3 de
   unchanged(f.s,()=>apply(f,{proposalId:f.p.id,action:'repair',legal:clientConsent()},options),errorStatus(400));
 });
 
-test('Withdrawal HTTP projection exposes only the frozen customer receipt and preserves banking privacy',()=>{
+test('Archived withdrawal projection exposes only the frozen customer receipt and preserves banking privacy',()=>{
   const f=fixture();d.decideRepairProposal(f.s,f.r.id,f.p.id,'repair',legal());
-  assert.equal(apply(f,request(f,'withdraw')),true);const before=JSON.stringify(f.s);
-  assert.equal(apply(f,request(f,'withdraw')),false);assert.equal(JSON.stringify(f.s),before);
+  d.requestRepairWithdrawal(f.s,f.client.id,f.r.id,f.p.id);
   const raw=structuredClone(f.r.proposal);raw.legal.internal='PRIVATE_INTERNAL';raw.withdrawal.internal='PRIVATE_INTERNAL';raw.internal='PRIVATE_INTERNAL';raw.bankInstructions='PRIVATE_BANK';
   const projected=publicRepairProposal(raw);
   assert.deepEqual(projected.legal,f.r.proposal.legal);assert.deepEqual(projected.withdrawal,f.r.proposal.withdrawal);
   assert.doesNotMatch(JSON.stringify(projected),/PRIVATE_/);
   projected.legal.document='Changed projection';projected.withdrawal.statement='Changed projection';
   assert.notEqual(projected.legal.document,raw.legal.document);assert.notEqual(projected.withdrawal.statement,raw.withdrawal.statement);
-  assert.throws(()=>applyClientProposal(f.s,'foreign',f.r.id,request(f,'withdraw'),d),errorStatus(404));
+  assert.throws(()=>applyClientProposal(f.s,'foreign',f.r.id,{proposalId:f.p.id,action:'repair'},d),errorStatus(404));
+});
+
+test('Retired withdrawal actions are rejected without changing any current or archived record',()=>{
+  for(const archived of [false,true])for(const requireLegal of [false,true]){
+    const f=fixture();d.decideRepairProposal(f.s,f.r.id,f.p.id,'repair',legal());
+    if(archived)d.requestRepairWithdrawal(f.s,f.client.id,f.r.id,f.p.id);
+    const options={requireLegal};
+    unchanged(f.s,()=>request(f,'withdraw',{},options),errorStatus(400));
+    unchanged(f.s,()=>apply(f,{proposalId:f.p.id,action:'withdraw'},options),errorStatus(400));
+    d.validateStore(f.s);
+  }
 });
 
 test('Ordinary Store edits cannot create, erase or rewrite legal consent or withdrawal receipts',()=>{
@@ -170,7 +181,7 @@ test('The HTTP boundary supplies only its trusted session email fallback and ref
   const f=fixture();f.client.email='';const options={accountEmail:'session@example.invalid'};
   assert.equal(apply(f,request(f,'repair',{legal:clientConsent()}),options),true);
   assert.equal(f.r.proposal.legal.customerEmail,options.accountEmail);
-  assert.equal(apply(f,request(f,'withdraw'),options),true);assert.equal(f.r.proposal.withdrawal.customerEmail,options.accountEmail);
+  unchanged(f.s,()=>apply(f,{proposalId:f.p.id,action:'withdraw'},options),errorStatus(400));
   for(const action of ['repair','withdraw'])for(const key of ['accountEmail','customerEmail']){
     assert.throws(()=>request(f,action,{[key]:'forged@example.invalid'}),errorStatus(400));
   }

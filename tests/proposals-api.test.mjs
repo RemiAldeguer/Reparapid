@@ -178,7 +178,7 @@ for (const platform of ['node', 'worker']) {
     assert.equal((await f.publish(proposal({repairAmount: 89.95}))).status, 409); assert.deepEqual(f.read(), decided);
   });
 
-  test(`${platform}: current explicit conditions produce a frozen owned receipt and withdrawal notification`, async t => {
+  test(`${platform}: current explicit conditions produce a frozen receipt and reject retired withdrawal requests`, async t => {
     const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
     const proposalId = f.read().repairs[0].proposal.id, before = f.read();
     const answer = body => f.request(f.clientPath, {...f.client, method: 'POST', body: {proposalId, action: 'repair', ...body}});
@@ -196,26 +196,27 @@ for (const platform of ['node', 'worker']) {
     assert.deepEqual(publicRepair(accepted.data).proposal.legal, legal);
     assert.equal((await answer({})).status, 200); assert.deepEqual(f.read(), decided);
     assert.equal((await answer({legal: legalConsent({version: 'obsolete'})})).status, 200); assert.deepEqual(f.read(), decided);
-    assert.equal((await f.request(f.clientPath, {...f.other, method: 'POST', body: {proposalId, action: 'withdraw'}})).status, 404);
-    assert.equal((await f.request(f.clientPath, {cookie: f.client.cookie, method: 'POST', body: {proposalId, action: 'withdraw'}})).status, 403);
+    assert.equal((await f.request(f.clientPath, {...f.other, method: 'POST', body: {proposalId, action: 'repair'}})).status, 404);
+    assert.equal((await f.request(f.clientPath, {cookie: f.client.cookie, method: 'POST', body: {proposalId, action: 'repair'}})).status, 403);
     assert.deepEqual(f.read(), decided);
-    const withdrawn = await f.choose('withdraw'); assert.equal(withdrawn.status, 200, JSON.stringify(withdrawn.data));
-    const saved = f.read(), record = saved.repairs[0].proposal.withdrawal;
-    assert.ok(record.id); assert.ok(record.requestedAt >= legal.acceptedAt);
-    assert.equal(record.customerName, f.clients[0].name); assert.equal(record.customerEmail, f.clients[0].email); assert.match(record.statement, /rétractation/);
-    assert.deepEqual(publicRepair(withdrawn.data).proposal.withdrawal, record);
-    assert.equal(saved.revision, decided.revision + 1); assert.equal(saved.events.length, decided.events.length + 1);
-    assert.equal(saved.repairs[0].stage, decided.repairs[0].stage); assert.deepEqual(saved.parts, decided.parts);
-    assert.deepEqual(saved.consoles, decided.consoles); assert.deepEqual(saved.repairs[0].payment, decided.repairs[0].payment);
-    assert.deepEqual(saved.repairs[0].proposal.legal, legal); assert.equal(saved.repairs[0].proposal.repairAmount, decided.repairs[0].proposal.repairAmount);
-    assert.equal((await f.choose('withdraw')).status, 200); assert.deepEqual(f.read(), saved);
+    const withdrawn = await f.choose('withdraw'); assert.equal(withdrawn.status, 400);
+    assert.deepEqual(f.read(), decided);
+    // An old receipt remains readable and immutable; the retired HTTP action cannot create one.
+    const historical = structuredClone(decided);
+    historical.repairs[0].proposal.withdrawal = {id: 'archived-withdrawal', requestedAt: legal.acceptedAt,
+      customerName: legal.customerName, customerEmail: legal.customerEmail, statement: 'Déclaration fictive historique.'};
+    f.replace(historical);
+    const saved = f.read();
+    const view = await f.request('/api/client/portal', f.client);
+    assert.equal(view.status, 200); assert.deepEqual(publicRepair(view.data).proposal.withdrawal, saved.repairs[0].proposal.withdrawal);
+    assert.equal((await f.choose('withdraw')).status, 400); assert.deepEqual(f.read(), saved);
     const forged = structuredClone(saved); forged.repairs[0].proposal.withdrawal.statement = 'Rewritten withdrawal';
     assert.equal((await f.request('/api/store', {...f.admin, method: 'PUT', body: {revision: saved.revision, data: forged, mode: 'edit'}})).status, 409); assert.deepEqual(f.read(), saved);
     const removed = structuredClone(saved); delete removed.repairs[0].proposal.legal;
     assert.equal((await f.request('/api/store', {...f.admin, method: 'PUT', body: {revision: saved.revision, data: removed, mode: 'edit'}})).status, 409); assert.deepEqual(f.read(), saved);
   });
 
-  test(`${platform}: authenticated account email preserves consent and legacy withdrawal when the client contact has no email`, async t => {
+  test(`${platform}: authenticated account email preserves consent when the client contact has no email`, async t => {
     for (const legacy of [false, true]) {
       const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
       const initial = f.read(), repair = initial.repairs[0], proposalId = repair.proposal.id;
@@ -232,11 +233,8 @@ for (const platform of ['node', 'worker']) {
         const forged = await f.request(f.clientPath, {...f.client, method: 'POST', body: {proposalId, action: 'withdraw', [key]: 'forged@example.invalid'}});
         assert.equal(forged.status, 400); assert.deepEqual(f.read(), before);
       }
-      const withdrawn = await f.choose('withdraw'); assert.equal(withdrawn.status, 200, JSON.stringify(withdrawn.data));
-      const proposal = publicRepair(withdrawn.data).proposal;
-      assert.equal(proposal.withdrawal.customerEmail, f.clients[0].email);
-      assert.equal(Boolean(proposal.legal), !legacy);
-      const saved = f.read(); assert.equal((await f.choose('withdraw')).status, 200); assert.deepEqual(f.read(), saved);
+      assert.equal((await f.choose('withdraw')).status, 400); assert.deepEqual(f.read(), before);
+      const saved = f.read();
       assert.equal(saved.clients.find(client => client.id === f.clients[0].id).email, '');
     }
   });

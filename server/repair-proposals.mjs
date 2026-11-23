@@ -40,7 +40,7 @@ function legalConsent(value) {
 }
 export function clientProposalRequest(body, {requireLegal = true} = {}) {
   object(body, ['proposalId', 'action', ...(requireLegal ? ['legal'] : [])]);
-  if (!['repair', 'return', 'buyback', 'declare-transfer', ...(requireLegal ? ['withdraw'] : [])].includes(body.action)) {
+  if (!['repair', 'return', 'buyback', 'declare-transfer'].includes(body.action)) {
     throw new RepairProposalError(400, 'Choix de diagnostic invalide.');
   }
   if (body.action !== 'repair') object(body, ['proposalId', 'action']);
@@ -80,11 +80,15 @@ export function assertProposalOwner(store, clientId, repairId) {
 }
 export function applyClientProposal(store, clientId, repairId, request, actions, {requireLegal = true, accountEmail} = {}) {
   assertProposalOwner(store, clientId, repairId);
-  if (!requireLegal && (request.legal !== undefined || request.action === 'withdraw')) {
+  // Reject stale clients as well as unparsed internal requests. Frozen historical
+  // declarations remain valid data, but this flow cannot create new ones.
+  if (!['repair', 'return', 'buyback', 'declare-transfer'].includes(request.action)) {
+    throw new RepairProposalError(400, 'Choix de diagnostic invalide.');
+  }
+  if (!requireLegal && request.legal !== undefined) {
     throw new RepairProposalError(400, 'Ces conditions concernent uniquement l’atelier RépaRapid de Maxxi Games au Kremlin-Bicêtre.');
   }
   try {
-    if (request.action === 'withdraw') return actions.requestRepairWithdrawal(store, clientId, repairId, request.proposalId, accountEmail);
     if (request.action === 'declare-transfer') return actions.declareRepairReturnTransfer(store, repairId, request.proposalId);
     let legal;
     if (requireLegal && request.action === 'repair') {

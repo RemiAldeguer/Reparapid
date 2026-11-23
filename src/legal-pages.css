@@ -43,15 +43,6 @@
 .rp-legal-sources ul{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .rp-legal-sources a{display:inline-flex;align-items:center;gap:8px;min-height:32px;color:#923322;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
 .rp-legal-sources a>svg{flex-shrink:0}
-.rp-legal-withdrawal-action{margin:24px 0;padding:24px;background:#fbf3ed;border:1px solid var(--rp-legal-border);border-radius:8px}
-.rp-legal-withdrawal-action>.rp-button{white-space:normal;text-align:left;justify-content:space-between;width:100%}
-.rp-legal-withdrawal-action>.rp-button>svg{flex-shrink:0}
-.rp-legal-withdrawal-action>p{font-size:12px;margin-top:12px;color:var(--rp-legal-muted)}
-.rp-legal-contact{margin-top:24px}
-.rp-legal-contact>p{margin-top:12px}
-.rp-legal-contact address{font-style:normal;margin-top:16px;white-space:pre-line}
-.rp-legal-contact address strong{font-weight:650}
-.rp-legal-contact>.rp-legal-contact-note{font-size:12px;color:var(--rp-legal-muted)}
 .rp-legal-template-download{margin-top:24px;white-space:normal;text-align:left;justify-content:flex-start}
 .rp-legal-template-download>svg{flex-shrink:0}
 .rp-legal-related{margin-top:28px;padding-top:20px;border-top:1px solid var(--rp-legal-border);font-size:12px}
@@ -61,7 +52,7 @@
 @media print{
   body:has(.rp-legal-page){background:#fff!important}
   .reparapid-site:has(.rp-legal-page){min-height:0;background:#fff;color:#222;overflow:visible}
-  body:has(.rp-legal-page) .rp-topline,body:has(.rp-legal-page) .rp-header,body:has(.rp-legal-page) .rp-footer,body:has(.rp-legal-page) .rp-skip,.rp-legal-back,.rp-legal-navigation,.rp-legal-tools,.rp-legal-contents,.rp-legal-sources,.rp-legal-template-download,.rp-legal-withdrawal-action{display:none!important}
+  body:has(.rp-legal-page) .rp-topline,body:has(.rp-legal-page) .rp-header,body:has(.rp-legal-page) .rp-footer,body:has(.rp-legal-page) .rp-skip,.rp-legal-back,.rp-legal-navigation,.rp-legal-tools,.rp-legal-contents,.rp-legal-sources{display:none!important}
   .rp-legal-page{padding:0;background:#fff;color:#222}
   .rp-legal-page .rp-shell{width:100%;max-width:none;margin:0}
   .rp-legal-heading{max-width:none;padding:0 0 18pt}

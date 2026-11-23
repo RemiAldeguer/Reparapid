@@ -138,7 +138,6 @@ const eventDescriptions: Record<string, string> = {
   'return-payment-confirmed': 'Confirmation du virement reçu par le magasin.',
   'return-dispatched': 'Confirmation du départ, avec le suivi lorsqu’il est renseigné.',
   'buyback-completed': 'Confirmation de la finalisation du rachat pour pièces.',
-  'withdrawal-requested': 'Confirmation de la déclaration de rétractation enregistrée.',
 };
 
 function NotificationPreviewDialog({event, onClose}: {event: NotificationEvent; onClose: () => void}) {
@@ -183,10 +182,11 @@ function NotificationPreferencesForm({summary, busy, loading, onSave, onPreview}
   const [draft, setDraft] = useState<NotificationPreferences | null>(null);
   const preferences = draft || summary.preferences;
   const dirty = summary.events.some(({key}) => (['client', 'shop'] as const).some(audience => preferences[audience][key] !== summary.preferences[audience][key]));
+  const events = summary.events.filter(event => event.key !== 'withdrawal-requested');
   const groups = [
-    {label: 'Suivi de la réparation', events: summary.events.filter(event => !/^(proposal|return|buyback|withdrawal)-/.test(event.key))},
-    {label: 'Diagnostic et choix du client', events: summary.events.filter(event => event.key.startsWith('proposal-'))},
-    {label: 'Retour, rétractation et rachat', events: summary.events.filter(event => /^(return|buyback|withdrawal)-/.test(event.key))},
+    {label: 'Suivi de la réparation', events: events.filter(event => !/^(proposal|return|buyback)-/.test(event.key))},
+    {label: 'Diagnostic et choix du client', events: events.filter(event => event.key.startsWith('proposal-'))},
+    {label: 'Retour et rachat', events: events.filter(event => /^(return|buyback)-/.test(event.key))},
   ];
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -242,7 +242,7 @@ export function EmailNotifications() {
           {summary.shopRecipientMissing && <div className="notification-configuration"><Icon name="alert" size={18}/><p>Renseignez une adresse de contact valide dans les réglages du magasin pour recevoir les e-mails administrateurs.</p></div>}
         </div>
       </Panel>
-      <Panel title="Messages à chaque étape" className="email-notifications-panel notification-template-panel" aside={<span>{summary.events.length} moments du parcours · 2 destinataires</span>}><div className="panel-body notifications-body"><NotificationPreferencesForm summary={summary} busy={busy} loading={loading} onSave={savePreferences} onPreview={setPreviewEvent}/></div></Panel>
+      <Panel title="Messages à chaque étape" className="email-notifications-panel notification-template-panel" aside={<span>{summary.events.filter(event => event.key !== 'withdrawal-requested').length} moments du parcours · 2 destinataires</span>}><div className="panel-body notifications-body"><NotificationPreferencesForm summary={summary} busy={busy} loading={loading} onSave={savePreferences} onPreview={setPreviewEvent}/></div></Panel>
       <Panel title="Suivi des envois" className="email-notifications-panel"><div className="panel-body notifications-body">
         <ul className="notification-counts" aria-label="Bilan des notifications"><li><strong>{summary.counts.sent}</strong><span>envoyés</span></li><li><strong>{summary.counts.pending}</strong><span>en attente</span></li><li className={summary.counts.failed ? 'has-errors' : ''}><strong>{summary.counts.failed}</strong><span>en échec</span></li><li><strong>{summary.counts.cancelled}</strong><span>annulés</span></li></ul>
         <NotificationHistory summary={summary} busy={busy} onRetry={id => void retry(id)}/>

@@ -308,13 +308,12 @@ export function ClientPortal() {
         return: 'Votre demande de retour est enregistrée. Retrouvez les prochaines étapes ci-dessous.',
         buyback: 'Votre accord de rachat est enregistré. Le magasin doit encore finaliser le rachat et son règlement.',
         'declare-transfer': 'Votre virement est signalé. Sa réception reste à confirmer par le magasin.',
-        withdraw: 'Votre rétractation est enregistrée. Retrouvez votre accusé de réception ci-dessous et contactez le magasin pour organiser les suites.',
       };
       let needsDownload = false;
-      if (!tenant && (action === 'repair' || action === 'withdraw')) {
+      if (!tenant && action === 'repair') {
         const record = next.repairs.find(repair => repair.id === repairId);
-        if (record?.proposal && (action === 'withdraw' ? record.proposal.withdrawal : record.proposal.legal)) {
-          try {downloadProposalReceipt(record.code, record.proposal, action === 'withdraw' ? 'withdrawal' : 'contract');}
+        if (record?.proposal?.legal) {
+          try {downloadProposalReceipt(record.code, record.proposal, 'contract');}
           catch {needsDownload = true;}
         }
       }
@@ -419,7 +418,7 @@ export function ClientPortal() {
         <PortalCollection data={data} selectedId={selectedRepairId} onSelect={setSelectedRepairId} tenant={tenant}/>{tenant && <RequestedPartsBoard data={data} onSelect={setSelectedRepairId}/>}
         {checkedAt && <p className="portal-last-checked">Suivi actualisé le {dateFmt(checkedAt)} à {new Intl.DateTimeFormat('fr-FR', {hour: '2-digit', minute: '2-digit'}).format(new Date(checkedAt))}.</p>}
       </>}
-      <footer className="portal-footer"><span>Une question sur votre réparation ? Contactez {tenant ? data?.workshop.name || 'votre atelier' : 'votre atelier'}.</span><a className="text-link" href="#/connexion">Connexion atelier</a>{!tenant && <nav className="portal-legal-links" aria-label="Informations contractuelles"><a href="#/cgu">CGU</a><a href="#/cgv">CGV</a><a href="#/mentions-legales">Mentions légales</a><a href="/politique-de-cookies-ue/">Politique de cookies</a><a href="#/retractation">Exercer mon droit de rétractation</a></nav>}</footer>
+      <footer className="portal-footer"><span>Une question sur votre réparation ? Contactez {tenant ? data?.workshop.name || 'votre atelier' : 'votre atelier'}.</span><a className="text-link" href="#/connexion">Connexion atelier</a>{!tenant && <nav className="portal-legal-links" aria-label="Informations contractuelles"><a href="#/cgu">CGU</a><a href="#/cgv">CGV</a><a href="#/mentions-legales">Mentions légales</a><a href="/politique-de-cookies-ue/">Politique de cookies</a></nav>}</footer>
     </main>
 
     {sheet && <Modal title="Votre fiche d’envoi à découper" subtitle={sheet.repair.code} wide onClose={() => {sheetRequest.current++; setSheet(null); setSheetError(''); setPrintReady(false); setSheetBusy(false);}}><div className="intake-sheet-preview"><p className="intake-sheet-intro">Imprimez la fiche, découpez le talon à conserver, puis glissez la partie atelier dans le colis avec votre console. Le schéma ci-dessous vous guide.</p>{!sheet.shop.addressConfirmed && <p className="intake-sheet-blocked" role="status"><Icon name="alert" size={18}/><span>L’adresse d’expédition reste à confirmer. Contactez {sheet.shop.shopName}{sheet.shop.email && <> à <a href={`mailto:${sheet.shop.email}`}>{sheet.shop.email}</a></>}{sheet.shop.phone && <> au <a href={`tel:${sheet.shop.phone.replace(/\s/g, '')}`}>{sheet.shop.phone}</a></>}. N’envoyez pas votre console pour le moment.</span></p>}<ShippingDocument sheet={sheet}/>{sheetError && <p className="auth-error" role="alert">{sheetError}</p>}</div><div className="modal-footer intake-sheet-footer"><button type="button" className="btn secondary" onClick={() => {sheetRequest.current++; setSheet(null); setSheetError(''); setPrintReady(false); setSheetBusy(false);}}>Fermer</button><button type="button" className="btn primary" disabled={sheetBusy || !sheet.shop.addressConfirmed} onClick={() => void openSheet(sheet.repair.id, true)}><Icon name="print" size={17}/>{sheetBusy ? 'Vérification…' : 'Imprimer / enregistrer en PDF'}</button></div></Modal>}

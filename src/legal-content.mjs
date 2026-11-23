@@ -2,7 +2,7 @@
  * Public legal content shared by the storefront and contract snapshots.
  * Keep previous accepted snapshots in their records when updating this version.
  */
-export const LEGAL_VERSION = '2026-11-22';
+export const LEGAL_VERSION = '2026-11-23';
 export const LEGAL_SOURCES_CHECKED_AT = '2026-11-22';
 
 export const LEGAL_OPERATOR = Object.freeze({
@@ -185,9 +185,8 @@ export const LEGAL_DOCUMENTS = {
         title: '6. Droit de rétractation pour les contrats à distance',
         paragraphs: [
           'Lorsqu’un contrat de prestation est conclu à distance, le consommateur peut en principe se rétracter sans motif pendant quatorze jours à compter de sa conclusion. Pour une réparation, cette date correspond à l’acceptation du devis. Si une prestation payante de diagnostic est conclue séparément, elle possède sa propre date de conclusion et son propre délai. Le délai se calcule selon les règles légales ; un contrat conclu en magasin ne bénéficie pas automatiquement de ce droit.',
-          'Avant l’expiration du délai, le client peut utiliser la fonction « Exercer mon droit de rétractation » de son espace client, envoyer le formulaire figurant à la fin de ces CGV, ou adresser une déclaration exprimant clairement sa décision par courriel à contact@reparapid.fr ou par courrier à VESTY GAMES 3, 30–30 bis avenue de Fontainebleau, 94270 Le Kremlin-Bicêtre. Le formulaire n’est pas obligatoire et une lettre recommandée n’est pas imposée. Il est utile de conserver une preuve de la démarche.',
-          'La fonction en ligne permet d’identifier le contrat, de vérifier puis de confirmer la déclaration. La notification est enregistrée avec sa date et son heure ; un accusé reprenant son contenu et ces informations est fourni sur un support téléchargeable. Son enregistrement ne préjuge pas de l’applicabilité du droit au contrat concerné et ne déclenche pas automatiquement une opération bancaire. Le magasin examine et traite les conséquences légales sans conditionner la notification à son accord préalable.',
-          'Le client peut utiliser les autres moyens de notification si la fonction est momentanément indisponible ou si le contrat n’apparaît pas dans son espace. Un défaut d’information sur la rétractation peut entraîner la prolongation du délai dans les conditions de l’article L. 221-20 du Code de la consommation.',
+          'Avant l’expiration du délai, le client peut envoyer le formulaire figurant à la fin de ces CGV ou adresser une déclaration exprimant clairement sa décision par courriel à contact@reparapid.fr ou par courrier à VESTY GAMES 3, 30–30 bis avenue de Fontainebleau, 94270 Le Kremlin-Bicêtre. Il précise ses coordonnées, la référence du dossier et le contrat concerné. Le formulaire n’est pas obligatoire et une lettre recommandée n’est pas imposée. Il est utile de conserver une preuve de la démarche.',
+          'Le magasin examine la demande et traite ses conséquences légales sans conditionner la notification à son accord préalable. La démarche ne déclenche pas automatiquement une opération bancaire. Un défaut d’information sur la rétractation peut entraîner la prolongation du délai dans les conditions de l’article L. 221-20 du Code de la consommation.',
         ],
       },
       {

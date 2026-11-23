@@ -30,13 +30,10 @@ const nextAction: Partial<Record<Stage, {stage: Stage; label: string; icon: stri
   reparation: {stage: 'tests', label: 'Passer aux tests', icon: 'checklist'},
   tests: {stage: 'terminee', label: 'Prête à récupérer', icon: 'check'},
 };
-function needsWithdrawalDelayCheck(repair: Repair, target: Stage) {
-  return !!repair.proposal?.legal && !repair.proposal.legal.earlyStartRequested && ['reparation', 'tests', 'terminee'].includes(target);
-}
 function requestAction(repair: Repair) {
   if (repair.proposal?.withdrawal) return undefined;
   const action = repair.stage === 'diagnostic' && repair.proposal?.decision !== 'repair' ? {stage: 'diagnostic' as Stage, label: repair.proposal ? 'Voir la proposition' : 'Préparer la proposition', icon: 'note'} : nextAction[repair.stage];
-  return action && needsWithdrawalDelayCheck(repair, action.stage) ? {...action, label: 'Vérifier le délai dans le dossier', icon: 'clock'} : action;
+  return action;
 }
 
 export function WebsiteRequests() {
@@ -63,7 +60,6 @@ export function WebsiteRequests() {
       const current = draft.repairs.find(item => item.id === repair.id);
       if (!current?.publicRequestId) throw Error('Cette demande du site n’est plus disponible.');
       if (current.proposal?.withdrawal) throw Error('Une rétractation a été reçue. Ouvrez le dossier pour traiter les suites avec le client.');
-      if (needsWithdrawalDelayCheck(current, target)) throw Error('Avant toute intervention, vérifiez dans le dossier que le délai légal de rétractation a expiré.');
       if (current.stage !== repair.stage) throw Error('L’étape de cette demande a changé. Consultez son dossier avant de continuer.');
       if (nextAction[current.stage]?.stage !== target) throw Error('Cette action ne correspond plus à l’étape de la demande.');
       moveRepair(draft, current.id, target);
@@ -75,7 +71,6 @@ export function WebsiteRequests() {
     if(repair.stage==='diagnostic'&&repair.proposal?.decision!=='repair'){go('/repairs/'+repair.id);return;}
     const action = requestAction(repair);
     if (!action) return;
-    if (needsWithdrawalDelayCheck(repair, action.stage)) {go('/repairs/' + repair.id); return;}
     if (action.stage === 'reception') {
       ask({title: 'La console est-elle reçue ?', body: `Confirmez la réception physique de la console du dossier ${repair.code} au magasin. La demande passera en Réception, avant le diagnostic.`, label: 'Confirmer la réception', run: () => advance(repair, 'reception')});
     } else if (action.stage === 'terminee') {
