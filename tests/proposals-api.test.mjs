@@ -16,6 +16,7 @@ const proposal = (overrides = {}) => ({kind: 'repair', description: 'Remplacemen
   bankInstructions: 'INSTRUCTIONS_BANCAIRES_FICTIVES réservées au retour de ce dossier.', ...overrides});
 const unsafeKeys = ['diagnosis', 'payment', 'interventionCost', 'parts', 'worklogs', 'tests', 'photos', 'publicRequestId'];
 const legalConsent = (overrides = {}) => ({version: LEGAL_VERSION, accepted: true, earlyStartRequested: false, earlyStartAcknowledged: false, ...overrides});
+const bank = {beneficiary:'Atelier Exemple',iban:'FR1420041010050500013M02606',bic:'PSSTFRPPXXX',bankName:'Banque fictive',instructions:'Consigne privée de test.'};
 function sampleStore() {
   const store = emptyStore();
   store.settings.owner = 'PRIVATE_OWNER'; store.settings.workshop = 'Atelier fictif';
@@ -239,6 +240,35 @@ for (const platform of ['node', 'worker']) {
     }
   });
 
+  test(`${platform}: private bank settings supply frozen instructions and an owned transfer reference`, async t => {
+    const f=await fixture(t,platform), initial=f.read();initial.settings.bankTransfer=bank;
+    const put=data=>f.request('/api/store',{...f.admin,method:'PUT',body:{revision:f.read().revision,data,mode:'edit'}});
+    assert.equal((await put(initial)).status,200);
+    assert.deepEqual(f.read().settings.bankTransfer,bank);
+    assert.equal((await f.request('/api/store')).status,401);
+    const settings=f.read(),missing=structuredClone(settings);delete missing.settings.bankTransfer;
+    assert.equal((await put(missing)).status,409);assert.deepEqual(f.read(),settings);
+    const invalid=structuredClone(settings);invalid.settings.bankTransfer.iban='FR1520041010050500013M02606';
+    assert.equal((await put(invalid)).status,400);assert.deepEqual(f.read(),settings);
+    const publicView=await f.request('/api/public/repair-intake');assert.equal(publicView.status,200);
+    assert.ok(!JSON.stringify(publicView.data).includes(bank.iban));assert.ok(!JSON.stringify(publicView.data).includes(bank.beneficiary));
+    assert.equal((await f.publish(proposal({bankInstructions:''}))).status,200);
+    const published=f.read(),record=published.repairs[0].proposal;
+    assert.match(record.bankInstructions,/FR14 2004/);assert.match(record.transferReference,/^RP-/);
+    const waiting=publicRepair((await f.request('/api/client/portal',f.client)).data).proposal;
+    assert.equal(waiting.bankInstructions,'');assert.equal(waiting.transferReference,undefined);
+    const changed=structuredClone(published);changed.settings.bankTransfer={...bank,beneficiary:'Autre titulaire'};
+    assert.equal((await put(changed)).status,200);
+    const returned=await f.choose('return');assert.equal(returned.status,200);
+    const exposed=publicRepair(returned.data).proposal;
+    assert.equal(exposed.bankInstructions,record.bankInstructions);assert.equal(exposed.transferReference,record.transferReference);
+    const foreign=await f.request('/api/client/portal',f.other);assert.ok(!JSON.stringify(foreign.data).includes(record.transferReference));assert.ok(!JSON.stringify(foreign.data).includes(bank.iban));
+    const before=f.read(),forged=structuredClone(before);forged.repairs[0].proposal.transferReference='RP-FORGED-REFERENCE';
+    assert.equal((await put(forged)).status,409);assert.deepEqual(f.read(),before);
+    const cleared=structuredClone(before);cleared.settings.bankTransfer=null;assert.equal((await put(cleared)).status,200);
+    assert.equal(f.read().settings.bankTransfer,null);assert.equal(f.read().repairs[0].proposal.bankInstructions,record.bankInstructions);
+  });
+
   test(`${platform}: refused repair requires manual return-transfer confirmation before dispatch`, async t => {
     const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
     const refused = await f.choose('return'); assert.equal(refused.status, 200);
@@ -341,7 +371,8 @@ for (const platform of ['node', 'worker']) {
   });
 
   test(`${platform}: diagnostic proposals stay isolated between workshops even when dossier and client IDs collide`, async t => {
-    const f = await fixture(t, platform); assert.equal((await f.publish()).status, 200);
+    const f = await fixture(t, platform), configured=f.read();configured.settings.bankTransfer=bank;f.replace(configured);
+    assert.equal((await f.publish(proposal({bankInstructions:''}))).status, 200);
     const rootBefore = f.read(), tenantId = crypto.randomUUID(), tenantStore = structuredClone(f.store);
     tenantStore.settings.workshop = 'Atelier distinct fictif';
     for (const statement of provisioningStatements({id: tenantId, email: 'tenant-admin@example.invalid',
@@ -368,6 +399,7 @@ for (const platform of ['node', 'worker']) {
     const tenantAdmin = tenantAuth('admin'), tenantClient = tenantAuth('client');
     const offered = await f.request(f.adminPath, {...tenantAdmin, method: 'POST', body: {revision: 0, action: 'publish', ...proposal({repairAmount: 23.5})}});
     assert.equal(offered.status, 200, JSON.stringify(offered.data)); assert.equal(offered.data.settings.workshop, tenantStore.settings.workshop);
+    assert.equal(offered.data.settings.bankTransfer,undefined);assert.ok(!JSON.stringify(offered.data).includes(bank.iban));
     const tenantProposalId = offered.data.repairs[0].proposal.id, rootProposalId = rootBefore.repairs[0].proposal.id;
     assert.notEqual(tenantProposalId, rootProposalId); assert.deepEqual(f.read(), rootBefore);
     assert.equal((await f.choose('repair', tenantProposalId)).status, 409);
@@ -393,6 +425,8 @@ for (const platform of ['node', 'worker']) {
     const replaced = structuredClone(before); replaced.repairs[0].proposal.repairAmount = 45;
     assert.equal((await save(replaced)).status, 409); assert.deepEqual(f.read(), before);
     const forged = structuredClone(before); forged.repairs[1].proposal = structuredClone(before.repairs[0].proposal); forged.repairs[1].proposal.id = crypto.randomUUID();
+    assert.equal((await save(forged)).status, 400); assert.deepEqual(f.read(), before);
+    forged.repairs[1].proposal.transferReference = 'RP-OTHER-DOSSIER';
     assert.equal((await save(forged)).status, 409); assert.deepEqual(f.read(), before);
     const ordinary = structuredClone(before); ordinary.repairs[0].diagnosis = 'Autre note privée';
     const edited = await save(ordinary); assert.equal(edited.status, 200, JSON.stringify(edited.data));

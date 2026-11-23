@@ -20,6 +20,50 @@ function unchanged(s,action,pattern){
   const before=JSON.stringify(s);assert.throws(action,pattern);assert.equal(JSON.stringify(s),before);
 }
 
+const bank = (overrides={}) => ({beneficiary:'Atelier Exemple',iban:'FR1420041010050500013M02606',bic:'PSSTFRPPXXX',bankName:'Banque fictive',instructions:'Indiquer le libellé du dossier.',...overrides});
+
+test('Private bank settings validate account structure, normalize display and retain explicit clearing',()=>{
+  const f=fixture();
+  f.s.settings.bankTransfer=bank({iban:'fr14 2004 1010 0505 0001 3m02 606',bic:'psstfrppxxx'});
+  const restored=d.validateStore(f.s);
+  assert.equal(restored.settings.bankTransfer.iban,bank().iban);assert.equal(restored.settings.bankTransfer.bic,'PSSTFRPPXXX');
+  assert.match(d.bankTransferInstructions(restored.settings.bankTransfer),/Bénéficiaire : Atelier Exemple/);
+  assert.match(d.bankTransferInstructions(restored.settings.bankTransfer),/FR14 2004/);
+  f.s.settings.bankTransfer=null;assert.equal(d.validateStore(f.s).settings.bankTransfer,null);
+  for(const value of [[],{},bank({beneficiary:''}),bank({iban:'FR1520041010050500013M02606'}),bank({iban:'ZZ1420041010050500013M02606'}),bank({bic:'not a bic'}),bank({instructions:'x'.repeat(1001)}),bank({beneficiary:'Nom\0invalide'}),{...bank(),secret:'forged'}]){
+    f.s.settings.bankTransfer=value;assert.throws(()=>d.validateStore(f.s),/bancaire|IBAN|BIC|bénéficiaire|virement/i);
+  }
+});
+
+test('New proposals snapshot configured bank instructions and freeze a distinct transfer label',()=>{
+  const f=fixture();f.s.settings.bankTransfer=bank();
+  const p=publish(f,terms({bankInstructions:''}));
+  assert.match(p.bankInstructions,/Atelier Exemple/);assert.match(p.bankInstructions,/FR14 2004/);
+  assert.match(p.transferReference,/^RP-[A-Z0-9-]+$/);assert.ok(p.transferReference.length<=35);
+  const reference=p.transferReference;
+  assert.equal(d.publishRepairProposal(f.s,f.r.id,terms({bankInstructions:''})),false);
+  assert.equal(d.publishRepairProposal(f.s,f.r.id,terms({repairAmount:95,bankInstructions:''})),true);
+  assert.equal(f.r.proposal.transferReference,reference);
+  d.decideRepairProposal(f.s,f.r.id,f.r.proposal.id,'return');
+  const frozen=f.r.proposal.bankInstructions;
+  f.s.settings.bankTransfer=bank({beneficiary:'Autre titulaire'});
+  assert.equal(f.r.proposal.bankInstructions,frozen);assert.equal(f.r.proposal.transferReference,reference);
+  assert.equal(d.validateStore(f.s).repairs[0].proposal.transferReference,reference);
+  const other=fixture();const second=publish(other);assert.notEqual(second.transferReference,reference);
+  for(const value of ['', 'texte libre', 'X'.repeat(36)]){
+    const copy=structuredClone(f.s);copy.repairs[0].proposal.transferReference=value;assert.throws(()=>d.validateStore(copy),/libellé|référence|virement/i);
+  }
+});
+
+test('Existing manual bank instructions and legacy transfer references remain usable',()=>{
+  const f=fixture();f.s.settings.bankTransfer=bank();
+  const p=publish(f);assert.equal(p.bankInstructions,terms().bankInstructions);
+  delete p.transferReference;assert.equal(d.validateStore(f.s).repairs[0].proposal.transferReference,undefined);
+  f.s.settings.bankTransfer=null;
+  const missing=fixture();unchanged(missing.s,()=>d.publishRepairProposal(missing.s,missing.r.id,terms({bankInstructions:''})),/virement/);
+  const free=fixture();free.s.settings.bankTransfer=bank();assert.equal(publish(free,terms({returnFee:0,bankInstructions:''})).bankInstructions,'');
+});
+
 test('Diagnostic publication keeps public terms, private diagnosis and internal costs separate',()=>{
   const f=fixture();d.setRepairTotalCost(f.s,f.r.id,34.5);const cost=d.repairTotalCost(f.s,f.r),stock=structuredClone(f.s.parts);
   const p=publish(f,terms({description:'  Intervention publique  ',bankInstructions:'  Instructions fictives  '}));

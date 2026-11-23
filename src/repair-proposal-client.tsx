@@ -52,8 +52,10 @@ export function RepairProposalClient({repairId, repairCode, proposal, stage, bus
 }) {
   const [confirmation, setConfirmation] = useState<ProposalClientAction | null>(null), [acknowledged, setAcknowledged] = useState(false);
   const [documentError, setDocumentError] = useState('');
+  const [copyFeedback,setCopyFeedback]=useState('');
   const headingId = useId();
-  useEffect(() => {setConfirmation(null); setAcknowledged(false); setDocumentError('');}, [proposal.id, proposal.decision, proposal.withdrawal?.id]);
+  const transferReference=proposal.transferReference||repairCode;
+  useEffect(() => {setConfirmation(null); setAcknowledged(false); setDocumentError('');setCopyFeedback('');}, [proposal.id, proposal.decision, proposal.withdrawal?.id,transferReference]);
   const status = proposalClientStatus(proposal, stage);
   const pending = proposal.decision === 'pending';
   const repairable = proposal.kind === 'repair';
@@ -63,9 +65,13 @@ export function RepairProposalClient({repairId, repairCode, proposal, stage, bus
     : confirmation === 'buyback'
       ? {title: 'Accepter le rachat pour pièces ?', text: `Vous acceptez l’offre de rachat de votre console pour ${money(proposal.buybackAmount!)}. Le magasin vous contactera pour finaliser le rachat et son règlement. Votre console ne sera pas renvoyée.`, acknowledgement: 'J’accepte cette offre de rachat pour pièces.', button: 'Confirmer le rachat'}
       : confirmation === 'declare-transfer'
-        ? {title: 'Signaler votre virement ?', text: `Confirmez avoir effectué le virement de ${money(proposal.returnFee)} avec la référence ${repairCode}. Le magasin vérifiera sa réception ; cette déclaration ne vaut pas confirmation de paiement.`, acknowledgement: 'J’ai effectué ce virement.', button: 'Signaler mon virement'}
+        ? {title: 'Signaler votre virement ?', text: `Confirmez avoir effectué le virement de ${money(proposal.returnFee)} avec le libellé ${transferReference}. Le magasin vérifiera sa réception ; cette déclaration ne vaut pas confirmation de paiement.`, acknowledgement: 'J’ai effectué ce virement.', button: 'Signaler mon virement'}
         : {title: repairable ? 'Refuser la réparation et demander le retour ?' : 'Demander le retour de votre console ?', text: `${repairable ? 'La réparation ne sera pas réalisée. ' : ''}${proposal.returnFee === 0 ? 'Le retour est sans frais.' : `Vous devrez régler ${money(proposal.returnFee)} de frais de retour par virement avant l’expédition.`} Votre choix sera transmis au magasin.`, acknowledgement: repairable ? 'Je refuse la réparation et je demande le retour.' : 'Je demande le retour de ma console.', button: 'Confirmer le retour'};
   const ask = (action: ProposalClientAction) => {setAcknowledged(false); setConfirmation(action);};
+  async function copyReference() {
+    try {await navigator.clipboard.writeText(transferReference);setCopyFeedback('Libellé copié.');}
+    catch {setCopyFeedback('Sélectionnez le libellé ci-dessus pour le copier.');}
+  }
   async function download(kind: ProposalReceiptKind) {
     if (disabled) return;
     if (await onDownload(repairId, proposal.id, kind)) setDocumentError('');
@@ -99,7 +105,7 @@ export function RepairProposalClient({repairId, repairCode, proposal, stage, bus
     {proposal.decision === 'return' && <div className="portal-proposal-transfer">
       <div className="portal-proposal-price"><span>Frais de retour<small>{proposal.returnFee === 0 ? 'Retour sans frais' : 'Règlement par virement'}</small></span><strong>{money(proposal.returnFee)}</strong></div>
       {proposal.returnedAt ? <><p className="portal-proposal-confirmed"><Icon name="check" size={17}/>Expédition confirmée le {dateFmt(proposal.returnedAt)}.</p>{proposal.tracking && <div className="portal-proposal-bank"><span>Suivi communiqué par le magasin</span><p className="prewrap">{proposal.tracking}</p></div>}</> : proposal.returnFee === 0 ? <p>Aucun virement n’est nécessaire. Le magasin confirmera l’expédition ici.</p> : proposal.returnPaidAt ? <p className="portal-proposal-confirmed"><Icon name="check" size={17}/>Réception du virement confirmée par le magasin le {dateFmt(proposal.returnPaidAt)}.</p> : <>
-        <div className="portal-proposal-bank"><span>Coordonnées et consignes du magasin</span>{proposal.bankInstructions ? <p className="prewrap">{proposal.bankInstructions}</p> : <p>Contactez le magasin pour obtenir ses coordonnées bancaires avant d’effectuer votre virement.</p>}<dl><dt>Montant à virer</dt><dd>{money(proposal.returnFee)}</dd><dt>Référence à indiquer</dt><dd className="mono">{repairCode}</dd></dl></div>
+        <div className="portal-proposal-bank"><span>Coordonnées et consignes du magasin</span>{proposal.bankInstructions ? <p className="prewrap">{proposal.bankInstructions}</p> : <p>Contactez le magasin pour obtenir ses coordonnées bancaires avant d’effectuer votre virement.</p>}<dl><dt>Montant à virer</dt><dd>{money(proposal.returnFee)}</dd></dl><div className="portal-transfer-reference"><label htmlFor={`${headingId}-transfer-reference`}>Libellé de virement à indiquer</label><input id={`${headingId}-transfer-reference`} className="mono" value={transferReference} readOnly onFocus={event=>event.currentTarget.select()}/><button type="button" className="btn secondary" onClick={()=>void copyReference()}>Copier le libellé</button><p>Recopiez ce libellé dans le motif ou la référence de votre virement pour que le magasin retrouve votre dossier.</p><span role="status">{copyFeedback}</span></div></div>
         {proposal.transferDeclaredAt ? <p className="portal-proposal-pending"><Icon name="clock" size={17}/>Virement signalé le {dateFmt(proposal.transferDeclaredAt)}. Sa réception reste à vérifier par le magasin.</p> : <><p>Après avoir effectué votre virement, signalez-le au magasin.</p><button type="button" className="btn primary" disabled={disabled} onClick={() => ask('declare-transfer')}><Icon name="check" size={17}/>J’ai effectué le virement</button></>}
       </>}
     </div>}

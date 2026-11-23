@@ -116,7 +116,7 @@ export function applyAdminProposal(store, repairId, request, actions) {
   } catch (error) {throw new RepairProposalError(409, error.message);}
 }
 
-const proposalKeys = ['id', 'kind', 'description', 'repairAmount', 'buybackAmount', 'returnFee', 'bankInstructions', 'publishedAt',
+const proposalKeys = ['id', 'kind', 'description', 'repairAmount', 'buybackAmount', 'returnFee', 'bankInstructions', 'transferReference', 'publishedAt',
   'decision', 'decidedAt', 'transferDeclaredAt', 'returnPaidAt', 'returnedAt', 'tracking', 'buybackCompletedAt', 'legal', 'withdrawal'];
 const proposalValue = proposal => proposal === undefined ? undefined : JSON.stringify(proposalKeys.map(key => proposal?.[key]));
 // Dedicated actions own the proposal and its client decision. A normal Store
@@ -155,6 +155,7 @@ export function publicRepairProposal(proposal) {
     id: proposal.id, kind: proposal.kind, description: proposal.description,
     repairAmount: proposal.repairAmount, buybackAmount: proposal.buybackAmount, returnFee: proposal.returnFee,
     bankInstructions: proposal.decision === 'return' && proposal.returnFee > 0 ? proposal.bankInstructions : '',
+    ...(proposal.transferReference === undefined || proposal.decision !== 'return' || proposal.returnFee <= 0 ? {} : {transferReference: proposal.transferReference}),
     publishedAt: proposal.publishedAt, decision: proposal.decision, decidedAt: proposal.decidedAt,
     transferDeclaredAt: proposal.transferDeclaredAt, returnPaidAt: proposal.returnPaidAt,
     returnedAt: proposal.returnedAt, tracking: proposal.tracking, buybackCompletedAt: proposal.buybackCompletedAt,

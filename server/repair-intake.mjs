@@ -66,7 +66,8 @@ export function assertIntakeMetadataPreserved(before, data, mode) {
   if (before.repairs.some(repair => repair.publicRequestId && next.has(repair.id)
     && next.get(repair.id).publicRequestId !== repair.publicRequestId)
     || (before.settings.publicIntake !== undefined && data.settings.publicIntake === undefined)
-    || (before.settings.publicRepairPackages !== undefined && data.settings.publicRepairPackages === undefined)) {
-    throw new RepairIntakeError(409, 'Votre version de l’atelier est ancienne. Rechargez la page avant de modifier les demandes en ligne, les forfaits et les coordonnées d’envoi.');
+    || (before.settings.publicRepairPackages !== undefined && data.settings.publicRepairPackages === undefined)
+    || (before.settings.bankTransfer !== undefined && data.settings.bankTransfer === undefined)) {
+    throw new RepairIntakeError(409, 'Votre version de l’atelier est ancienne. Rechargez la page avant de modifier les demandes, les forfaits ou les coordonnées du magasin.');
   }
 }

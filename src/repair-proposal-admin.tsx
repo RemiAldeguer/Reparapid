@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {dateFmt, timeFmt, money, type Repair, type RepairProposalInput} from './domain';
+import {dateFmt, timeFmt, money, bankTransferInstructions, type Repair, type RepairProposalInput} from './domain';
 import {useApp} from './store';
 import {Badge, Field, Icon, Panel} from './ui';
 import './repair-proposal-admin.css';
@@ -54,7 +54,7 @@ export function RepairProposalAdmin({repair}: {repair: Repair}) {
         {proposal.decision === 'return' && <section className="proposal-admin-operation" aria-label="Virement et expédition du retour">
           <h3><Icon name="package" size={19}/>Retour demandé par le client</h3>
           {proposal.returnFee > 0 ? <>
-            <p>Virement attendu : <strong>{money(proposal.returnFee)}</strong> · Référence : <strong className="mono">{repair.code}</strong>.</p>
+            <p>Virement attendu : <strong>{money(proposal.returnFee)}</strong><br/>Libellé à demander au client : <strong className="mono">{proposal.transferReference||repair.code}</strong>.</p>
             <details><summary>Instructions de virement transmises au client</summary><p className="prewrap">{proposal.bankInstructions}</p></details>
             {proposal.returnPaidAt ? <p className="proposal-admin-success"><Icon name="check" size={18}/>Virement reçu, confirmé le {dateFmt(proposal.returnPaidAt, true)}.</p> : <><p>{proposal.transferDeclaredAt ? `Le client a déclaré son virement le ${dateFmt(proposal.transferDeclaredAt, true)}. Vérifiez sa réception sur le compte du magasin.` : 'En attente du virement du client. Vérifiez le compte du magasin avant de confirmer la réception.'}</p><button type="button" className="btn primary" onClick={() => command('confirm-return-payment', 'Confirmer la réception du virement ?', `Vous confirmez avoir reçu ${money(proposal.returnFee)} pour le retour de ${repair.code}. Cette confirmation autorisera son expédition.`, 'Confirmer : virement reçu')}><Icon name="check" size={17}/>Confirmer le virement reçu</button></>}
           </> : <p>Le retour est offert. Aucun virement n’est demandé.</p>}
@@ -70,7 +70,8 @@ export function RepairProposalAdmin({repair}: {repair: Repair}) {
         <Field label={kind === 'repair' ? 'Réparation proposée au client *' : 'Explication à transmettre au client *'} hint="Décrivez clairement le diagnostic et les suites possibles."><textarea name="description" defaultValue={proposal?.description || ''} rows={4} maxLength={5000} required/></Field>
         {kind === 'repair' ? <Field label="Prix total de la réparation TTC (€) *" hint="Pièces et intervention comprises. 0 € indique une réparation offerte."><input name="repairAmount" type="number" min="0" max="100000" step="0.01" inputMode="decimal" defaultValue={proposal?.repairAmount ?? ''} required/></Field> : <><label className="proposal-admin-checkbox"><input type="checkbox" checked={buyback} onChange={event => setBuyback(event.target.checked)}/>Proposer un rachat pour pièces</label>{buyback && <Field label="Prix de rachat proposé au client (€) *"><input name="buybackAmount" type="number" min="0" max="100000" step="0.01" inputMode="decimal" defaultValue={proposal?.buybackAmount ?? ''} required/></Field>}</>}
         <Field label="Frais de retour de ce dossier (€) *" hint="Montant demandé si le client refuse la réparation ou souhaite récupérer la console irréparable. Saisissez 0 pour offrir le retour."><input type="number" min="0" max="100000" step="0.01" inputMode="decimal" value={returnFee} onChange={event => setReturnFee(event.target.value)} required/></Field>
-        <Field label={`Instructions de virement${Number(returnFee) > 0 ? ' *' : ''}`} hint="Bénéficiaire, IBAN et consignes utiles. Affichés uniquement au client concerné lorsqu’il demande le retour."><textarea name="bankInstructions" defaultValue={proposal?.bankInstructions || ''} rows={4} maxLength={3000} required={Number(returnFee) > 0} autoComplete="off"/></Field>
+        <Field label={`Instructions de virement${Number(returnFee) > 0 ? ' *' : ''}`} hint="Préremplies depuis les réglages du magasin. Vous pouvez les adapter pour ce dossier. Affichées au client après sa demande de retour payant."><textarea name="bankInstructions" defaultValue={proposal?.bankInstructions ?? bankTransferInstructions(data.settings.bankTransfer)} rows={5} maxLength={3000} required={Number(returnFee) > 0} autoComplete="off"/></Field>
+        <p className="form-hint">Le libellé de virement est généré automatiquement à la publication. <a href="#/settings" className="text-link">Configurer le compte bancaire du magasin</a></p>
         <div className="button-row">{proposal && <button type="button" className="btn secondary" onClick={() => setEditing(false)}>Annuler les modifications</button>}<button type="submit" className="btn primary"><Icon name="right" size={17}/>{proposal ? 'Publier la nouvelle proposition' : 'Publier la proposition au client'}</button></div>
       </form>}
     </div>
