@@ -39,6 +39,14 @@ npx wrangler deploy --config .wrangler/reparapid.production.jsonc --keep-vars
 
 La vitrine permet à un particulier de demander une réparation, de créer son compte et de préparer l’envoi de sa console. Après diagnostic, le magasin publie le devis et les frais de retour propres au dossier. Le client accepte la réparation, demande le retour ou accepte une offre de rachat pour pièces si la console est irréparable. Le magasin confirme manuellement le virement de retour puis l’expédition ; le devis accepté est repris pour la facturation de la réparation. L’accès **Magasin** ouvre l’application protégée : clients, consoles, dossiers, stock, paiements et exports. L’espace client présente uniquement les consoles et demandes de son propriétaire. Le socle d’ateliers distincts est conservé côté serveur ; le rôle effectif du compte du magasin reste celui de la plateforme, tandis que l’interface affiche Administrateur.
 
+## Virements et récupération de la console
+
+**Réglages → Virements bancaires des clients** permet de saisir le compte du magasin. Les nouvelles propositions reprennent ces coordonnées ; le client qui demande un retour payant reçoit un libellé de virement propre au dossier, avec bouton de copie. Les coordonnées restent privées et les propositions déjà publiées ne changent pas lors d’une mise à jour du compte. Le contrôle IBAN vérifie sa structure, sans confirmer l’identité du titulaire. Aucun compte réel n’est fourni par défaut et aucun virement n’est exécuté par l’application.
+
+Après réparation terminée, le portail propose une dernière étape : **retrait en magasin** ou **envoi inclus, sans supplément**. Le client confirme son choix et, pour l’envoi, son adresse complète. Le magasin confirme ensuite la remise ou l’expédition avec son suivi. Les frais convenus pour un retour après refus de devis ou diagnostic irréparable restent propres à ce parcours. L’onglet **E-mails** propose les deux nouveaux événements et leurs aperçus, soit 18 événements visibles.
+
+Les CGV courantes portent la version **2026-11-23.2** ; les conditions déjà acceptées restent conservées. **770 tests (704 + 66 Worker)** réussis, TypeScript et paquet de **132 modules / 158 fichiers** validés, sans migration SQL ni nouvelle dépendance. Publié et contrôlé sur workers.dev : fichiers servis conformes, accès privés protégés et métadonnées D1 inchangées. Le compte bancaire réel reste à renseigner dans les réglages. Voir [TESTS.md](TESTS.md) pour la recette et les limites.
+
 ## Protections de sécurité
 
 Les accès clients et magasin restent contrôlés côté serveur : sessions opaques, cookies protégés, CSRF, vérification du propriétaire et séparation des ateliers. Les données et exports privés ne deviennent pas des fichiers publics. La clé d’envoi Resend appartient aux secrets Cloudflare en production, jamais aux variables `VITE_*` ni aux sources. La clé d’envoi de test est configurée comme secret serveur, sans être affichée au navigateur.
