@@ -6,7 +6,15 @@ Validation initiale de l’import le **12 octobre 2026**, avec Node **24.19.0** 
 
 Documentation mise à jour le **23 novembre 2026** ; les résultats ci-dessous restent rattachés à leur date de vérification. Pour la reprise détaillée, lire [CONTEXTE_PROJET.md](CONTEXTE_PROJET.md).
 
-## Résultat courant : routage des e-mails de test — 23 novembre 2026
+## Résultat courant : politique de cookies — 23 novembre 2026
+
+**748 tests réussis (683 Node/domaine/API + 65 Cloudflare)**, aucun échec ni test ignoré. Un nouveau scénario vérifie qu’une mise à jour de la politique utilise sa propre date dans le manifeste, le document et le sitemap, sans renouveler artificiellement toutes les pages historiques. Les tests de sécurité existants contrôlent les véritables cookies de connexion Node/Worker et les déconnexions indépendantes. TypeScript et build de 125 modules / 158 fichiers validés ; 144 pages statiques et 145 URL canoniques, sans changement de contrat d’API ou d’authentification.
+
+Recette navigateur sur base SQLite en mémoire : tableau sémantique des deux cookies, coordonnées, durées, date et lien CNIL, affichage bureau et à 320 px sans débordement constaté. Les intitulés juridiques renvoient à la même page statique ; aucune nouvelle boîte de consentement, traceur ou stockage n’est créé. Les CGV et leurs preuves restent inchangées. Warning historique du bundle supérieur à 500 kB conservé.
+
+Publication vérifiée sur 100 % du trafic Cloudflare depuis un build temporaire isolé de 158 fichiers, après refus des sorties partagées concurrentes/inattendues. Six fichiers/pages conformes par SHA-256, politique anonyme sans cookie déposé, version du 23 novembre 2026 et alias 308 corrects, trois routes privées 401 et trois chemins privés 404. Métadonnées de révision/génération D1 et nombre de notifications identiques avant/après. La liste d’assets et les en-têtes de sécurité restent stricts. Configuration Resend désormais enregistrée : clé ajoutée par l’utilisateur, expéditeur de démonstration, adresse de réponse du magasin et destinataire de test présents comme secrets ; activation globale confirmée. Les valeurs n’ont pas été lues et aucun envoi réel n’a été effectué pendant cette recette.
+
+## Résultat précédent : routage des e-mails de test — 23 novembre 2026
 
 **747 tests réussis : 682 Node/domaine/API et 65 Cloudflare**, aucun échec ni test ignoré. Les nouveaux scénarios ont d’abord échoué avant implémentation ; la recette ciblée de livraison et cycle de vie compte **94 tests verts**. TypeScript et build **125 modules / 158 fichiers** réussis, sans nouvelle dépendance et avec le warning historique de bundle supérieur à 500 kB.
 
